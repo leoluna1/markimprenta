@@ -40,6 +40,25 @@ export default class ModalView extends BaseView {
     EventBus.on('modal:show', ({ product }) => this.show(product));
   }
 
+  _isImagePath(img) {
+    if (!img) return false;
+    return img.startsWith('http') || img.startsWith('images/') ||
+           img.endsWith('.jpg') || img.endsWith('.png') ||
+           img.endsWith('.webp') || img.endsWith('.jpeg');
+  }
+
+  _imageHTML(p) {
+    if (this._isImagePath(p.image)) {
+      return `<img
+        src="${p.image}"
+        alt="${this.esc(p.name)}"
+        style="width:100%;max-height:260px;object-fit:cover;border-radius:12px;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='block';"
+      /><span style="display:none;font-size:4rem;text-align:center;width:100%;">📦</span>`;
+    }
+    return `<span style="font-size:4rem;display:block;text-align:center;">${p.image ?? '📦'}</span>`;
+  }
+
   show(p) {
     if (!this._body || !this.$el) return;
 
@@ -59,7 +78,7 @@ export default class ModalView extends BaseView {
 
     this._body.innerHTML = `
       <div class="modal-product">
-        <div class="modal-image">${this.esc(p.image ?? '📦')}</div>
+        <div class="modal-image">${this._imageHTML(p)}</div>
         <h2>${this.esc(p.name)}</h2>
         <p class="modal-desc">${this.esc(p.description)}</p>
         <div class="modal-price-badge">${price}</div>

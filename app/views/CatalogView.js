@@ -57,9 +57,28 @@ export default class CatalogView extends BaseView {
 
   // ── Privados ────────────────────────────────────────────────────────────
 
+  _isImagePath(img) {
+    if (!img) return false;
+    return img.startsWith('http') || img.startsWith('images/') ||
+           img.endsWith('.jpg') || img.endsWith('.png') ||
+           img.endsWith('.webp') || img.endsWith('.jpeg');
+  }
+
+  _imageHTML(p) {
+    if (this._isImagePath(p.image)) {
+      return `<img
+        src="${p.image}"
+        alt="${this.esc(p.name)}"
+        style="width:100%;height:100%;object-fit:cover;display:block;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+      /><span style="display:none;font-size:3.5rem;align-items:center;justify-content:center;width:100%;height:100%;">📦</span>`;
+    }
+    return `<span style="font-size:3.5rem;display:flex;align-items:center;justify-content:center;width:100%;height:100%;">${p.image ?? '📦'}</span>`;
+  }
+
   _cardHTML(p, i) {
     const price = typeof p.price === 'number'
-      ? `Desde $${p.price.toFixed(2)} <small>${this.esc(p.priceUnit ?? '')}</small>`
+      ? `Desde ${p.price.toFixed(2)} <small>${this.esc(p.priceUnit ?? '')}</small>`
       : this.esc(p.price ?? 'Consultar');
     const badge = p.popular
       ? `<span class="product-badge">⭐ Popular</span>`
@@ -68,7 +87,7 @@ export default class CatalogView extends BaseView {
     return `
       <div class="product-card" data-id="${p.id}" style="animation-delay:${i * 0.07}s">
         ${badge}
-        <div class="product-image">${this.esc(p.image ?? '📦')}</div>
+        <div class="product-image">${this._imageHTML(p)}</div>
         <div class="product-content">
           <h3>${this.esc(p.name)}</h3>
           <p>${this.esc(p.description)}</p>

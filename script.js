@@ -3,6 +3,12 @@
 // Versión Profesional con Cotizador Mejorado
 // ================================================
 
+// ===== UTILIDAD: detectar si image es ruta o emoji =====
+function isImagePath(img) {
+    if (!img) return false;
+    return img.startsWith('http') || img.startsWith('images/') || img.startsWith('./') || img.endsWith('.jpg') || img.endsWith('.png') || img.endsWith('.webp');
+}
+
 // ===== VARIABLES GLOBALES =====
 let currentFilter = 'todos';
 let currentPage = 1;
@@ -31,7 +37,7 @@ function initializeApp() {
 
 // ===== MODO OSCURO =====
 function initializeTheme() {
-    const btn  = document.getElementById('themeToggle');
+    const btn = document.getElementById('themeToggle');
     const icon = document.getElementById('themeIcon');
     const html = document.documentElement;
 
@@ -65,9 +71,9 @@ function applyTheme(theme, icon, html) {
 function createParticles() {
     const container = document.getElementById('particles-background');
     if (!container) return;
-    
+
     const particleCount = 30;
-    
+
     for (let i = 0; i < particleCount; i++) {
         const particle = document.createElement('div');
         const size = Math.random() * 4 + 1;
@@ -75,7 +81,7 @@ function createParticles() {
         const animationDuration = Math.random() * 20 + 30;
         const animationDelay = Math.random() * 10;
         const opacity = Math.random() * 0.15 + 0.05;
-        
+
         particle.style.cssText = `
             position: absolute;
             width: ${size}px;
@@ -89,10 +95,10 @@ function createParticles() {
             animation: floatUpSlow ${animationDuration}s linear ${animationDelay}s infinite;
             pointer-events: none;
         `;
-        
+
         container.appendChild(particle);
     }
-    
+
     if (!document.getElementById('particle-animations')) {
         const style = document.createElement('style');
         style.id = 'particle-animations';
@@ -122,32 +128,32 @@ function createParticles() {
 function initializeNavigation() {
     const nav = document.getElementById('mainNav');
     const navLinks = document.querySelectorAll('.nav-link');
-    
+
     window.addEventListener('scroll', () => {
         const currentScroll = window.pageYOffset;
-        
+
         if (currentScroll > 100) {
             nav.classList.add('scrolled');
         } else {
             nav.classList.remove('scrolled');
         }
     });
-    
+
     navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
             const targetId = link.getAttribute('href').substring(1);
             const targetSection = document.getElementById(targetId);
-            
+
             if (targetSection) {
                 navLinks.forEach(l => l.classList.remove('active'));
                 link.classList.add('active');
-                
+
                 targetSection.scrollIntoView({
                     behavior: 'smooth',
                     block: 'start'
                 });
-                
+
                 const navMenu = document.getElementById('navMenu');
                 if (navMenu) {
                     navMenu.classList.remove('active');
@@ -161,12 +167,12 @@ function initializeNavigation() {
 function initializeMobileMenu() {
     const toggle = document.getElementById('mobileMenuToggle');
     const menu = document.getElementById('navMenu');
-    
+
     if (toggle && menu) {
         toggle.addEventListener('click', () => {
             menu.classList.toggle('active');
             toggle.classList.toggle('active');
-            
+
             const spans = toggle.querySelectorAll('span');
             if (toggle.classList.contains('active')) {
                 spans[0].style.transform = 'rotate(45deg) translateY(8px)';
@@ -187,7 +193,7 @@ function initializeAnimations() {
         threshold: 0.1,
         rootMargin: '0px 0px -100px 0px'
     };
-    
+
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -196,7 +202,7 @@ function initializeAnimations() {
             }
         });
     }, observerOptions);
-    
+
     document.querySelectorAll('.service-card').forEach((card, index) => {
         card.style.opacity = '0';
         card.style.transform = 'translateY(50px)';
@@ -208,13 +214,13 @@ function initializeAnimations() {
 // ===== CONTADORES ANIMADOS =====
 function animateCounters() {
     const counters = document.querySelectorAll('.stat-number');
-    
+
     const animateCounter = (counter) => {
         const target = parseInt(counter.getAttribute('data-count'));
         const duration = 2000;
         const increment = target / (duration / 16);
         let current = 0;
-        
+
         const updateCounter = () => {
             current += increment;
             if (current < target) {
@@ -224,10 +230,10 @@ function animateCounters() {
                 counter.textContent = target + '+';
             }
         };
-        
+
         updateCounter();
     };
-    
+
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting && entry.target.textContent === '0') {
@@ -235,7 +241,7 @@ function animateCounters() {
             }
         });
     }, { threshold: 0.5 });
-    
+
     counters.forEach(counter => observer.observe(counter));
 }
 
@@ -248,7 +254,7 @@ function initializeProducts() {
 function loadProducts(filter = 'todos', page = 1) {
     const grid = document.getElementById('productsGrid');
     if (!grid) return;
-    
+
     if (typeof productsDatabase === 'undefined') {
         grid.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; color: var(--text-dark); padding: 3rem;">
@@ -257,21 +263,21 @@ function loadProducts(filter = 'todos', page = 1) {
         `;
         return;
     }
-    
-    let filteredProducts = filter === 'todos' 
-        ? productsDatabase 
+
+    let filteredProducts = filter === 'todos'
+        ? productsDatabase
         : productsDatabase.filter(p => p.category === filter);
-    
+
     const start = (page - 1) * productsPerPage;
     const end = start + productsPerPage;
     const paginatedProducts = filteredProducts.slice(start, end);
-    
+
     grid.style.opacity = '0';
     grid.style.transform = 'translateY(20px)';
-    
+
     setTimeout(() => {
         grid.innerHTML = '';
-        
+
         if (paginatedProducts.length === 0) {
             grid.innerHTML = `
                 <div style="grid-column: 1/-1; text-align: center; padding: 3rem;">
@@ -284,12 +290,12 @@ function loadProducts(filter = 'todos', page = 1) {
                 grid.appendChild(card);
             });
         }
-        
+
         requestAnimationFrame(() => {
             grid.style.opacity = '1';
             grid.style.transform = 'translateY(0)';
         });
-        
+
         updatePagination(filteredProducts.length, page);
     }, 300);
 }
@@ -311,8 +317,10 @@ function createProductCard(product, index) {
 
     card.innerHTML = `
         <div class="product-image">
-            ${product.image || '📦'}
-            ${popularBadge}
+            ${isImagePath(product.image)
+            ? `<img src="${product.image}" alt="${product.name}" style="width:100%; height:100%; object-fit:cover; display:block;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+            : ''}
+        <span style="font-size:4rem; display:${isImagePath(product.image) ? 'none' : 'flex'}; align-items:center; justify-content:center; width:100%; height:100%;">${!isImagePath(product.image) ? (product.image || '📦') : '📦'}</span>
         </div>
         <div class="product-content">
             <h3>${product.name}</h3>
@@ -335,16 +343,16 @@ function createProductCard(product, index) {
 
 function initializeFilters() {
     const filterButtons = document.querySelectorAll('.filter-btn');
-    
+
     filterButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             filterButtons.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            
+
             const filter = btn.getAttribute('data-filter');
             currentFilter = filter;
             currentPage = 1;
-            
+
             loadProducts(filter, currentPage);
         });
     });
@@ -353,14 +361,14 @@ function initializeFilters() {
 function updatePagination(totalItems, currentPage) {
     const totalPages = Math.ceil(totalItems / productsPerPage);
     const pagination = document.getElementById('catalogPagination');
-    
+
     if (!pagination || totalPages <= 1) {
         if (pagination) pagination.innerHTML = '';
         return;
     }
-    
+
     let html = '<div style="display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">';
-    
+
     for (let i = 1; i <= totalPages; i++) {
         const active = i === currentPage ? 'active' : '';
         html += `
@@ -371,7 +379,7 @@ function updatePagination(totalItems, currentPage) {
             </button>
         `;
     }
-    
+
     html += '</div>';
     pagination.innerHTML = html;
 }
@@ -379,7 +387,7 @@ function updatePagination(totalItems, currentPage) {
 function changePage(page) {
     currentPage = page;
     loadProducts(currentFilter, page);
-    
+
     const catalog = document.getElementById('catalogo');
     if (catalog) {
         catalog.scrollIntoView({ behavior: 'smooth' });
@@ -389,13 +397,13 @@ function changePage(page) {
 function openProductModal(product) {
     const modal = document.getElementById('productModal');
     const modalBody = document.getElementById('modalBody');
-    
+
     if (!modal || !modalBody) return;
-    
-    const priceDisplay = typeof product.price === 'number' 
-        ? `Desde $${product.price.toFixed(2)}` 
+
+    const priceDisplay = typeof product.price === 'number'
+        ? `Desde $${product.price.toFixed(2)}`
         : product.price || 'Consultar precio';
-    
+
     const featuresHTML = product.features && product.features.length > 0
         ? `<p class="modal-features-title">Características incluidas</p>
            <ul class="modal-features">
@@ -403,9 +411,13 @@ function openProductModal(product) {
            </ul>`
         : '';
 
+    const modalImageHTML = isImagePath(product.image)
+        ? `<img src="${product.image}" alt="${product.name}" style="width:100%; max-height:280px; object-fit:cover; border-radius:16px; margin-bottom:1.5rem;">`
+        : `<div class="modal-product-icon">${product.image || '📦'}</div>`;
+
     modalBody.innerHTML = `
         <div style="text-align:center;">
-            <div class="modal-product-icon">${product.image || '📦'}</div>
+            ${modalImageHTML}
             <h2 class="modal-product-name">${product.name}</h2>
             <p class="modal-product-desc">${product.description}</p>
             <div class="modal-price-badge">${priceDisplay}</div>
@@ -417,7 +429,7 @@ function openProductModal(product) {
             </button>
         </div>
     `;
-    
+
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
 }
@@ -441,19 +453,19 @@ document.addEventListener('click', (e) => {
 function initializePortfolio() {
     const filterButtons = document.querySelectorAll('.portfolio-filter-btn');
     const portfolioItems = document.querySelectorAll('.portfolio-item');
-    
+
     if (filterButtons.length === 0) return;
-    
+
     filterButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             filterButtons.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            
+
             const filterValue = btn.getAttribute('data-filter');
-            
+
             portfolioItems.forEach((item, index) => {
                 const category = item.getAttribute('data-category');
-                
+
                 if (filterValue === 'all' || category === filterValue) {
                     item.style.display = 'block';
                     item.style.animation = `fadeInUp 0.6s ease-out ${index * 0.1}s backwards`;
@@ -469,7 +481,7 @@ function initializePortfolio() {
 function initializeQuote() {
     const form = document.getElementById('quoteForm');
     if (!form) return;
-    
+
     form.addEventListener('submit', (e) => {
         e.preventDefault();
         calculateQuote();
@@ -487,39 +499,39 @@ function calculateQuote() {
     const design = document.getElementById('quoteDesign').value;
     const needProof = document.getElementById('quoteProof').checked;
     const needInstall = document.getElementById('quoteInstall').checked;
-    
+
     if (!service || !quantity) {
         alert('Por favor completa todos los campos obligatorios');
         return;
     }
-    
+
     const basePrices = {
         'flyers': 0.12, 'tarjetas': 0.20, 'brochures': 0.35, 'catalogos': 1.50,
         'banners': 8.00, 'rollups': 45.00, 'vinilos': 6.50, 'cajas': 0.80,
         'etiquetas': 0.08, 'bolsas': 0.40, 'gorras': 5.00, 'tazas': 4.00,
         'esferos': 0.35, 'diseno-logo': 150.00, 'diseno-completo': 500.00
     };
-    
+
     let basePrice = basePrices[service] || 0.20;
     let breakdown = [];
-    
+
     let productCost = 0;
     if (service.includes('diseno')) {
         productCost = basePrice;
         breakdown.push({ label: 'Servicio de Diseño', value: basePrice });
     } else {
         productCost = basePrice * quantity;
-        breakdown.push({ 
-            label: `${quantity} unidades × $${basePrice.toFixed(2)}`, 
-            value: productCost 
+        breakdown.push({
+            label: `${quantity} unidades × $${basePrice.toFixed(2)}`,
+            value: productCost
         });
     }
-    
+
     const sizeMultipliers = {
         'a6': 0.8, 'a5': 1.0, 'a4': 1.2, 'a3': 1.8,
         'carta': 1.15, 'oficio': 1.3, 'personalizado': 1.5
     };
-    
+
     if (size && !service.includes('diseno')) {
         const sizeMult = sizeMultipliers[size] || 1;
         if (sizeMult !== 1) {
@@ -528,12 +540,12 @@ function calculateQuote() {
             breakdown.push({ label: `Ajuste por Tamaño`, value: sizeAdj });
         }
     }
-    
+
     const materialMult = {
         'couche115': 1.0, 'couche150': 1.15, 'couche200': 1.35,
         'couche300': 1.6, 'opalina': 1.4, 'adhesivo': 1.25, 'lona': 1.3
     };
-    
+
     if (material && !service.includes('diseno')) {
         const matMult = materialMult[material] || 1;
         if (matMult !== 1) {
@@ -542,12 +554,12 @@ function calculateQuote() {
             breakdown.push({ label: `Material Premium`, value: matAdj });
         }
     }
-    
+
     const colorCosts = {
         'full-color': 1.0, 'color-frente': 0.7, 'bn': 0.5,
         '1-tinta': 0.6, '2-tintas': 0.75
     };
-    
+
     if (color && !service.includes('diseno')) {
         const colorMult = colorCosts[color] || 1;
         if (colorMult !== 1) {
@@ -557,24 +569,24 @@ function calculateQuote() {
             breakdown.push({ label, value: colorAdj });
         }
     }
-    
+
     const finishCosts = {
         'ninguno': 0, 'laminado-mate': quantity * 0.05,
         'laminado-brillante': quantity * 0.06, 'barniz-uv': quantity * 0.10,
         'troquelado': quantity * 0.08, 'relieve': quantity * 0.15
     };
-    
+
     let finishCost = finishCosts[finish] || 0;
     if (finishCost > 0) {
         breakdown.push({ label: `Acabado Especial`, value: finishCost });
     }
-    
+
     const designCosts = { 'no': 0, 'basico': 25, 'profesional': 50, 'premium': 100 };
     let designCost = designCosts[design] || 0;
     if (designCost > 0) {
         breakdown.push({ label: `Diseño Gráfico`, value: designCost });
     }
-    
+
     let additionalCosts = 0;
     if (needProof) {
         additionalCosts += 15;
@@ -584,23 +596,23 @@ function calculateQuote() {
         additionalCosts += 50;
         breakdown.push({ label: `Instalación`, value: 50 });
     }
-    
+
     let subtotal = productCost + finishCost + designCost + additionalCosts;
-    
+
     let discount = 0, discountPercent = 0;
     if (quantity >= 5000) { discountPercent = 15; discount = subtotal * 0.15; }
     else if (quantity >= 2000) { discountPercent = 10; discount = subtotal * 0.10; }
     else if (quantity >= 1000) { discountPercent = 5; discount = subtotal * 0.05; }
-    
+
     const deliveryMult = { 'estandar': 1.0, 'express': 1.15, 'urgente': 1.30 };
     let deliveryCost = 0;
     if (deliveryMult[delivery] > 1) {
         deliveryCost = subtotal * (deliveryMult[delivery] - 1);
         breakdown.push({ label: `Entrega Urgente`, value: deliveryCost });
     }
-    
+
     let total = subtotal + deliveryCost - discount;
-    
+
     showDetailedQuoteResult({
         service, quantity, size, material, color, finish, delivery, design,
         breakdown, subtotal, discount, discountPercent, total,
@@ -618,9 +630,9 @@ function showDetailedQuoteResult(data) {
     const totalValue = document.getElementById('totalValue');
     const unitPrice = document.getElementById('unitPrice');
     const deliveryTime = document.getElementById('deliveryTime');
-    
+
     if (!resultDiv) return;
-    
+
     const serviceNames = {
         'flyers': 'Flyers y Volantes', 'tarjetas': 'Tarjetas de Presentación',
         'brochures': 'Brochures', 'catalogos': 'Catálogos', 'banners': 'Banners',
@@ -629,28 +641,28 @@ function showDetailedQuoteResult(data) {
         'tazas': 'Tazas', 'esferos': 'Esferos', 'diseno-logo': 'Diseño de Logo',
         'diseno-completo': 'Identidad Corporativa'
     };
-    
+
     const deliveryNames = {
         'estandar': '7-10 días hábiles',
         'express': '3-5 días hábiles',
         'urgente': '24-48 horas'
     };
-    
+
     let summaryHTML = `
         <div class="summary-item">
             <span class="summary-label">Servicio:</span>
             <span class="summary-value">${serviceNames[data.service] || data.service}</span>
         </div>`;
-    
+
     if (!data.service.includes('diseno')) {
         summaryHTML += `<div class="summary-item">
             <span class="summary-label">Cantidad:</span>
             <span class="summary-value">${data.quantity} unidades</span>
         </div>`;
     }
-    
+
     summaryContent.innerHTML = summaryHTML;
-    
+
     let breakdownHTML = '';
     data.breakdown.forEach(item => {
         breakdownHTML += `<div class="breakdown-item">
@@ -659,24 +671,24 @@ function showDetailedQuoteResult(data) {
         </div>`;
     });
     breakdownList.innerHTML = breakdownHTML;
-    
+
     subtotalValue.textContent = '$' + data.subtotal.toFixed(2);
-    
+
     if (data.discount > 0) {
         discountRow.style.display = 'flex';
         discountValue.textContent = `-$${data.discount.toFixed(2)} (${data.discountPercent}%)`;
     } else {
         discountRow.style.display = 'none';
     }
-    
+
     totalValue.textContent = '$' + data.total.toFixed(2);
     unitPrice.textContent = '$' + data.unitPrice.toFixed(2);
     deliveryTime.textContent = 'Entrega estimada: ' + deliveryNames[data.delivery];
-    
+
     resultDiv.style.display = 'block';
     resultDiv.style.transform = 'scale(0.95)';
     resultDiv.style.opacity = '0';
-    
+
     setTimeout(() => {
         resultDiv.style.transform = 'scale(1)';
         resultDiv.style.opacity = '1';
@@ -690,26 +702,26 @@ function showDetailedQuoteResult(data) {
 function initializeContact() {
     const form = document.getElementById('contactForm');
     if (!form) return;
-    
+
     form.addEventListener('submit', (e) => {
         const submitBtn = document.getElementById('contactSubmitBtn');
         const name = document.getElementById('contactName').value;
         const email = document.getElementById('contactEmail').value;
         const message = document.getElementById('contactMessage').value;
-        
+
         if (!name || !email || !message) {
             e.preventDefault();
             showContactMessage('Por favor completa todos los campos obligatorios', 'error');
             return;
         }
-        
+
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             e.preventDefault();
             showContactMessage('Por favor ingresa un email válido', 'error');
             return;
         }
-        
+
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
         submitBtn.disabled = true;
     });
@@ -718,10 +730,10 @@ function initializeContact() {
 function showContactMessage(message, type) {
     const successDiv = document.getElementById('contactSuccessMessage');
     const errorDiv = document.getElementById('contactErrorMessage');
-    
+
     successDiv.style.display = 'none';
     errorDiv.style.display = 'none';
-    
+
     if (type === 'success') {
         successDiv.textContent = message;
         successDiv.style.display = 'flex';
@@ -729,7 +741,7 @@ function showContactMessage(message, type) {
         errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
         errorDiv.style.display = 'flex';
     }
-    
+
     setTimeout(() => {
         successDiv.style.display = 'none';
         errorDiv.style.display = 'none';
@@ -739,7 +751,7 @@ function showContactMessage(message, type) {
 // ===== EFECTOS DE SCROLL =====
 function initializeScrollEffects() {
     const scrollTop = document.getElementById('scrollTop');
-    
+
     window.addEventListener('scroll', () => {
         if (window.pageYOffset > 500) {
             scrollTop.classList.add('visible');
@@ -747,7 +759,7 @@ function initializeScrollEffects() {
             scrollTop.classList.remove('visible');
         }
     });
-    
+
     scrollTop.addEventListener('click', () => {
         window.scrollTo({
             top: 0,
@@ -764,7 +776,7 @@ function navigateToSection(sectionId) {
             behavior: 'smooth',
             block: 'start'
         });
-        
+
         const navLinks = document.querySelectorAll('.nav-link');
         navLinks.forEach(link => {
             link.classList.remove('active');
@@ -785,7 +797,7 @@ function createConfetti() {
             const x = Math.random() * window.innerWidth;
             const rotation = Math.random() * 360;
             const scale = Math.random() * 1 + 0.5;
-            
+
             confetti.style.cssText = `
                 position: fixed;
                 left: ${x}px;
@@ -798,7 +810,7 @@ function createConfetti() {
                 z-index: 10000;
                 animation: confettiFall 3s ease-out forwards;
             `;
-            
+
             document.body.appendChild(confetti);
             setTimeout(() => confetti.remove(), 3000);
         }, i * 30);

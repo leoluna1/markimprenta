@@ -12,6 +12,9 @@ export default class NavigationView extends BaseView {
   }
 
   bind() {
+    // ── Modo oscuro ────────────────────────────────────────────────────────
+    this._initTheme();
+
     // Links del menú
     this.on('click', '.nav-link', (e, el) => {
       e.preventDefault();
@@ -87,5 +90,36 @@ export default class NavigationView extends BaseView {
       { threshold: 0.4 }
     );
     document.querySelectorAll('section[id]').forEach(s => obs.observe(s));
+  }
+
+  _initTheme() {
+    const html = document.documentElement;
+    const btn  = document.getElementById('themeToggle');
+    const icon = document.getElementById('themeIcon');
+    if (!btn || !icon) return;
+
+    // Cargar preferencia guardada o del sistema
+    const saved       = localStorage.getItem('mp-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const startDark   = saved ? saved === 'dark' : prefersDark;
+
+    this._applyTheme(startDark, html, icon);
+
+    // Toggle al hacer clic
+    btn.addEventListener('click', () => {
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      this._applyTheme(!isDark, html, icon);
+      localStorage.setItem('mp-theme', !isDark ? 'dark' : 'light');
+    });
+  }
+
+  _applyTheme(dark, html, icon) {
+    if (dark) {
+      html.setAttribute('data-theme', 'dark');
+      icon.className = 'fas fa-sun';
+    } else {
+      html.removeAttribute('data-theme');
+      icon.className = 'fas fa-moon';
+    }
   }
 }

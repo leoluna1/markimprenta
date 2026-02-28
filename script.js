@@ -329,6 +329,10 @@ function createProductCard(product, index) {
                 <span>${priceDisplay}</span>
                 <span class="view-btn">Ver detalle <i class="fas fa-arrow-right"></i></span>
             </div>
+            <a href="https://wa.me/593996884150?text=${encodeURIComponent('Hola! Me interesa: ' + product.name + '. ¿Me pueden dar más información y precio?')}"
+               target="_blank" class="btn-wa-product" onclick="event.stopPropagation()">
+                <i class="fab fa-whatsapp"></i> Pedir por WhatsApp
+            </a>
         </div>
     `;
 
@@ -423,15 +427,25 @@ function openProductModal(product) {
             <div class="modal-price-badge">${priceDisplay}</div>
         </div>
         ${featuresHTML}
-        <div style="margin-top:1.75rem; text-align:center;">
-            <button onclick="navigateToSection('cotizador'); closeProductModal();" class="btn btn-primary">
-                <i class="fas fa-calculator"></i> Cotizar Ahora
+        <div style="margin-top:1.75rem; text-align:center; display:flex; gap:0.75rem; justify-content:center; flex-wrap:wrap;">
+            <a id="modalWaBtn" href="#" target="_blank"
+               style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.875rem 1.5rem;background:#25d366;color:white;border-radius:980px;font-weight:600;text-decoration:none;font-size:0.9rem;">
+                <i class="fab fa-whatsapp"></i> Pedir por WhatsApp
+            </a>
+            <button onclick="navigateToSection('cotizador'); closeProductModal();" class="btn btn-secondary">
+                <i class="fas fa-calculator"></i> Cotizar
             </button>
         </div>
     `;
 
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
+
+    // Actualizar link de WhatsApp con el nombre del producto
+    const waBtn = document.getElementById('modalWaBtn');
+    if (waBtn) {
+        waBtn.href = 'https://wa.me/593996884150?text=' + encodeURIComponent('Hola! Me interesa: ' + product.name + '. ¿Me pueden dar más información y precio?');
+    }
 }
 
 function closeProductModal() {
@@ -724,6 +738,16 @@ function initializeContact() {
 
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
         submitBtn.disabled = true;
+
+        // Abrir WhatsApp con los datos del formulario
+        const phone = document.getElementById('contactPhone') ? document.getElementById('contactPhone').value : '';
+        const msgWA = 'Hola Mark Publicidad!\n\nNombre: ' + name + '\nEmail: ' + email + (phone ? '\nTeléfono: ' + phone : '') + '\n\nMensaje:\n' + document.getElementById('contactMessage').value;
+        setTimeout(() => {
+            window.open('https://wa.me/593996884150?text=' + encodeURIComponent(msgWA), '_blank');
+            submitBtn.innerHTML = '<i class="fas fa-check"></i> Mensaje enviado';
+            submitBtn.disabled = false;
+            document.getElementById('contactForm').reset();
+        }, 800);
     });
 }
 

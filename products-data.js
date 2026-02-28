@@ -217,7 +217,7 @@ const productsDatabase = [
     {
         id: 13,
         name: "Banners y Lonas",
-        category: "impresion",
+        category: "gran-formato",
         description: "Impresión de banners y lonas para exterior e interior.",
         image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&q=80",
         price: 15.00,
@@ -234,7 +234,7 @@ const productsDatabase = [
     {
         id: 14,
         name: "Roll Ups",
-        category: "impresion",
+        category: "gran-formato",
         description: "Display portátil retráctil con impresión de alta calidad.",
         image: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=600&q=80",
         price: 45.00,
@@ -251,7 +251,7 @@ const productsDatabase = [
     {
         id: 15,
         name: "Vinilos y Adhesivos",
-        category: "etiquetas",
+        category: "gran-formato",
         description: "Vinilos autoadhesivos para decoración y publicidad.",
         image: "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?w=600&q=80",
         price: 8.00,
@@ -268,7 +268,7 @@ const productsDatabase = [
     {
         id: 16,
         name: "Gigantografías",
-        category: "impresion",
+        category: "gran-formato",
         description: "Impresiones de gran formato para fachadas y espacios amplios.",
         image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=600&q=80",
         price: 12.00,

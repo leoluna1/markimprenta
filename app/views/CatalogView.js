@@ -8,8 +8,9 @@ import EventBus from '../core/EventBus.js';
 export default class CatalogView extends BaseView {
   constructor() {
     super('#catalogo');
-    this._grid = document.getElementById('productsGrid');
-    this._pag  = document.getElementById('catalogPagination');
+    this._grid    = document.getElementById('productsGrid');
+    this._pag     = document.getElementById('catalogPagination');
+    this._cardObs = null; // referencia al observer actual para desconectarlo en cada recarga
   }
 
   bind() {
@@ -132,12 +133,18 @@ export default class CatalogView extends BaseView {
   }
 
   _animateCards() {
-    const obs = new IntersectionObserver(entries => {
+    // Desconectar el observer anterior antes de crear uno nuevo (evita memory leak)
+    if (this._cardObs) {
+      this._cardObs.disconnect();
+      this._cardObs = null;
+    }
+
+    this._cardObs = new IntersectionObserver(entries => {
       entries.forEach(e => {
         if (!e.isIntersecting) return;
         e.target.style.opacity   = '1';
         e.target.style.transform = 'translateY(0)';
-        obs.unobserve(e.target);
+        this._cardObs?.unobserve(e.target);
       });
     }, { threshold: 0.08 });
 
@@ -146,7 +153,7 @@ export default class CatalogView extends BaseView {
       card.style.opacity    = '0';
       card.style.transform  = 'translateY(28px)';
       card.style.transition = `opacity .4s ease ${delay}, transform .4s ease ${delay}`;
-      obs.observe(card);
+      this._cardObs.observe(card);
     });
   }
 }

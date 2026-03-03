@@ -34,7 +34,7 @@ export default class ContactView extends BaseView {
 
   // ── Privados ────────────────────────────────────────────────────────────
 
-  _validate({ name, email, message }) {
+  _validate({ name, email, phone, message }) {
     this._clearErrors();
     const errors = [];
 
@@ -44,6 +44,10 @@ export default class ContactView extends BaseView {
 
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       errors.push(['contactEmail', 'Ingresa un email válido.']);
+
+    // Validar teléfono solo si el usuario lo ingresó (campo opcional)
+    if (phone && phone.replace(/\D/g, '').length < 7)
+      errors.push(['contactPhone', 'Ingresa un número de teléfono válido.']);
 
     errors.forEach(([id, msg]) => this._showFieldError(id, msg));
     return errors.length === 0;

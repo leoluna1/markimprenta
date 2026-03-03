@@ -10,10 +10,11 @@ import EventBus from '../core/EventBus.js';
 export default class QuoteView extends BaseView {
   constructor() {
     super('#cotizador');
-    this._form    = document.getElementById('quoteForm');
-    this._panel   = document.getElementById('quoteResult');
-    this._details = document.getElementById('resultDetails');
-    this._priceEl = document.getElementById('priceValue');
+    this._form     = document.getElementById('quoteForm');
+    this._panel    = document.getElementById('quoteResult');
+    this._details  = document.getElementById('resultDetails');
+    this._priceEl  = document.getElementById('priceValue');
+    this._priceRaf = null; // id del rAF activo: cancela animaciones previas si el usuario cotiza rápido
   }
 
   bind() {
@@ -57,7 +58,7 @@ export default class QuoteView extends BaseView {
 
     this._animatePrice(price);
 
-    // Animación de entrada del panel (doble rAF para que el browser pinte el estado inicial antes de animar)
+    // Animación de entrada del panel
     Object.assign(this._panel.style, {
       transition: 'none',
       opacity:    '0',
@@ -81,7 +82,6 @@ export default class QuoteView extends BaseView {
   }
 
   _showError(msg) {
-    // Shake en el formulario
     if (!document.getElementById('shake-kf')) {
       const s = document.createElement('style');
       s.id = 'shake-kf';
@@ -98,7 +98,6 @@ export default class QuoteView extends BaseView {
     this._form?.classList.add('form-shake');
     this._form?.addEventListener('animationend', () => this._form.classList.remove('form-shake'), { once: true });
 
-    // Banner de error
     const alert = document.createElement('div');
     alert.className = 'form-alert';
     alert.textContent = msg;
@@ -108,16 +107,25 @@ export default class QuoteView extends BaseView {
 
   _animatePrice(target) {
     if (!this._priceEl) return;
+    // Cancelar animación anterior si el usuario cotiza dos veces seguidas rápido
+    if (this._priceRaf) {
+      cancelAnimationFrame(this._priceRaf);
+      this._priceRaf = null;
+    }
     const steps = 50;
     const inc   = target / steps;
     let cur = 0, n = 0;
     const tick = () => {
       cur += inc; n++;
       this._priceEl.textContent = '$' + cur.toFixed(2);
-      if (n < steps) requestAnimationFrame(tick);
-      else this._priceEl.textContent = '$' + target.toFixed(2);
+      if (n < steps) {
+        this._priceRaf = requestAnimationFrame(tick);
+      } else {
+        this._priceEl.textContent = '$' + target.toFixed(2);
+        this._priceRaf = null;
+      }
     };
-    tick();
+    this._priceRaf = requestAnimationFrame(tick);
   }
 
   _launchConfetti() {

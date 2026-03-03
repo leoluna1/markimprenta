@@ -11,8 +11,10 @@ import EventBus from '../core/EventBus.js';
 export default class ContactView extends BaseView {
   constructor() {
     super('#contacto');
-    this._form    = document.getElementById('contactForm');
-    this._overlay = document.getElementById('loadingOverlay');
+    this._form       = document.getElementById('contactForm');
+    this._submitBtn  = document.getElementById('contactSubmitBtn');
+    this._successDiv = document.getElementById('contactSuccessMsg');
+    this._errorDiv   = document.getElementById('contactErrorMsg');
   }
 
   bind() {
@@ -27,7 +29,7 @@ export default class ContactView extends BaseView {
       if (this._validate(data)) EventBus.emit('contact:submit', data);
     });
 
-    EventBus.on('contact:loading', ()        => this._overlay?.classList.add('active'));
+    EventBus.on('contact:loading', ()        => this._setLoading(true));
     EventBus.on('contact:success', ({ msg }) => this._onSuccess(msg));
     EventBus.on('contact:error',   ({ msg }) => this._onError(msg));
   }
@@ -45,12 +47,71 @@ export default class ContactView extends BaseView {
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       errors.push(['contactEmail', 'Ingresa un email válido.']);
 
-    // Validar teléfono solo si el usuario lo ingresó (campo opcional)
+    // Teléfono es opcional; si se ingresa, debe tener al menos 7 dígitos
     if (phone && phone.replace(/\D/g, '').length < 7)
       errors.push(['contactPhone', 'Ingresa un número de teléfono válido.']);
 
     errors.forEach(([id, msg]) => this._showFieldError(id, msg));
     return errors.length === 0;
+  }
+
+  _setLoading(on) {
+    if (!this._submitBtn) return;
+    this._submitBtn.disabled = on;
+    this._submitBtn.innerHTML = on
+      ? '<i class="fas fa-spinner fa-spin"></i> Enviando...'
+      : '<i class="fas fa-paper-plane"></i> Enviar Mensaje';
+    // Ocultar mensajes anteriores mientras carga
+    if (on) this._hideFeedback();
+  }
+
+  _onSuccess(msg) {
+    this._setLoading(false);
+    this._form?.reset();
+    this._clearErrors();
+    this._showFeedback('success', msg);
+
+    // Ocultar automáticamente después de 7 s
+    setTimeout(() => this._hideFeedback(), 7000);
+  }
+
+  _onError(msg) {
+    this._setLoading(false);
+    this._showFeedback('error', msg);
+    setTimeout(() => this._hideFeedback(), 8000);
+  }
+
+  _showFeedback(type, msg) {
+    const isSuccess = type === 'success';
+    const el        = isSuccess ? this._successDiv : this._errorDiv;
+    const other     = isSuccess ? this._errorDiv   : this._successDiv;
+
+    if (!el) return;
+
+    // Ocultar el otro si estaba visible
+    if (other) other.hidden = true;
+
+    el.querySelector('span').textContent = msg;
+    el.hidden = false;
+
+    // Animación suave de entrada
+    el.style.opacity   = '0';
+    el.style.transform = 'translateY(-6px)';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        el.style.transition = 'opacity .3s ease, transform .3s ease';
+        el.style.opacity    = '1';
+        el.style.transform  = 'translateY(0)';
+      });
+    });
+  }
+
+  _hideFeedback() {
+    [this._successDiv, this._errorDiv].forEach(el => {
+      if (!el) return;
+      el.hidden = true;
+      el.style.transition = '';
+    });
   }
 
   _showFieldError(fieldId, msg) {
@@ -66,25 +127,5 @@ export default class ContactView extends BaseView {
   _clearErrors() {
     this._form?.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
     this._form?.querySelectorAll('.field-hint').forEach(el => el.remove());
-  }
-
-  _onSuccess(msg) {
-    this._overlay?.classList.remove('active');
-    this._form?.reset();
-    this._clearErrors();
-    this._showBanner('contact-success-banner', `<i class="fas fa-check-circle"></i> ${msg}`);
-  }
-
-  _onError(msg) {
-    this._overlay?.classList.remove('active');
-    this._showBanner('contact-error-banner', `<i class="fas fa-exclamation-circle"></i> ${msg}`);
-  }
-
-  _showBanner(className, html) {
-    const banner = document.createElement('div');
-    banner.className   = className;
-    banner.innerHTML   = html;
-    this._form?.parentNode?.prepend(banner);
-    setTimeout(() => banner.remove(), 5000);
   }
 }

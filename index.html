@@ -471,7 +471,17 @@
             <label for="contactMessage"><i class="fas fa-comment-alt"></i> Mensaje</label>
             <textarea id="contactMessage" name="message" rows="5" placeholder="Cuéntanos sobre tu proyecto..." autocomplete="off" required></textarea>
           </div>
-          <button type="submit" class="btn btn-primary btn-block">
+          <!-- Mensajes de feedback -->
+          <div id="contactSuccessMsg" class="contact-feedback contact-feedback--success" role="alert" hidden>
+            <i class="fas fa-check-circle"></i>
+            <span></span>
+          </div>
+          <div id="contactErrorMsg" class="contact-feedback contact-feedback--error" role="alert" hidden>
+            <i class="fas fa-exclamation-circle"></i>
+            <span></span>
+          </div>
+
+          <button type="submit" id="contactSubmitBtn" class="btn btn-primary btn-block">
             <i class="fas fa-paper-plane"></i> Enviar Mensaje
           </button>
         </form>
@@ -770,6 +780,9 @@
   <div class="loading-overlay" id="loadingOverlay">
     <div class="spinner"></div>
   </div>
+
+  <!-- ── EmailJS SDK ─────────────────────────── -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
   <!-- ── App MVC (ES Modules) ────────────────────
        Requiere servidor HTTP (Live Server, etc.)

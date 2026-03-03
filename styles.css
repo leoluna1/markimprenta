@@ -8,7 +8,7 @@
     --primary:        #1d1d1f;
     --primary-dark:   #000000;
     --primary-light:  #424245;
-    --secondary:      #0071e3;
+    --secondary:      #E30613;
     --secondary-dark: #0062c4;
     --accent:         #e74c3c;
     --success:        #30d158;
@@ -1295,6 +1295,57 @@ button:focus-visible {
     border-radius: var(--radius-xl);
     padding: 2.5rem;
 }
+
+/* Mensajes de feedback del formulario */
+/* 'hidden' necesita !important para ganarle al display:flex de la clase */
+.contact-feedback[hidden] { display: none !important; }
+
+.contact-feedback {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.875rem 1rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.45;
+    margin-bottom: 1rem;
+}
+.contact-feedback i { flex-shrink: 0; margin-top: 0.1rem; font-size: 1rem; }
+.contact-feedback--success {
+    background: rgba(48, 209, 88, 0.12);
+    border: 1px solid rgba(48, 209, 88, 0.35);
+    color: #1a8a3a;
+}
+[data-theme="dark"] .contact-feedback--success {
+    background: rgba(48, 209, 88, 0.10);
+    border-color: rgba(48, 209, 88, 0.25);
+    color: #4ade80;
+}
+.contact-feedback--error {
+    background: rgba(255, 59, 48, 0.10);
+    border: 1px solid rgba(255, 59, 48, 0.30);
+    color: #c0392b;
+}
+[data-theme="dark"] .contact-feedback--error {
+    background: rgba(255, 59, 48, 0.10);
+    border-color: rgba(255, 59, 48, 0.25);
+    color: #f87171;
+}
+
+/* Errores por campo */
+.input-error {
+    border-color: rgba(255, 59, 48, 0.7) !important;
+    box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.12) !important;
+}
+.field-hint {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.78rem;
+    color: #c0392b;
+    font-weight: 500;
+}
+[data-theme="dark"] .field-hint { color: #f87171; }
 
 /* ===== FOOTER ===== */
 .footer {

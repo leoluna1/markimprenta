@@ -28,7 +28,7 @@ export default class ContactController {
         body:    JSON.stringify(data),
       });
       ──────────────────────────────────────────────────────────────────── */
-      console.info('[ContactController] Datos recibidos:', data);
+      // No loguear datos personales en producción
       await new Promise(r => setTimeout(r, 1600)); // simulación
 
       EventBus.emit('contact:success', {

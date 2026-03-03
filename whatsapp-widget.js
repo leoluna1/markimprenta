@@ -89,9 +89,16 @@
   function addBubble(html, who) {
     const d = document.createElement('div');
     d.className = `ww-bbl ww-bbl--${who}`;
-    d.innerHTML = html
-      .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
-      .replace(/\n/g, '<br>');
+
+    if (who === 'user') {
+      // Evitamos inyección de HTML desde el input del usuario
+      d.textContent = html;
+    } else {
+      d.innerHTML = html
+        .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+    }
+
     $('ww-body').appendChild(d);
     scrollBot();
     return d;
@@ -436,6 +443,7 @@
   border-radius: 12px;
   font-size: .84rem; line-height: 1.55;
   word-break: break-word;
+  white-space: pre-line;
   animation: wwPop .22s ease;
   box-shadow: 0 1px 2px rgba(0,0,0,.08);
 }

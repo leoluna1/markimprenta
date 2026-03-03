@@ -19,7 +19,10 @@ export default class NavigationView extends BaseView {
     this.on('click', '.nav-link', (e, el) => {
       e.preventDefault();
       const id = el.getAttribute('href')?.slice(1);
-      if (id) EventBus.emit('nav:go', { id });
+      if (id) {
+        EventBus.emit('nav:go', { id });
+        this._closeMobile();
+      }
     });
 
     // Bottom nav links (móvil)
@@ -45,6 +48,10 @@ export default class NavigationView extends BaseView {
     window.addEventListener('scroll', () => {
       this.$el?.classList.toggle('scrolled', window.pageYOffset > 80);
     }, { passive: true });
+
+    // Toggle menú móvil
+    const mobileToggle = document.getElementById('mobileToggle');
+    mobileToggle?.addEventListener('click', () => this._toggleMobile());
 
     // Observer para marcar link activo según sección visible
     this._observeSections();
@@ -80,6 +87,7 @@ export default class NavigationView extends BaseView {
     const toggle = document.getElementById('mobileToggle');
     if (!toggle) return;
     toggle.classList.toggle('active', open);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
 
     const [s1, s2, s3] = toggle.querySelectorAll('span');
     if (open) {
@@ -106,6 +114,12 @@ export default class NavigationView extends BaseView {
     if (!btn || !icon) return;
 
     // Cargar preferencia guardada o del sistema
+    // Unificar clave: migrar 'theme' (clave antigua de script.js) a 'mp-theme'
+    const legacyTheme = localStorage.getItem('theme');
+    if (legacyTheme && !localStorage.getItem('mp-theme')) {
+      localStorage.setItem('mp-theme', legacyTheme);
+      localStorage.removeItem('theme');
+    }
     const saved       = localStorage.getItem('mp-theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const startDark   = saved ? saved === 'dark' : prefersDark;

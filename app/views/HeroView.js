@@ -24,8 +24,9 @@ export default class HeroView extends BaseView {
     const obs = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         if (!entry.isIntersecting) return;
-        if (entry.target.textContent !== '0') return;
-        obs.unobserve(entry.target); // evitar re-ejecución y liberar observer
+        if (entry.target._counted) return; // flag booleano: evita condición frágil con textContent
+        entry.target._counted = true;
+        obs.unobserve(entry.target);
         this._animateCounter(entry.target);
       });
     }, { threshold: 0.5 });
@@ -52,7 +53,7 @@ export default class HeroView extends BaseView {
   // ── Partículas de fondo ─────────────────────────────────────────────────
 
   _initParticles() {
-    const container = document.getElementById('particles-bg');
+    const container = document.getElementById('particles-background');
     if (!container) return;
 
     // Inyectar keyframe solo una vez
@@ -115,14 +116,22 @@ export default class HeroView extends BaseView {
   // ── Ocultar loader ──────────────────────────────────────────────────────
 
   _initLoader() {
-    window.addEventListener('load', () => {
+    const hide = () => {
       const loader = document.getElementById('pageLoader');
       if (!loader) return;
-      setTimeout(() => {
-        loader.classList.add('hidden');
-        setTimeout(() => loader.remove(), 500);
-      }, 1100);
-    });
+      loader.classList.add('hidden');
+      setTimeout(() => loader.remove(), 500);
+    };
+
+    if (document.readyState === 'complete') {
+      // La página ya está cargada: ocultar de inmediato
+      hide();
+    } else {
+      window.addEventListener('load', () => {
+        // Reducimos el retraso para no bloquear la primera impresión
+        setTimeout(hide, 300);
+      }, { once: true });
+    }
   }
 
   // ── Scroll indicator ────────────────────────────────────────────────────

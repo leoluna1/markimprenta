@@ -8,6 +8,25 @@
   <meta name="description"
     content="Mark Publicidad Impresa - Expertos en impresión digital, offset, material POP, exhibidores, etiquetas y diseño gráfico en Ibarra, Ecuador.">
 
+  <!-- SEO & Social -->
+  <link rel="canonical" href="https://markpublicidad.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_EC">
+  <meta property="og:site_name" content="Mark Publicidad Impresa">
+  <meta property="og:title" content="Mark Publicidad Impresa – Impresión y publicidad en Ibarra">
+  <meta property="og:description"
+    content="Mark Publicidad Impresa - Expertos en impresión digital, offset, material POP, exhibidores, etiquetas y diseño gráfico en Ibarra, Ecuador.">
+  <meta property="og:url" content="https://markpublicidad.com/">
+  <meta property="og:image" content="/og-mark-publicidad.jpg">
+  <meta property="og:image:alt" content="Mark Publicidad Impresa - Impresión y publicidad en Ibarra">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Mark Publicidad Impresa – Impresión y publicidad en Ibarra">
+  <meta name="twitter:description"
+    content="Mark Publicidad Impresa - Expertos en impresión digital, offset, material POP, exhibidores, etiquetas y diseño gráfico en Ibarra, Ecuador.">
+  <meta name="twitter:image" content="/og-mark-publicidad.jpg">
+  <meta name="twitter:image:alt" content="Mark Publicidad Impresa - Impresión y publicidad en Ibarra">
+
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,9 +37,65 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <link rel="stylesheet" href="styles.css">
+
+  <!-- Datos estructurados negocio local -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "@id": "https://markpublicidad.com/#negocio",
+    "name": "Mark Publicidad Impresa",
+    "description": "Expertos en impresión digital, offset, material POP, exhibidores, etiquetas y diseño gráfico en Ibarra, Ecuador.",
+    "url": "https://markpublicidad.com/",
+    "telephone": [
+      "+59361234567",
+      "+593991234567"
+    ],
+    "email": "info@markpublicidad.com",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "AV Jesús Yerovi 227",
+      "addressLocality": "Ibarra",
+      "addressCountry": "EC"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 0.36436541040245174,
+      "longitude": -78.12006097806493
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ],
+        "opens": "08:00",
+        "closes": "18:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": "Saturday",
+        "opens": "09:00",
+        "closes": "13:00"
+      }
+    ],
+    "sameAs": [
+      "https://www.youtube.com/@markpublicidad",
+      "https://www.instagram.com/markpublicidad",
+      "https://www.tiktok.com/@markpublicidad",
+      "https://www.facebook.com/markpublicidad"
+    ]
+  }
+  </script>
 </head>
 
 <body>
+
+  <a href="#inicio" class="skip-link">Saltar al contenido principal</a>
 
   <!-- ── Loader ─────────────────────────────────── -->
   <div class="page-loader" id="pageLoader">
@@ -49,7 +124,7 @@
           <i class="fas fa-moon" id="themeIcon"></i>
         </button>
 
-        <button class="mobile-toggle" id="mobileToggle">
+        <button class="mobile-toggle" id="mobileToggle" aria-label="Abrir menú de navegación" aria-expanded="false" aria-controls="navMenu">
           <span></span><span></span><span></span>
         </button>
       </div>
@@ -269,8 +344,8 @@
         <form id="quoteForm" class="quote-form">
           <div class="form-row">
             <div class="form-group">
-              <label><i class="fas fa-cogs"></i> Tipo de Servicio</label>
-              <select id="quoteService" required>
+              <label for="quoteService"><i class="fas fa-cogs"></i> Tipo de Servicio</label>
+              <select id="quoteService" name="service" required autocomplete="off">
                 <option value="">Selecciona un servicio</option>
                 <option value="flyers">Flyers y Volantes</option>
                 <option value="tarjetas">Tarjetas de Presentación</option>
@@ -282,23 +357,23 @@
               </select>
             </div>
             <div class="form-group">
-              <label><i class="fas fa-sort-numeric-up"></i> Cantidad</label>
-              <input type="number" id="quoteQuantity" min="1" placeholder="1000" required>
+              <label for="quoteQuantity"><i class="fas fa-sort-numeric-up"></i> Cantidad</label>
+              <input type="number" id="quoteQuantity" name="quantity" min="1" placeholder="1000" inputmode="numeric" autocomplete="off" required>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label><i class="fas fa-layer-group"></i> Material</label>
-              <select id="quoteMaterial">
+              <label for="quoteMaterial"><i class="fas fa-layer-group"></i> Material</label>
+              <select id="quoteMaterial" name="material">
                 <option value="estandar">Estándar</option>
                 <option value="premium">Premium (+50%)</option>
                 <option value="lujo">Lujo (+100%)</option>
               </select>
             </div>
             <div class="form-group">
-              <label><i class="fas fa-expand-arrows-alt"></i> Tamaño</label>
-              <select id="quoteSize">
+              <label for="quoteSize"><i class="fas fa-expand-arrows-alt"></i> Tamaño</label>
+              <select id="quoteSize" name="size">
                 <option value="pequeno">Pequeño</option>
                 <option value="mediano">Mediano (+30%)</option>
                 <option value="grande">Grande (+60%)</option>
@@ -355,14 +430,17 @@
             <div class="info-icon"><i class="fas fa-phone"></i></div>
             <div class="info-content">
               <h4>Teléfono</h4>
-              <p>+593 6 123 4567<br>+593 99 123 4567</p>
+              <p>
+                <a href="tel:+59361234567">+593 6 123 4567</a><br>
+                <a href="tel:+593991234567">+593 99 123 4567</a>
+              </p>
             </div>
           </div>
           <div class="info-card">
             <div class="info-icon"><i class="fas fa-envelope"></i></div>
             <div class="info-content">
               <h4>Email</h4>
-              <p>info@markpublicidad.com</p>
+              <p><a href="mailto:info@markpublicidad.com">info@markpublicidad.com</a></p>
             </div>
           </div>
           <div class="info-card">
@@ -376,22 +454,22 @@
 
         <form id="contactForm" class="contact-form">
           <div class="form-group">
-            <label><i class="fas fa-user"></i> Nombre completo</label>
-            <input type="text" id="contactName" placeholder="Tu nombre" required>
+            <label for="contactName"><i class="fas fa-user"></i> Nombre completo</label>
+            <input type="text" id="contactName" name="name" placeholder="Tu nombre" autocomplete="name" required>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label><i class="fas fa-envelope"></i> Email</label>
-              <input type="email" id="contactEmail" placeholder="tu@email.com" required>
+              <label for="contactEmail"><i class="fas fa-envelope"></i> Email</label>
+              <input type="email" id="contactEmail" name="email" placeholder="tu@email.com" autocomplete="email" required>
             </div>
             <div class="form-group">
-              <label><i class="fas fa-phone"></i> Teléfono</label>
-              <input type="tel" id="contactPhone" placeholder="+593 99 123 4567">
+              <label for="contactPhone"><i class="fas fa-phone"></i> Teléfono</label>
+              <input type="tel" id="contactPhone" name="phone" placeholder="+593 99 123 4567" autocomplete="tel">
             </div>
           </div>
           <div class="form-group">
-            <label><i class="fas fa-comment-alt"></i> Mensaje</label>
-            <textarea id="contactMessage" rows="5" placeholder="Cuéntanos sobre tu proyecto..." required></textarea>
+            <label for="contactMessage"><i class="fas fa-comment-alt"></i> Mensaje</label>
+            <textarea id="contactMessage" name="message" rows="5" placeholder="Cuéntanos sobre tu proyecto..." autocomplete="off" required></textarea>
           </div>
           <button type="submit" class="btn btn-primary btn-block">
             <i class="fas fa-paper-plane"></i> Enviar Mensaje
@@ -409,7 +487,7 @@
               <p>AV Jesús Yerovi 227, Ibarra, Ecuador</p>
             </div>
           </div>
-          <a href="https://maps.google.com/?q=0.36436541040245174,-78.12006097806493" target="_blank" rel="noopener"
+          <a href="https://maps.google.com/?q=0.36436541040245174,-78.12006097806493" target="_blank" rel="noopener noreferrer"
             class="map-directions-btn">
             <i class="fas fa-directions"></i> Cómo llegar
           </a>
@@ -439,28 +517,28 @@
 
       <!-- Botones de redes sociales -->
       <div class="social-links">
-        <a href="https://www.youtube.com/@markpublicidad" target="_blank" rel="noopener" class="social-btn youtube">
+        <a href="https://www.youtube.com/@markpublicidad" target="_blank" rel="noopener noreferrer" class="social-btn youtube">
           <i class="fab fa-youtube"></i>
           <span class="social-btn-info">
             <small>Suscríbete en</small>
             YouTube
           </span>
         </a>
-        <a href="https://www.instagram.com/markpublicidad" target="_blank" rel="noopener" class="social-btn instagram">
+        <a href="https://www.instagram.com/markpublicidad" target="_blank" rel="noopener noreferrer" class="social-btn instagram">
           <i class="fab fa-instagram"></i>
           <span class="social-btn-info">
             <small>Síguenos en</small>
             Instagram
           </span>
         </a>
-        <a href="https://www.tiktok.com/@markpublicidad" target="_blank" rel="noopener" class="social-btn tiktok">
+        <a href="https://www.tiktok.com/@markpublicidad" target="_blank" rel="noopener noreferrer" class="social-btn tiktok">
           <i class="fab fa-tiktok"></i>
           <span class="social-btn-info">
             <small>Síguenos en</small>
             TikTok
           </span>
         </a>
-        <a href="https://www.facebook.com/markpublicidad" target="_blank" rel="noopener" class="social-btn facebook">
+        <a href="https://www.facebook.com/markpublicidad" target="_blank" rel="noopener noreferrer" class="social-btn facebook">
           <i class="fab fa-facebook-f"></i>
           <span class="social-btn-info">
             <small>Síguenos en</small>
@@ -486,14 +564,15 @@
 
         <!-- ── Video 1 ── -->
         <div class="video-card">
-          <div class="video-wrapper" data-id="REEMPLAZA_ID_1">
+          <div class="video-wrapper" data-id="REEMPLAZA_ID_1" role="button" tabindex="0"
+            aria-label="Reproducir video: Proceso de fabricación de cajas personalizadas">
             <img class="video-thumb" src="https://img.youtube.com/vi/REEMPLAZA_ID_1/hqdefault.jpg"
-              alt="Proceso de fabricación de cajas personalizadas">
+              alt="Proceso de fabricación de cajas personalizadas" loading="lazy" decoding="async">
             <div class="video-overlay"></div>
-            <div class="play-btn"><i class="fas fa-play"></i></div>
+            <div class="play-btn" aria-hidden="true"><i class="fas fa-play"></i></div>
             <iframe title="Cómo hacemos cajas personalizadas"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen></iframe>
+              loading="lazy" allowfullscreen></iframe>
           </div>
           <div class="video-info">
             <span class="video-tag"><i class="fas fa-box"></i> Packaging</span>
@@ -504,14 +583,15 @@
 
         <!-- ── Video 2 ── -->
         <div class="video-card">
-          <div class="video-wrapper" data-id="REEMPLAZA_ID_2">
+          <div class="video-wrapper" data-id="REEMPLAZA_ID_2" role="button" tabindex="0"
+            aria-label="Reproducir video: Impresión de flyers profesionales">
             <img class="video-thumb" src="https://img.youtube.com/vi/REEMPLAZA_ID_2/hqdefault.jpg"
-              alt="Impresión de flyers profesionales">
+              alt="Impresión de flyers profesionales" loading="lazy" decoding="async">
             <div class="video-overlay"></div>
-            <div class="play-btn"><i class="fas fa-play"></i></div>
+            <div class="play-btn" aria-hidden="true"><i class="fas fa-play"></i></div>
             <iframe title="Impresión de flyers profesionales"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen></iframe>
+              loading="lazy" allowfullscreen></iframe>
           </div>
           <div class="video-info">
             <span class="video-tag"><i class="fas fa-print"></i> Impresión</span>
@@ -522,14 +602,15 @@
 
         <!-- ── Video 3 ── -->
         <div class="video-card">
-          <div class="video-wrapper" data-id="REEMPLAZA_ID_3">
+          <div class="video-wrapper" data-id="REEMPLAZA_ID_3" role="button" tabindex="0"
+            aria-label="Reproducir video: Etiquetas adhesivas personalizadas">
             <img class="video-thumb" src="https://img.youtube.com/vi/REEMPLAZA_ID_3/hqdefault.jpg"
-              alt="Etiquetas adhesivas personalizadas">
+              alt="Etiquetas adhesivas personalizadas" loading="lazy" decoding="async">
             <div class="video-overlay"></div>
-            <div class="play-btn"><i class="fas fa-play"></i></div>
+            <div class="play-btn" aria-hidden="true"><i class="fas fa-play"></i></div>
             <iframe title="Etiquetas adhesivas personalizadas"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen></iframe>
+              loading="lazy" allowfullscreen></iframe>
           </div>
           <div class="video-info">
             <span class="video-tag"><i class="fas fa-tags"></i> Etiquetas</span>
@@ -540,14 +621,15 @@
 
         <!-- ── Video 4 ── -->
         <div class="video-card">
-          <div class="video-wrapper" data-id="REEMPLAZA_ID_4">
+          <div class="video-wrapper" data-id="REEMPLAZA_ID_4" role="button" tabindex="0"
+            aria-label="Reproducir video: Material POP y merchandising">
             <img class="video-thumb" src="https://img.youtube.com/vi/REEMPLAZA_ID_4/hqdefault.jpg"
-              alt="Material POP y merchandising">
+              alt="Material POP y merchandising" loading="lazy" decoding="async">
             <div class="video-overlay"></div>
-            <div class="play-btn"><i class="fas fa-play"></i></div>
+            <div class="play-btn" aria-hidden="true"><i class="fas fa-play"></i></div>
             <iframe title="Material POP y merchandising"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen></iframe>
+              loading="lazy" allowfullscreen></iframe>
           </div>
           <div class="video-info">
             <span class="video-tag"><i class="fas fa-gift"></i> Material POP</span>
@@ -558,14 +640,15 @@
 
         <!-- ── Video 5 ── -->
         <div class="video-card">
-          <div class="video-wrapper" data-id="REEMPLAZA_ID_5">
+          <div class="video-wrapper" data-id="REEMPLAZA_ID_5" role="button" tabindex="0"
+            aria-label="Reproducir video: Banners y lonas de gran formato">
             <img class="video-thumb" src="https://img.youtube.com/vi/REEMPLAZA_ID_5/hqdefault.jpg"
-              alt="Banners y lonas de gran formato">
+              alt="Banners y lonas de gran formato" loading="lazy" decoding="async">
             <div class="video-overlay"></div>
-            <div class="play-btn"><i class="fas fa-play"></i></div>
+            <div class="play-btn" aria-hidden="true"><i class="fas fa-play"></i></div>
             <iframe title="Banners y lonas de gran formato"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen></iframe>
+              loading="lazy" allowfullscreen></iframe>
           </div>
           <div class="video-info">
             <span class="video-tag"><i class="fas fa-ruler-combined"></i> Gran Formato</span>
@@ -576,14 +659,15 @@
 
         <!-- ── Video 6 ── -->
         <div class="video-card">
-          <div class="video-wrapper" data-id="REEMPLAZA_ID_6">
+          <div class="video-wrapper" data-id="REEMPLAZA_ID_6" role="button" tabindex="0"
+            aria-label="Reproducir video: Diseño gráfico y branding">
             <img class="video-thumb" src="https://img.youtube.com/vi/REEMPLAZA_ID_6/hqdefault.jpg"
-              alt="Diseño gráfico y branding">
+              alt="Diseño gráfico y branding" loading="lazy" decoding="async">
             <div class="video-overlay"></div>
-            <div class="play-btn"><i class="fas fa-play"></i></div>
+            <div class="play-btn" aria-hidden="true"><i class="fas fa-play"></i></div>
             <iframe title="Diseño gráfico y branding"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen></iframe>
+              loading="lazy" allowfullscreen></iframe>
           </div>
           <div class="video-info">
             <span class="video-tag"><i class="fas fa-palette"></i> Diseño</span>
@@ -598,7 +682,7 @@
       <div class="social-cta">
         <p>¿Quieres ver más? Síguenos en nuestras redes y entérate de todo lo que hacemos</p>
         <div class="social-cta-buttons">
-          <a href="https://www.youtube.com/@markpublicidad" target="_blank" rel="noopener" class="btn btn-primary">
+          <a href="https://www.youtube.com/@markpublicidad" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
             <i class="fab fa-youtube"></i> Ver canal completo
           </a>
           <button class="btn btn-secondary" data-nav="contacto">
@@ -620,13 +704,13 @@
           <h3><i class="fas fa-print"></i> MARK PUBLICIDAD</h3>
           <p>Tu socio profesional en impresión desde 2016</p>
           <div class="footer-social">
-            <a href="https://www.youtube.com/@markpublicidad" target="_blank" rel="noopener" aria-label="YouTube"> <i
+            <a href="https://www.youtube.com/@markpublicidad" target="_blank" rel="noopener noreferrer" aria-label="YouTube"> <i
                 class="fab fa-youtube"></i></a>
-            <a href="https://www.instagram.com/markpublicidad" target="_blank" rel="noopener" aria-label="Instagram"><i
+            <a href="https://www.instagram.com/markpublicidad" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i
                 class="fab fa-instagram"></i></a>
-            <a href="https://www.tiktok.com/@markpublicidad" target="_blank" rel="noopener" aria-label="TikTok"> <i
+            <a href="https://www.tiktok.com/@markpublicidad" target="_blank" rel="noopener noreferrer" aria-label="TikTok"> <i
                 class="fab fa-tiktok"></i></a>
-            <a href="https://www.facebook.com/markpublicidad" target="_blank" rel="noopener" aria-label="Facebook"> <i
+            <a href="https://www.facebook.com/markpublicidad" target="_blank" rel="noopener noreferrer" aria-label="Facebook"> <i
                 class="fab fa-facebook-f"></i></a>
           </div>
         </div>

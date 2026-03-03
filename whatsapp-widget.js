@@ -1,7 +1,7 @@
 /**
  * =====================================================
- * MARK PUBLICIDAD — WhatsApp Chat Widget
- * 3 preguntas → abre WhatsApp con el pedido listo
+ * MARK PUBLICIDAD — WhatsApp Chat Widget v2.0
+ * Validación de campos · Modo oscuro · Diseño glass
  * =====================================================
  */
 (function () {
@@ -9,28 +9,61 @@
 
   /* ── CONFIGURACIÓN ───────────────────────────────── */
   const CONFIG = {
-    phone:      '593996884150',
-    agentName:  'Mark Publicidad',
-    agentRole:  'Respondemos en minutos',
-    openDelay:  5000,              // ms para auto-abrir (0 = desactivado)
-    hintText:   '¿Necesitas un presupuesto? Escríbenos.',
+    phone:     '593996884150',
+    agentName: 'Mark Publicidad',
+    agentRole: 'Respondemos en minutos',
+    openDelay: 0,
+    hintText:  '¿Necesitas un presupuesto? Escríbenos.',
   };
 
-  /* ── PASOS ──────────────────────────────────────── */
+  /* ── PASOS + VALIDACIONES ────────────────────────── */
   const STEPS = [
-    { bot: 'Hola, soy el asistente de *Mark Publicidad*.\n¿Cuál es tu nombre?',
-      placeholder: 'Escribe tu nombre...', key: 'name' },
-    { bot: 'Mucho gusto, {name}.\n¿Cuál es tu número de teléfono?',
-      placeholder: 'Ej: 0987 654 321', key: 'phone', tel: true },
-    { bot: '¿Qué necesitas? Cuéntame brevemente.',
-      placeholder: 'Ej: 500 flyers tamaño A5...', key: 'need' },
+    {
+      key:         'name',
+      bot:         '¡Hola! Soy el asistente de *Mark Publicidad* 👋\n¿Cuál es tu nombre completo?',
+      placeholder: 'Ej: Juan Pérez',
+      validate(v) {
+        if (!v || v.length < 2) return 'Por favor ingresa tu nombre (mínimo 2 caracteres).';
+        if (/\d/.test(v))       return 'El nombre no debe contener números.';
+        return null;
+      },
+    },
+    {
+      key:         'phone',
+      bot:         'Mucho gusto, {name} 😊\n¿Cuál es tu número de teléfono?',
+      placeholder: 'Ej: 0987 654 321',
+      type:        'tel',
+      validate(v) {
+        const digits = v.replace(/\D/g, '');
+        if (digits.length < 7) return 'Ingresa un número de teléfono válido (mínimo 7 dígitos).';
+        return null;
+      },
+    },
+    {
+      key:         'need',
+      bot:         '¡Perfecto! ¿Qué necesitas? Cuéntame tu pedido brevemente.',
+      placeholder: 'Ej: 500 flyers tamaño A5 a todo color...',
+      validate(v) {
+        if (!v || v.length < 5) return 'Por favor describe tu pedido (mínimo 5 caracteres).';
+        return null;
+      },
+    },
   ];
 
   /* ── ESTADO ─────────────────────────────────────── */
   const st = { open: false, step: 0, data: {} };
 
   /* ── HELPERS ─────────────────────────────────────── */
-  const $ = id => document.getElementById(id);
+  const $  = id => document.getElementById(id);
+  const isDark = () =>
+    document.documentElement.getAttribute('data-theme') === 'dark' ||
+    document.body.getAttribute('data-theme') === 'dark';
+
+  function syncTheme() {
+    const root = $('ww-root');
+    if (!root) return;
+    root.classList.toggle('ww-dark', isDark());
+  }
 
   function fill(s) {
     return s.replace(/\{(\w+)\}/g, (_, k) => st.data[k] || '');
@@ -39,27 +72,40 @@
   function waURL() {
     const d = st.data;
     const msg =
-      `Hola ${CONFIG.agentName}.\n\n` +
-      `Nombre: ${d.name   || '–'}\n` +
-      `Teléfono: ${d.phone || '–'}\n` +
-      `Necesita: ${d.need  || '–'}\n\n` +
-      `Por favor, envíenme más información y precio.`;
+      `Hola ${CONFIG.agentName}!\n\n` +
+      `📋 *Datos del cliente:*\n` +
+      `• Nombre: ${d.name  || '–'}\n` +
+      `• Teléfono: ${d.phone || '–'}\n\n` +
+      `📦 *Pedido:*\n${d.need || '–'}\n\n` +
+      `Por favor, envíenme precio y disponibilidad. ¡Gracias!`;
     return `https://wa.me/${CONFIG.phone}?text=${encodeURIComponent(msg)}`;
   }
 
   function scrollBot() {
     const b = $('ww-body');
-    if (b) b.scrollTop = b.scrollHeight;
+    if (b) requestAnimationFrame(() => { b.scrollTop = b.scrollHeight; });
   }
 
-  function addBubble(text, who) {
+  function addBubble(html, who) {
     const d = document.createElement('div');
     d.className = `ww-bbl ww-bbl--${who}`;
-    d.innerHTML = text
+    d.innerHTML = html
       .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
       .replace(/\n/g, '<br>');
     $('ww-body').appendChild(d);
     scrollBot();
+    return d;
+  }
+
+  function addError(msg) {
+    // Eliminar errores anteriores
+    $('ww-body').querySelectorAll('.ww-bbl--error').forEach(e => e.remove());
+    const d = document.createElement('div');
+    d.className = 'ww-bbl ww-bbl--error';
+    d.innerHTML = `⚠️ ${msg}`;
+    $('ww-body').appendChild(d);
+    scrollBot();
+    setTimeout(() => { if (d.parentNode) d.remove(); }, 4000);
   }
 
   function showTyping() {
@@ -73,7 +119,7 @@
 
   /* ── LÓGICA DE PASOS ─────────────────────────────── */
   function renderStep() {
-    const idx = st.step;
+    const idx  = st.step;
     if (idx >= STEPS.length) return showFinal();
     const step = STEPS[idx];
 
@@ -86,10 +132,11 @@
       row.className = 'ww-row';
 
       const inp = document.createElement('input');
-      inp.type = step.tel ? 'tel' : 'text';
-      inp.className = 'ww-inp';
-      inp.placeholder = step.placeholder;
-      inp.maxLength = 120;
+      inp.type         = step.type || 'text';
+      inp.className    = 'ww-inp';
+      inp.placeholder  = step.placeholder;
+      inp.maxLength    = 160;
+      inp.autocomplete = step.key === 'phone' ? 'tel' : 'off';
 
       const btn = document.createElement('button');
       btn.className = 'ww-sbtn';
@@ -98,7 +145,20 @@
 
       function submit() {
         const val = inp.value.trim();
-        if (!val) { inp.focus(); return; }
+        const err = step.validate(val);
+
+        if (err) {
+          inp.classList.add('ww-shake');
+          inp.classList.add('ww-inp--error');
+          setTimeout(() => {
+            inp.classList.remove('ww-shake');
+            inp.classList.remove('ww-inp--error');
+          }, 600);
+          addError(err);
+          inp.focus();
+          return;
+        }
+
         row.style.pointerEvents = 'none';
         row.style.opacity = '0.5';
         addBubble(val, 'user');
@@ -114,7 +174,7 @@
       row.appendChild(btn);
       $('ww-body').appendChild(row);
       scrollBot();
-      setTimeout(() => inp.focus(), 80);
+      setTimeout(() => inp.focus(), 100);
     }, 700);
   }
 
@@ -122,20 +182,23 @@
     const typing = showTyping();
     setTimeout(() => {
       typing.remove();
-      addBubble(`Gracias, ${st.data.name || ''}. Te conectamos ahora con nuestro equipo.`, 'bot');
+      addBubble(
+        `¡Listo, ${st.data.name || 'amigo'}! 🎉\nTenemos todo lo que necesitamos.\nToca el botón para hablar con nuestro equipo ahora mismo.`,
+        'bot'
+      );
 
       setTimeout(() => {
         const a = document.createElement('a');
         a.className = 'ww-cta';
-        a.href = waURL();
-        a.target = '_blank';
-        a.rel = 'noopener';
+        a.href      = waURL();
+        a.target    = '_blank';
+        a.rel       = 'noopener';
         a.innerHTML = `${SVG_WA}<span>Abrir WhatsApp ahora</span>`;
-        a.addEventListener('click', () => setTimeout(() => toggle(false), 300));
+        a.addEventListener('click', () => setTimeout(() => toggle(false), 400));
         $('ww-body').appendChild(a);
 
         const redo = document.createElement('button');
-        redo.className = 'ww-restart';
+        redo.className   = 'ww-restart';
         redo.textContent = '↩ Empezar de nuevo';
         redo.addEventListener('click', () => {
           st.step = 0; st.data = {};
@@ -144,23 +207,22 @@
         });
         $('ww-body').appendChild(redo);
         scrollBot();
-      }, 300);
+      }, 350);
     }, 700);
   }
 
   /* ── TOGGLE ──────────────────────────────────────── */
   function toggle(forceOpen) {
-    const root = $('ww-root');
+    const root       = $('ww-root');
     const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : !st.open;
-    st.open = shouldOpen;
+    st.open          = shouldOpen;
     root.classList.toggle('ww-open', shouldOpen);
+    syncTheme();
 
     const badge = $('ww-badge');
     if (badge) badge.style.display = shouldOpen ? 'none' : '';
 
-    if (shouldOpen && $('ww-body').children.length === 0) {
-      renderStep();
-    }
+    if (shouldOpen && $('ww-body').children.length === 0) renderStep();
   }
 
   /* ── SVGs ────────────────────────────────────────── */
@@ -168,7 +230,7 @@
 
   const SVG_SEND = `<svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>`;
 
-  const SVG_CLOSE = `<svg viewBox="0 0 24 24" fill="white" width="22" height="22"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`;
+  const SVG_CLOSE = `<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`;
 
   /* ── CSS ─────────────────────────────────────────── */
   function injectStyles() {
@@ -176,28 +238,88 @@
     const s = document.createElement('style');
     s.id = 'ww-styles';
     s.textContent = `
-/* ══ WhatsApp Widget Mark Publicidad ══════════════ */
+/* ══════════════════════════════════════════════════
+   WhatsApp Widget — Mark Publicidad v2.0
+   Variables modo claro y oscuro
+═══════════════════════════════════════════════════ */
+
+/* ── Modo claro (por defecto) ── */
+#ww-root {
+  --ww-panel-bg:    #ffffff;
+  --ww-body-bg:     #ece5dd;
+  --ww-bot-bg:      #ffffff;
+  --ww-bot-text:    #1d1d1f;
+  --ww-user-bg:     #dcf8c6;
+  --ww-user-text:   #1d1d1f;
+  --ww-err-bg:      #fff3cd;
+  --ww-err-text:    #92400e;
+  --ww-err-border:  #fde68a;
+  --ww-inp-bg:      #ffffff;
+  --ww-inp-text:    #1d1d1f;
+  --ww-inp-border:  rgba(0,0,0,0.18);
+  --ww-inp-focus:   #25d366;
+  --ww-inp-err:     #ef4444;
+  --ww-footer-bg:   #f0f0f0;
+  --ww-footer-text: #aaa;
+  --ww-hint-bg:     #ffffff;
+  --ww-hint-text:   #1d1d1f;
+  --ww-typing-bg:   #ffffff;
+  --ww-typing-dot:  #aaa;
+  --ww-shadow:      0 16px 50px rgba(0,0,0,0.20);
+  --ww-border:      rgba(0,0,0,0.08);
+  --ww-scroll:      rgba(0,0,0,0.15);
+}
+
+/* ── Modo oscuro ── */
+#ww-root.ww-dark {
+  --ww-panel-bg:    #1c1c1e;
+  --ww-body-bg:     #0d1117;
+  --ww-bot-bg:      #2c2c2e;
+  --ww-bot-text:    #f2f2f7;
+  --ww-user-bg:     #005c4b;
+  --ww-user-text:   #e9edef;
+  --ww-err-bg:      #3b2500;
+  --ww-err-text:    #fcd34d;
+  --ww-err-border:  #78350f;
+  --ww-inp-bg:      #2c2c2e;
+  --ww-inp-text:    #f2f2f7;
+  --ww-inp-border:  rgba(255,255,255,0.14);
+  --ww-inp-focus:   #25d366;
+  --ww-inp-err:     #f87171;
+  --ww-footer-bg:   #111111;
+  --ww-footer-text: #555;
+  --ww-hint-bg:     #2c2c2e;
+  --ww-hint-text:   #f2f2f7;
+  --ww-typing-bg:   #2c2c2e;
+  --ww-typing-dot:  #666;
+  --ww-shadow:      0 16px 50px rgba(0,0,0,0.55);
+  --ww-border:      rgba(255,255,255,0.08);
+  --ww-scroll:      rgba(255,255,255,0.12);
+}
+
+/* ── Root container ── */
 #ww-root {
   position: fixed !important;
-  bottom: 1.5rem !important;
-  right: 1.5rem !important;
+  bottom: 1.75rem !important;
+  right: 1.75rem !important;
   z-index: 999999 !important;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: .5rem;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
 }
 
-/* Burbuja hint */
+/* ── Burbuja hint ── */
 #ww-hint {
-  background: white;
-  color: #1d1d1f;
+  background: var(--ww-hint-bg);
+  color: var(--ww-hint-text);
   font-size: .82rem;
   font-weight: 500;
-  padding: .5rem .9rem;
+  padding: .55rem 1rem;
   border-radius: 16px 16px 4px 16px;
-  box-shadow: 0 4px 18px rgba(0,0,0,.15);
+  box-shadow: var(--ww-shadow);
+  border: 1px solid var(--ww-border);
   cursor: pointer;
   white-space: nowrap;
   animation: wwSlide .35s ease;
@@ -208,54 +330,48 @@
   to   { opacity:1; transform:translateX(0); }
 }
 
-/* FAB */
+/* ── FAB ── */
 #ww-fab {
-  width: 58px;
-  height: 58px;
+  width: 56px; height: 56px;
   border-radius: 50%;
   background: #25d366;
-  border: none;
-  cursor: pointer;
+  border: none; cursor: pointer;
   box-shadow: 0 4px 20px rgba(37,211,102,.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   position: relative;
   transition: transform .2s, box-shadow .2s;
   flex-shrink: 0;
 }
 #ww-fab:hover {
   transform: scale(1.08);
-  box-shadow: 0 6px 26px rgba(37,211,102,.6);
+  box-shadow: 0 6px 28px rgba(37,211,102,.65);
 }
+
 #ww-badge {
-  position: absolute;
-  top: -4px; right: -4px;
-  width: 19px; height: 19px;
-  border-radius: 50%;
-  background: #e74c3c;
-  color: white;
-  font-size: .65rem; font-weight: 700;
+  position: absolute; top: -4px; right: -4px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #e74c3c; color: white;
+  font-size: .62rem; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
-  border: 2px solid white;
-  animation: wwPulse 2s infinite;
+  border: 2px solid #fff;
+  animation: wwPulse 2.2s infinite;
 }
-@keyframes wwPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
+@keyframes wwPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2)} }
 
-/* Iconos del FAB */
-.ww-ico-open  { display:flex; }
-.ww-ico-close { display:none; }
-#ww-root.ww-open .ww-ico-open  { display:none; }
-#ww-root.ww-open .ww-ico-close { display:flex; }
+.ww-ico-open  { display: flex; }
+.ww-ico-close { display: none; color: white; }
+#ww-root.ww-open .ww-ico-open  { display: none; }
+#ww-root.ww-open .ww-ico-close { display: flex; }
 
-/* Panel */
+/* ── Panel ── */
 #ww-panel {
-  width: 320px;
+  width: 330px;
   max-width: calc(100vw - 2rem);
-  border-radius: 18px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 12px 44px rgba(0,0,0,.2);
-  background: white;
+  box-shadow: var(--ww-shadow);
+  background: var(--ww-panel-bg);
+  border: 1px solid var(--ww-border);
   transform: scale(.88) translateY(16px);
   transform-origin: bottom right;
   opacity: 0;
@@ -269,137 +385,189 @@
   pointer-events: all;
 }
 
-/* Header */
+/* ── Header ── */
 #ww-header {
   background: #075e54;
   padding: .9rem 1.1rem;
-  display: flex;
-  align-items: center;
-  gap: .75rem;
+  display: flex; align-items: center; gap: .75rem;
   color: white;
 }
+#ww-root.ww-dark #ww-header { background: #0a1628; }
+
 #ww-avatar {
-  width: 40px; height: 40px;
-  border-radius: 50%;
+  width: 42px; height: 42px; border-radius: 50%;
   background: rgba(255,255,255,.15);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
 #ww-header strong { display:block; font-size:.9rem; font-weight:600; }
-#ww-header .ww-role { font-size:.72rem; opacity:.85; display:flex; align-items:center; gap:.3rem; }
+.ww-role { font-size:.72rem; opacity:.85; display:flex; align-items:center; gap:.3rem; }
 .ww-dot {
   width:7px; height:7px; border-radius:50%; background:#4ade80;
   animation: wwPulse 2s infinite;
 }
 #ww-close-btn {
-  background: none; border: none; cursor: pointer;
-  padding: 4px; opacity: .7; transition: opacity .2s;
-  display: flex; align-items: center; margin-left: auto;
+  background:none; border:none; cursor:pointer;
+  padding:4px; opacity:.7; transition:opacity .2s;
+  display:flex; align-items:center; margin-left:auto;
+  color: white;
 }
-#ww-close-btn:hover { opacity: 1; }
+#ww-close-btn:hover { opacity:1; }
 
-/* Body */
+/* ── Body ── */
 #ww-body {
-  height: 290px;
+  height: 300px;
   overflow-y: auto;
   padding: .85rem;
-  display: flex;
-  flex-direction: column;
-  gap: .4rem;
+  display: flex; flex-direction: column; gap: .45rem;
   scroll-behavior: smooth;
-  background: #ece5dd;
+  background: var(--ww-body-bg);
+  transition: background .3s;
 }
-#ww-body::-webkit-scrollbar { width:3px; }
-#ww-body::-webkit-scrollbar-thumb { background:rgba(0,0,0,.15); border-radius:2px; }
+#ww-body::-webkit-scrollbar { width: 3px; }
+#ww-body::-webkit-scrollbar-thumb {
+  background: var(--ww-scroll); border-radius: 2px;
+}
 
-/* Burbujas */
+/* ── Burbujas ── */
 .ww-bbl {
   max-width: 82%;
-  padding: .5rem .8rem;
+  padding: .5rem .85rem;
   border-radius: 12px;
-  font-size: .84rem;
-  line-height: 1.5;
+  font-size: .84rem; line-height: 1.55;
   word-break: break-word;
   animation: wwPop .22s ease;
-  box-shadow: 0 1px 2px rgba(0,0,0,.1);
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
 }
 @keyframes wwPop {
-  from { opacity:0; transform:scale(.94) translateY(5px); }
-  to   { opacity:1; transform:scale(1)   translateY(0); }
+  from { opacity:0; transform:scale(.93) translateY(6px); }
+  to   { opacity:1; transform:scale(1) translateY(0); }
 }
-.ww-bbl--bot  { background:white;   color:#1d1d1f; align-self:flex-start; border-top-left-radius:2px; }
-.ww-bbl--user { background:#dcf8c6; color:#1d1d1f; align-self:flex-end;   border-top-right-radius:2px; }
 
-/* Typing */
+.ww-bbl--bot {
+  background: var(--ww-bot-bg);
+  color: var(--ww-bot-text);
+  align-self: flex-start;
+  border-top-left-radius: 2px;
+}
+.ww-bbl--user {
+  background: var(--ww-user-bg);
+  color: var(--ww-user-text);
+  align-self: flex-end;
+  border-top-right-radius: 2px;
+}
+
+/* ── Burbuja de error ── */
+.ww-bbl--error {
+  background: var(--ww-err-bg);
+  color: var(--ww-err-text);
+  border: 1px solid var(--ww-err-border);
+  align-self: flex-start;
+  border-top-left-radius: 2px;
+  font-size: .8rem;
+  font-weight: 500;
+  max-width: 90%;
+  animation: wwPop .2s ease;
+}
+
+/* ── Typing ── */
 .ww-typing {
   display:flex; gap:4px; align-items:center;
-  background:white; padding:.55rem .8rem;
-  border-radius:12px; border-top-left-radius:2px;
-  align-self:flex-start; box-shadow:0 1px 2px rgba(0,0,0,.1);
+  background: var(--ww-typing-bg);
+  padding:.55rem .85rem; border-radius:12px; border-top-left-radius:2px;
+  align-self:flex-start;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
 }
 .ww-typing span {
-  width:6px; height:6px; border-radius:50%; background:#aaa;
+  width:6px; height:6px; border-radius:50%;
+  background: var(--ww-typing-dot);
   animation: wwDot 1.1s ease infinite;
 }
 .ww-typing span:nth-child(2){ animation-delay:.18s; }
 .ww-typing span:nth-child(3){ animation-delay:.36s; }
 @keyframes wwDot {
-  0%,80%,100%{ transform:translateY(0);   opacity:.4; }
+  0%,80%,100%{ transform:translateY(0);    opacity:.4; }
   40%         { transform:translateY(-5px); opacity:1;  }
 }
 
-/* Input */
+/* ── Input row ── */
 .ww-row {
   display:flex; gap:.35rem; align-self:stretch;
   animation: wwPop .22s ease;
+  margin-top: .15rem;
 }
 .ww-inp {
-  flex:1; padding:.48rem .8rem;
-  border:1.5px solid #ddd; border-radius:20px;
-  font-size:.84rem; outline:none;
-  transition:border-color .2s;
-  background:white; color:#1d1d1f;
+  flex:1; padding:.5rem .85rem;
+  border: 1.5px solid var(--ww-inp-border);
+  border-radius: 22px;
+  font-size: .84rem; outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  background: var(--ww-inp-bg);
+  color: var(--ww-inp-text);
   font-family: inherit;
 }
-.ww-inp:focus { border-color:#25d366; }
+.ww-inp::placeholder { color: var(--ww-typing-dot); opacity: 1; }
+.ww-inp:focus {
+  border-color: var(--ww-inp-focus);
+  box-shadow: 0 0 0 3px rgba(37,211,102,.15);
+}
+.ww-inp--error {
+  border-color: var(--ww-inp-err) !important;
+  box-shadow: 0 0 0 3px rgba(239,68,68,.15) !important;
+}
+
+/* Shake animation */
+@keyframes wwShake {
+  0%,100%{ transform:translateX(0); }
+  20%    { transform:translateX(-6px); }
+  40%    { transform:translateX(6px); }
+  60%    { transform:translateX(-4px); }
+  80%    { transform:translateX(4px); }
+}
+.ww-shake { animation: wwShake .45s ease; }
+
 .ww-sbtn {
   width:36px; height:36px; border-radius:50%;
   background:#25d366; color:white; border:none;
   cursor:pointer; display:flex; align-items:center; justify-content:center;
   flex-shrink:0; transition:background .2s, transform .15s;
 }
-.ww-sbtn:hover { background:#1ebe5a; transform:scale(1.06); }
+.ww-sbtn:hover { background:#1ebe5a; transform:scale(1.08); }
 
-/* CTA final */
+/* ── CTA final ── */
 .ww-cta {
   display:flex; align-items:center; justify-content:center; gap:.5rem;
   background:#25d366; color:white; text-decoration:none;
-  border-radius:10px; padding:.7rem; font-size:.87rem; font-weight:600;
-  align-self:stretch; margin-top:.2rem;
+  border-radius:12px; padding:.75rem; font-size:.87rem; font-weight:600;
+  align-self:stretch; margin-top:.25rem;
   transition:background .2s, transform .15s;
   animation: wwPop .25s ease;
+  box-shadow: 0 4px 14px rgba(37,211,102,.35);
 }
-.ww-cta:hover { background:#1ebe5a; color:white; transform:scale(1.01); }
+.ww-cta:hover { background:#1ebe5a; color:white; transform:scale(1.02); }
 
-/* Reiniciar */
+/* ── Reiniciar ── */
 .ww-restart {
   align-self:center; background:none; border:none;
-  color:#999; font-size:.74rem; cursor:pointer;
-  text-decoration:underline; padding:.25rem;
-  font-family: inherit;
+  color: var(--ww-footer-text); font-size:.74rem; cursor:pointer;
+  text-decoration:underline; padding:.3rem; font-family:inherit;
+  transition: color .2s;
 }
+.ww-restart:hover { color: var(--ww-bot-text); }
 
-/* Footer */
+/* ── Footer ── */
 #ww-footer {
-  background:#f0f0f0; text-align:center;
-  font-size:.68rem; color:#aaa; padding:.4rem;
+  background: var(--ww-footer-bg);
+  color: var(--ww-footer-text);
+  text-align:center; font-size:.67rem;
+  padding:.4rem; transition: background .3s, color .3s;
 }
 
-/* Responsive */
-@media (max-width:480px) {
-  #ww-root { right:.75rem; bottom:.75rem; }
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  #ww-root { right: .75rem; bottom: calc(64px + .75rem); }
   #ww-panel { width: calc(100vw - 1.5rem); }
-  #ww-body { height:250px; }
+  #ww-body  { height: 260px; }
 }
     `;
     document.head.appendChild(s);
@@ -410,7 +578,7 @@
     const root = document.createElement('div');
     root.id = 'ww-root';
 
-    /* Panel de chat */
+    /* Panel */
     const panel = document.createElement('div');
     panel.id = 'ww-panel';
     panel.innerHTML = `
@@ -430,11 +598,12 @@
       <div id="ww-footer">Tus datos solo se usan para contactarte · WhatsApp</div>
     `;
 
-    /* FAB + hint */
+    /* Hint */
     const hint = document.createElement('div');
     hint.id = 'ww-hint';
     hint.textContent = CONFIG.hintText;
 
+    /* FAB */
     const fab = document.createElement('button');
     fab.id = 'ww-fab';
     fab.setAttribute('aria-label', 'Abrir chat WhatsApp');
@@ -458,16 +627,24 @@
     hint.addEventListener('click', () => toggle(true));
     document.getElementById('ww-close-btn').addEventListener('click', () => toggle(false));
 
-    /* Ocultar hint tras 7s */
+    /* Ocultar hint tras 8s */
     setTimeout(() => {
       hint.style.opacity = '0';
-      setTimeout(() => hint.remove(), 500);
-    }, 7000);
+      setTimeout(() => { if (hint.parentNode) hint.remove(); }, 500);
+    }, 8000);
 
     /* Auto-abrir */
     if (CONFIG.openDelay > 0) {
       setTimeout(() => { if (!st.open) toggle(true); }, CONFIG.openDelay);
     }
+
+    /* Observar cambios de tema en tiempo real */
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    observer.observe(document.body,             { attributes: true, attributeFilter: ['data-theme'] });
+
+    /* Sync inicial */
+    syncTheme();
   }
 
   /* ── INIT ─────────────────────────────────────────── */
@@ -475,7 +652,7 @@
     if ($('ww-root')) return;
     injectStyles();
     createDOM();
-    console.log('✅ WhatsApp Widget — Mark Publicidad cargado');
+    console.log('✅ WhatsApp Widget v2.0 — Mark Publicidad');
   }
 
   if (document.readyState === 'loading') {

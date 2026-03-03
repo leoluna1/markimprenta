@@ -12,22 +12,24 @@ export default class NavigationView extends BaseView {
   }
 
   bind() {
-    // ── Modo oscuro ────────────────────────────────────────────────────────
+    // ── Modo oscuro ─────────────────────────────────────────────────────────────────
     this._initTheme();
 
-    // Links del menú
+    // Links del menú superior
     this.on('click', '.nav-link', (e, el) => {
       e.preventDefault();
       const id = el.getAttribute('href')?.slice(1);
-      if (id) {
-        EventBus.emit('nav:go', { id });
-        this._closeMobile();
-      }
+      if (id) EventBus.emit('nav:go', { id });
     });
 
-    // Botón hamburguesa
-    document.getElementById('mobileToggle')
-      ?.addEventListener('click', () => this._toggleMobile());
+    // Bottom nav links (móvil)
+    document.querySelectorAll('.bnav-item').forEach(item => {
+      item.addEventListener('click', e => {
+        e.preventDefault();
+        const id = item.dataset.section;
+        if (id) EventBus.emit('nav:go', { id });
+      });
+    });
 
     // Logo → ir a inicio
     document.getElementById('logoHome')
@@ -48,10 +50,15 @@ export default class NavigationView extends BaseView {
     this._observeSections();
   }
 
-  /** Actualiza el link activo en el menú */
+  /** Actualiza el link activo en el menú (top nav + bottom nav) */
   setActive(sectionId) {
-    this.$$('.nav-link').forEach(link => {
+    // Top nav
+    this.$('.nav-link').forEach(link => {
       link.classList.toggle('active', link.getAttribute('href') === '#' + sectionId);
+    });
+    // Bottom nav
+    document.querySelectorAll('.bnav-item').forEach(item => {
+      item.classList.toggle('active', item.dataset.section === sectionId);
     });
   }
 
@@ -87,7 +94,7 @@ export default class NavigationView extends BaseView {
   _observeSections() {
     const obs = new IntersectionObserver(
       entries => entries.forEach(e => { if (e.isIntersecting) this.setActive(e.target.id); }),
-      { threshold: 0.4 }
+      { threshold: 0.15, rootMargin: '-56px 0px 0px 0px' } // 56px = altura del nav fijo
     );
     document.querySelectorAll('section[id]').forEach(s => obs.observe(s));
   }

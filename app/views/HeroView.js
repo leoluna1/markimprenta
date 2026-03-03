@@ -25,6 +25,7 @@ export default class HeroView extends BaseView {
       entries.forEach(entry => {
         if (!entry.isIntersecting) return;
         if (entry.target.textContent !== '0') return;
+        obs.unobserve(entry.target); // evitar re-ejecución y liberar observer
         this._animateCounter(entry.target);
       });
     }, { threshold: 0.5 });
@@ -147,6 +148,10 @@ export default class HeroView extends BaseView {
     }, { threshold: 0.1 });
 
     document.querySelectorAll('.service-card').forEach((card, i) => {
+      // Aplicar color de acento como variable CSS
+      const accent = card.dataset.accent;
+      if (accent) card.style.setProperty('--card-accent', accent);
+
       card.style.opacity    = '0';
       card.style.transform  = 'translateY(44px)';
       card.style.transition = `opacity .55s ease ${i * 0.1}s, transform .55s ease ${i * 0.1}s`;

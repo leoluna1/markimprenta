@@ -57,14 +57,20 @@ export default class QuoteView extends BaseView {
 
     this._animatePrice(price);
 
-    // Animación de entrada del panel
+    // Animación de entrada del panel (doble rAF para que el browser pinte el estado inicial antes de animar)
     Object.assign(this._panel.style, {
-      transition: 'opacity .35s ease, transform .35s ease',
+      transition: 'none',
       opacity:    '0',
       transform:  'scale(.95)',
     });
     requestAnimationFrame(() => {
-      Object.assign(this._panel.style, { opacity: '1', transform: 'scale(1)' });
+      requestAnimationFrame(() => {
+        Object.assign(this._panel.style, {
+          transition: 'opacity .35s ease, transform .35s ease',
+          opacity:    '1',
+          transform:  'scale(1)',
+        });
+      });
     });
 
     this._launchConfetti();

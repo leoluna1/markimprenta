@@ -77,9 +77,11 @@ export default class CatalogView extends BaseView {
   }
 
   _cardHTML(p, i) {
-    const price = typeof p.price === 'number'
-      ? `Desde ${p.price.toFixed(2)} <small>${this.esc(p.priceUnit ?? '')}</small>`
+    const priceText = typeof p.price === 'number'
+      ? `Desde ${p.price.toFixed(2)}`
       : this.esc(p.price ?? 'Consultar');
+    const priceUnit = typeof p.price === 'number' && p.priceUnit
+      ? `<span class="price-unit">${this.esc(p.priceUnit)}</span>` : '';
     const badge = p.popular
       ? `<span class="product-badge">⭐ Popular</span>`
       : '';
@@ -91,7 +93,10 @@ export default class CatalogView extends BaseView {
         <div class="product-content">
           <h3>${this.esc(p.name)}</h3>
           <p>${this.esc(p.description)}</p>
-          <div class="product-price">${price}</div>
+          <div class="product-price">
+            <span>${priceText}</span>${priceUnit}
+            <span class="view-btn"><i class="fas fa-arrow-right"></i></span>
+          </div>
         </div>
       </div>
     `;

@@ -168,7 +168,7 @@ const PRODUCTS = [
   {
     id: 13,
     name: 'Banners y Lonas',
-    category: 'etiquetas',
+    category: 'gran-formato',
     image: '🖼️',
     price: 15.00,
     priceUnit: 'por m²',
@@ -180,7 +180,7 @@ const PRODUCTS = [
   {
     id: 14,
     name: 'Roll Ups',
-    category: 'etiquetas',
+    category: 'gran-formato',
     image: '📊',
     price: 45.00,
     priceUnit: 'por unidad',
@@ -192,7 +192,7 @@ const PRODUCTS = [
   {
     id: 15,
     name: 'Vinilos y Adhesivos',
-    category: 'etiquetas',
+    category: 'gran-formato',
     image: '🎨',
     price: 8.00,
     priceUnit: 'por m²',
@@ -230,7 +230,7 @@ const PRODUCTS = [
   {
     id: 18,
     name: 'Gigantografías',
-    category: 'diseno',
+    category: 'gran-formato',
     image: '🏢',
     price: 12.00,
     priceUnit: 'por m²',

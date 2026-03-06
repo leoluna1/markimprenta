@@ -18,12 +18,26 @@ export default class QuoteView extends BaseView {
   }
 
   bind() {
+    const serviceEl = document.getElementById('quoteService');
+    const qtyInput  = document.getElementById('quoteQuantity');
+    const qtyLabel  = document.querySelector('label[for="quoteQuantity"]');
+    const isSqmSvc  = new Set(['banners', 'vinilos']);
+
+    // Actualizar etiqueta de cantidad según el servicio seleccionado
+    serviceEl?.addEventListener('change', () => {
+      const sqm = isSqmSvc.has(serviceEl.value);
+      if (qtyLabel) qtyLabel.innerHTML = sqm
+        ? '<i class="fas fa-vector-square"></i> Metros cuadrados (m²)'
+        : '<i class="fas fa-sort-numeric-up"></i> Cantidad';
+      if (qtyInput) qtyInput.placeholder = sqm ? '10' : '1000';
+    });
+
     // Submit del formulario
     this._form?.addEventListener('submit', e => {
       e.preventDefault();
       EventBus.emit('quote:submit', {
-        service:  document.getElementById('quoteService')?.value  ?? '',
-        quantity: +(document.getElementById('quoteQuantity')?.value ?? 0),
+        service:  serviceEl?.value ?? '',
+        quantity: +(qtyInput?.value ?? 0),
         material: document.getElementById('quoteMaterial')?.value ?? 'estandar',
         size:     document.getElementById('quoteSize')?.value     ?? 'pequeno',
       });
@@ -39,21 +53,44 @@ export default class QuoteView extends BaseView {
   // ── Privados ────────────────────────────────────────────────────────────
 
   _showResult({ price, discount, breakdown }) {
-    const discHTML = discount > 0
-      ? `<p class="result-discount">
-           <i class="fas fa-tag"></i>
-           Descuento por volumen: <strong>${(discount * 100).toFixed(0)}%</strong>
-         </p>`
+    const unit = breakdown.unit ?? 'uds.';
+    const qty  = breakdown.quantity;
+
+    const unitPriceHTML = !breakdown.isFixed
+      ? `<div class="rb-row">
+           <span>Precio unitario</span>
+           <strong>${breakdown.unitCost.toFixed(breakdown.unitCost < 1 ? 3 : 2)} / ${unit === 'm²' ? 'm²' : 'u'}</strong>
+         </div>`
       : '';
+
+    const discHTML = discount > 0
+      ? `<div class="rb-row rb-discount">
+           <span><i class="fas fa-tag"></i> Descuento volumen</span>
+           <strong class="discount-val">−${(discount * 100).toFixed(0)}%</strong>
+         </div>`
+      : '';
+
+    const materialHTML = !breakdown.isFixed
+      ? `<div class="rb-row"><span>Material</span><strong>${this.esc(breakdown.material)}</strong></div>
+         <div class="rb-row"><span>Tamaño</span><strong>${this.esc(breakdown.size)}</strong></div>`
+      : '';
+
+    // Tabla de precios por volumen según el servicio
+    const tiersHTML = this._tiersHTML(breakdown.service, qty);
 
     this._details.innerHTML = `
       <div class="result-breakdown">
-        <div class="rb-row"><span>Servicio</span>  <strong>${this.esc(breakdown.service)}</strong></div>
-        <div class="rb-row"><span>Cantidad</span>  <strong>${breakdown.quantity.toLocaleString()} uds.</strong></div>
-        <div class="rb-row"><span>Material</span>  <strong>${this.esc(breakdown.material)}</strong></div>
-        <div class="rb-row"><span>Tamaño</span>    <strong>${this.esc(breakdown.size)}</strong></div>
+        <div class="rb-row"><span>Servicio</span><strong>${this.esc(breakdown.service)}</strong></div>
+        <div class="rb-row"><span>Cantidad</span><strong>${qty.toLocaleString()} ${unit}</strong></div>
+        ${materialHTML}
+        ${unitPriceHTML}
         ${discHTML}
+        <div class="rb-row rb-delivery">
+          <span><i class="fas fa-truck"></i> Entrega est.</span>
+          <strong>${this.esc(breakdown.delivery)}</strong>
+        </div>
       </div>
+      ${tiersHTML}
     `;
 
     this._animatePrice(price);
@@ -126,6 +163,78 @@ export default class QuoteView extends BaseView {
       }
     };
     this._priceRaf = requestAnimationFrame(tick);
+  }
+
+  /** Tabla de tramos de precio según servicio — resalta el tramo activo */
+  _tiersHTML(serviceLabel, qty) {
+    const tiers = {
+      'Flyers y Volantes': [
+        { qty: '100 u',   price: '$0.10/u' },
+        { qty: '500 u',   price: '$0.09/u' },
+        { qty: '1 000 u', price: '$0.08/u' },
+        { qty: '2 000 u', price: '$0.07/u' },
+        { qty: '5 000 u', price: '$0.068/u' },
+      ],
+      'Tarjetas de Presentación': [
+        { qty: '100 u',   price: '$0.07/u' },
+        { qty: '500 u',   price: '$0.04/u' },
+        { qty: '1 000 u', price: '$0.035/u' },
+        { qty: '2 000 u', price: '$0.032/u' },
+        { qty: '5 000 u', price: '$0.03/u' },
+      ],
+      'Tazas Sublimadas': [
+        { qty: '1 u',    price: '$4.99/u', threshold: 1  },
+        { qty: '6 u',    price: '$3.50/u', threshold: 6  },
+        { qty: '12 u',   price: '$3.00/u', threshold: 12 },
+        { qty: '24 u',   price: '$2.50/u', threshold: 24 },
+        { qty: '36 u',   price: '$1.80/u', threshold: 36 },
+        { qty: '100 u',  price: '$1.60/u', threshold: 100},
+      ],
+      'Banners y Lonas': [
+        { qty: '1 m²',   price: '$12/m²' },
+        { qty: '5 m²',   price: '$10/m²' },
+        { qty: '10 m²',  price: '$8/m²'  },
+        { qty: '20 m²',  price: '$7.50/m²'},
+      ],
+      'Roll Ups': [
+        { qty: 'Lona',   price: '$50 + IVA' },
+        { qty: 'Pet B.', price: '$60 + IVA' },
+      ],
+    };
+
+    const rows = tiers[serviceLabel];
+    if (!rows) return ''; // sin tabla para este servicio
+
+    const isTazas = serviceLabel === 'Tazas Sublimadas';
+
+    const cells = rows.map(r => {
+      let active = false;
+      if (isTazas && r.threshold !== undefined) {
+        // El tramo activo es el máximo umbral que no supera qty
+        const maxThreshold = rows
+          .filter(x => x.threshold !== undefined && x.threshold <= qty)
+          .reduce((max, x) => Math.max(max, x.threshold), 0);
+        active = r.threshold === maxThreshold;
+      } else if (!isTazas && rows.length > 1) {
+        // Para otros servicios, el mayor tramo disponible según qty
+        const thresholds = [100, 500, 1000, 2000, 5000];
+        const idx = thresholds.filter(t => t <= qty).length - 1;
+        active = rows.indexOf(r) === Math.min(idx, rows.length - 1);
+      }
+      return `<div class="price-tier${active ? ' active' : ''}">
+        <span class="tier-qty">${r.qty}</span>
+        <span class="tier-price">${r.price}</span>
+      </div>`;
+    }).join('');
+
+    return `
+      <div class="rb-price-tiers">
+        <p><i class="fas fa-layer-group"></i> Precios por volumen</p>
+        <div class="price-tier-grid" style="grid-template-columns: repeat(${Math.min(rows.length, 3)}, 1fr)">
+          ${cells}
+        </div>
+      </div>
+    `;
   }
 
   _launchConfetti() {

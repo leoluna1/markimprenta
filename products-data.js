@@ -9,7 +9,7 @@ const productsDatabase = [
         name: "Flyers y Volantes",
         category: "impresion",
         description: "Impresión de flyers y volantes en alta calidad, ideal para promociones y publicidad masiva.",
-        image: "images/flyers.jpg",
+        image: "images/flyers.pdf",
         price: 0.15,
         priceUnit: "por unidad",
         features: [
@@ -43,7 +43,7 @@ const productsDatabase = [
         name: "Hojas Membretadas",
         category: "impresion",
         description: "Papelería corporativa personalizada para tu empresa.",
-        image: "https://images.unsplash.com/photo-1568667256549-094345857aee?w=600&q=80",
+        image: "images/hojas_membretadas.pdf",
         price: 0.30,
         priceUnit: "por unidad",
         features: [

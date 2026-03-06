@@ -70,7 +70,7 @@ export default class CatalogView extends BaseView {
       return `<img
         src="${p.image}"
         alt="${this.esc(p.name)}"
-        style="width:100%;height:100%;object-fit:cover;display:block;"
+        style="width:100%;height:100%;object-fit:contain;display:block;padding:8px;"
         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
       /><span style="display:none;font-size:3.5rem;align-items:center;justify-content:center;width:100%;height:100%;">📦</span>`;
     }

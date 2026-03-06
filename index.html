@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mark Publicidad Impresa</title>
+  <title>Marka Publicidad Impresa</title>
   <meta name="description"
     content="Mark Publicidad Impresa - Expertos en impresión digital, offset, material POP, exhibidores, etiquetas y diseño gráfico en Ibarra, Ecuador.">
 
@@ -101,7 +101,7 @@
   <div class="page-loader" id="pageLoader">
     <div class="loader-content">
       <div class="loader-logo"><i class="fas fa-print"></i></div>
-      <div class="loader-text">MARK PUBLICIDAD</div>
+      <div class="loader-text">MARKA PUBLICIDAD</div>
       <div class="loader-bar">
         <div class="loader-progress"></div>
       </div>
@@ -115,8 +115,8 @@
   <nav class="main-nav" id="mainNav">
     <div class="nav-container">
       <div class="logo-container" id="logoHome">
-        <i class="fas fa-print"></i>
-        <span>MARK PUBLICIDAD</span>
+        <img src="images/logo.png" alt="Marka Publicidad Impresa" class="nav-logo-img">
+        <span>MARKA PUBLICIDAD</span>
       </div>
 
       <div class="nav-right">
@@ -124,7 +124,8 @@
           <i class="fas fa-moon" id="themeIcon"></i>
         </button>
 
-        <button class="mobile-toggle" id="mobileToggle" aria-label="Abrir menú de navegación" aria-expanded="false" aria-controls="navMenu">
+        <button class="mobile-toggle" id="mobileToggle" aria-label="Abrir menú de navegación" aria-expanded="false"
+          aria-controls="navMenu">
           <span></span><span></span><span></span>
         </button>
       </div>
@@ -206,7 +207,7 @@
     </div>
   </section>
 
-  
+
 
   <!-- ══════════════════════════════════════════════
        SERVICIOS
@@ -321,7 +322,8 @@
         <button class="filter-btn" data-filter="packaging"> <i class="fas fa-box"></i> Packaging</button>
         <button class="filter-btn" data-filter="etiquetas"> <i class="fas fa-tags"></i> Etiquetas</button>
         <button class="filter-btn" data-filter="diseno"> <i class="fas fa-palette"></i> Diseño</button>
-        <button class="filter-btn" data-filter="gran-formato"> <i class="fas fa-expand-arrows-alt"></i> Gran Formato</button>
+        <button class="filter-btn" data-filter="gran-formato"> <i class="fas fa-expand-arrows-alt"></i> Gran
+          Formato</button>
       </div>
 
       <div class="products-grid" id="productsGrid"></div>
@@ -346,19 +348,37 @@
             <div class="form-group">
               <label for="quoteService"><i class="fas fa-cogs"></i> Tipo de Servicio</label>
               <select id="quoteService" name="service" required autocomplete="off">
-                <option value="">Selecciona un servicio</option>
-                <option value="flyers">Flyers y Volantes</option>
-                <option value="tarjetas">Tarjetas de Presentación</option>
-                <option value="packaging">Packaging y Cajas</option>
-                <option value="etiquetas">Etiquetas</option>
-                <option value="diseno">Diseño Gráfico</option>
-                <option value="digital">Impresión Digital</option>
-                <option value="pop">Material POP</option>
+                <option value="">Selecciona un servicio…</option>
+                <optgroup label="─ Impresión">
+                  <option value="flyers">Flyers y Volantes</option>
+                  <option value="tarjetas">Tarjetas de Presentación</option>
+                  <option value="digital">Impresión Digital</option>
+                </optgroup>
+                <optgroup label="─ Gran Formato">
+                  <option value="banners">Banners y Lonas (por m²)</option>
+                  <option value="rollups">Roll Ups (unidad fija $45)</option>
+                  <option value="vinilos">Vinilos Adhesivos (por m²)</option>
+                </optgroup>
+                <optgroup label="─ Packaging">
+                  <option value="cajas">Cajas Personalizadas</option>
+                  <option value="bolsas">Bolsas de Papel</option>
+                  <option value="etiquetas">Etiquetas Adhesivas</option>
+                </optgroup>
+                <optgroup label="─ Material POP">
+                  <option value="gorras">Gorras Personalizadas</option>
+                  <option value="esferos">Esferos Personalizados</option>
+                  <option value="tazas">Tazas Sublimadas</option>
+                </optgroup>
+                <optgroup label="─ Diseño">
+                  <option value="diseno">Diseño Gráfico (precio fijo)</option>
+                  <option value="diseno-logo">Diseño de Logotipo (precio fijo)</option>
+                </optgroup>
               </select>
             </div>
             <div class="form-group">
               <label for="quoteQuantity"><i class="fas fa-sort-numeric-up"></i> Cantidad</label>
-              <input type="number" id="quoteQuantity" name="quantity" min="1" placeholder="1000" inputmode="numeric" autocomplete="off" required>
+              <input type="number" id="quoteQuantity" name="quantity" min="1" placeholder="1000" inputmode="numeric"
+                autocomplete="off" required>
             </div>
           </div>
 
@@ -460,7 +480,8 @@
           <div class="form-row">
             <div class="form-group">
               <label for="contactEmail"><i class="fas fa-envelope"></i> Email</label>
-              <input type="email" id="contactEmail" name="email" placeholder="tu@email.com" autocomplete="email" required>
+              <input type="email" id="contactEmail" name="email" placeholder="tu@email.com" autocomplete="email"
+                required>
             </div>
             <div class="form-group">
               <label for="contactPhone"><i class="fas fa-phone"></i> Teléfono</label>
@@ -469,7 +490,8 @@
           </div>
           <div class="form-group">
             <label for="contactMessage"><i class="fas fa-comment-alt"></i> Mensaje</label>
-            <textarea id="contactMessage" name="message" rows="5" placeholder="Cuéntanos sobre tu proyecto..." autocomplete="off" required></textarea>
+            <textarea id="contactMessage" name="message" rows="5" placeholder="Cuéntanos sobre tu proyecto..."
+              autocomplete="off" required></textarea>
           </div>
           <!-- Mensajes de feedback -->
           <div id="contactSuccessMsg" class="contact-feedback contact-feedback--success" role="alert" hidden>
@@ -497,14 +519,13 @@
               <p>AV Jesús Yerovi 227, Ibarra, Ecuador</p>
             </div>
           </div>
-          <a href="https://maps.google.com/?q=0.36436541040245174,-78.12006097806493" target="_blank" rel="noopener noreferrer"
-            class="map-directions-btn">
+          <a href="https://maps.google.com/?q=0.36436541040245174,-78.12006097806493" target="_blank"
+            rel="noopener noreferrer" class="map-directions-btn">
             <i class="fas fa-directions"></i> Cómo llegar
           </a>
         </div>
         <div class="map-frame-wrapper">
-          <iframe
-            src="https://maps.google.com/maps?q=0.36436541040245174,-78.12006097806493&z=18&output=embed&hl=es"
+          <iframe src="https://maps.google.com/maps?q=0.36436541040245174,-78.12006097806493&z=18&output=embed&hl=es"
             width="100%" height="100%" style="border:0;" allowfullscreen loading="lazy"
             referrerpolicy="no-referrer-when-downgrade" title="Ubicación Mark Publicidad Impresa"></iframe>
         </div>
@@ -527,28 +548,32 @@
 
       <!-- Botones de redes sociales -->
       <div class="social-links">
-        <a href="https://www.youtube.com/@markpublicidad" target="_blank" rel="noopener noreferrer" class="social-btn youtube">
+        <a href="https://www.youtube.com/@markpublicidad" target="_blank" rel="noopener noreferrer"
+          class="social-btn youtube">
           <i class="fab fa-youtube"></i>
           <span class="social-btn-info">
             <small>Suscríbete en</small>
             YouTube
           </span>
         </a>
-        <a href="https://www.instagram.com/markpublicidad" target="_blank" rel="noopener noreferrer" class="social-btn instagram">
+        <a href="https://www.instagram.com/markpublicidad" target="_blank" rel="noopener noreferrer"
+          class="social-btn instagram">
           <i class="fab fa-instagram"></i>
           <span class="social-btn-info">
             <small>Síguenos en</small>
             Instagram
           </span>
         </a>
-        <a href="https://www.tiktok.com/@markpublicidad" target="_blank" rel="noopener noreferrer" class="social-btn tiktok">
+        <a href="https://www.tiktok.com/@markpublicidad" target="_blank" rel="noopener noreferrer"
+          class="social-btn tiktok">
           <i class="fab fa-tiktok"></i>
           <span class="social-btn-info">
             <small>Síguenos en</small>
             TikTok
           </span>
         </a>
-        <a href="https://www.facebook.com/markpublicidad" target="_blank" rel="noopener noreferrer" class="social-btn facebook">
+        <a href="https://www.facebook.com/markpublicidad" target="_blank" rel="noopener noreferrer"
+          class="social-btn facebook">
           <i class="fab fa-facebook-f"></i>
           <span class="social-btn-info">
             <small>Síguenos en</small>
@@ -692,7 +717,8 @@
       <div class="social-cta">
         <p>¿Quieres ver más? Síguenos en nuestras redes y entérate de todo lo que hacemos</p>
         <div class="social-cta-buttons">
-          <a href="https://www.youtube.com/@markpublicidad" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+          <a href="https://www.youtube.com/@markpublicidad" target="_blank" rel="noopener noreferrer"
+            class="btn btn-primary">
             <i class="fab fa-youtube"></i> Ver canal completo
           </a>
           <button class="btn btn-secondary" data-nav="contacto">
@@ -711,17 +737,20 @@
     <div class="container">
       <div class="footer-content">
         <div class="footer-brand">
-          <h3><i class="fas fa-print"></i> MARK PUBLICIDAD</h3>
+
+          <img src="images/logo.png" alt="Marka Publicidad Impresa" class="nav-logo-img">
+          <h3><i class="fa"></i> MARKA PUBLICIDAD</h3>
+
           <p>Tu socio profesional en impresión desde 2016</p>
           <div class="footer-social">
-            <a href="https://www.youtube.com/@markpublicidad" target="_blank" rel="noopener noreferrer" aria-label="YouTube"> <i
-                class="fab fa-youtube"></i></a>
-            <a href="https://www.instagram.com/markpublicidad" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i
-                class="fab fa-instagram"></i></a>
-            <a href="https://www.tiktok.com/@markpublicidad" target="_blank" rel="noopener noreferrer" aria-label="TikTok"> <i
-                class="fab fa-tiktok"></i></a>
-            <a href="https://www.facebook.com/markpublicidad" target="_blank" rel="noopener noreferrer" aria-label="Facebook"> <i
-                class="fab fa-facebook-f"></i></a>
+            <a href="https://www.youtube.com/@markpublicidad" target="_blank" rel="noopener noreferrer"
+              aria-label="YouTube"> <i class="fab fa-youtube"></i></a>
+            <a href="https://www.instagram.com/markpublicidad" target="_blank" rel="noopener noreferrer"
+              aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="https://www.tiktok.com/@markpublicidad" target="_blank" rel="noopener noreferrer"
+              aria-label="TikTok"> <i class="fab fa-tiktok"></i></a>
+            <a href="https://www.facebook.com/markpublicidad" target="_blank" rel="noopener noreferrer"
+              aria-label="Facebook"> <i class="fab fa-facebook-f"></i></a>
           </div>
         </div>
         <div class="footer-links">
@@ -744,19 +773,19 @@
 
   <!-- ── Bottom Nav (móvil) ──────────────────── -->
   <nav class="bottom-nav" id="bottomNav">
-    <a href="#inicio"    class="bnav-item active" data-section="inicio">
+    <a href="#inicio" class="bnav-item active" data-section="inicio">
       <i class="fas fa-home"></i><span>Inicio</span>
     </a>
     <a href="#servicios" class="bnav-item" data-section="servicios">
       <i class="fas fa-cogs"></i><span>Servicios</span>
     </a>
-    <a href="#catalogo"  class="bnav-item" data-section="catalogo">
+    <a href="#catalogo" class="bnav-item" data-section="catalogo">
       <i class="fas fa-book-open"></i><span>Catálogo</span>
     </a>
     <a href="#cotizador" class="bnav-item" data-section="cotizador">
       <i class="fas fa-calculator"></i><span>Cotizar</span>
     </a>
-    <a href="#contacto"  class="bnav-item" data-section="contacto">
+    <a href="#contacto" class="bnav-item" data-section="contacto">
       <i class="fas fa-envelope"></i><span>Contacto</span>
     </a>
   </nav>

@@ -263,15 +263,24 @@ button:focus-visible {
 }
 
 .logo-container {
-    display: flex; align-items: center; gap: 0.5rem;
+    display: flex; align-items: center; gap: 0.6rem;
     font-size: 1rem; font-weight: 600;
     color: var(--text-dark);
     cursor: pointer;
     transition: opacity var(--transition-fast);
     letter-spacing: -0.3px;
 }
-.logo-container:hover { opacity: 0.65; }
+.logo-container:hover { opacity: 0.7; }
 .logo-container i { color: var(--secondary); font-size: 1.25rem; }
+
+.nav-logo-img {
+    height: 36px;
+    width: auto;
+    object-fit: contain;
+    border-radius: 6px;
+    display: block;
+    flex-shrink: 0;
+}
 
 .nav-menu {
     display: flex; list-style: none; gap: 0.25rem;
@@ -1019,8 +1028,8 @@ button:focus-visible {
 }
 
 .product-image {
-    height: 180px;
-    background: var(--glass-border-sub);
+    height: 200px;
+    background: var(--bg-gray);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1030,7 +1039,20 @@ button:focus-visible {
     transition: background var(--transition-base);
 }
 .product-card:hover .product-image {
-    background: rgba(0,113,227,0.10);
+    background: color-mix(in srgb, var(--secondary) 8%, var(--bg-gray));
+}
+
+/* Imagen de producto — siempre visible completa */
+.product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 14px;
+    display: block;
+    transition: transform var(--transition-base);
+}
+.product-card:hover .product-image img {
+    transform: scale(1.04);
 }
 
 /* Badge Popular */
@@ -2282,4 +2304,158 @@ button:focus-visible {
     color: var(--text-light, #6e6e73);
     font-size: 0.78rem;
     margin-top: 1px;
+}
+
+/* ===== COTIZADOR — DESGLOSE DE RESULTADO ===== */
+.result-breakdown {
+    text-align: left;
+    margin-bottom: 1.25rem;
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.rb-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    color: var(--text-light);
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--border);
+    gap: 0.5rem;
+}
+
+.rb-row:last-child { border-bottom: none; }
+
+.rb-row strong {
+    color: var(--text-dark);
+    font-weight: 600;
+    text-align: right;
+    word-break: break-word;
+}
+
+.rb-discount { color: var(--success) !important; }
+.rb-discount strong,
+.discount-val { color: var(--success) !important; font-weight: 700; }
+
+.rb-delivery {
+    padding-top: 0.6rem;
+    margin-top: 0.25rem;
+    border-top: 1px solid var(--border) !important;
+    color: var(--text-medium) !important;
+    font-weight: 500;
+}
+.rb-delivery strong { color: var(--secondary) !important; }
+
+/* Tabla de precios por volumen */
+.rb-price-tiers {
+    margin-top: 0.75rem;
+    border-top: 1px solid var(--border);
+    padding-top: 0.6rem;
+}
+.rb-price-tiers p {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-bottom: 0.4rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.price-tier-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.35rem;
+}
+.price-tier {
+    background: var(--bg-gray);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.4rem 0.5rem;
+    text-align: center;
+    transition: all var(--transition-fast);
+}
+.price-tier.active {
+    background: color-mix(in srgb, var(--secondary) 10%, transparent);
+    border-color: var(--secondary);
+}
+.price-tier .tier-qty {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-light);
+    margin-bottom: 0.1rem;
+}
+.price-tier .tier-price {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+.price-tier.active .tier-price { color: var(--secondary); }
+
+/* Alerta del formulario */
+.form-alert {
+    background: rgba(255,59,48,0.10);
+    border: 1px solid rgba(255,59,48,0.30);
+    color: #c0392b;
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+[data-theme="dark"] .form-alert { color: #f87171; }
+
+/* ===== TEMAS OSCUROS — select optgroup ===== */
+[data-theme="dark"] select option,
+[data-theme="dark"] select optgroup {
+    background: #2c2c2e;
+    color: #f5f5f7;
+}
+
+/* ===== CATÁLOGO — BOTÓN WHATSAPP EN TARJETA ===== */
+.btn-wa-quick {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+    margin-top: 0.75rem;
+    padding: 0.55rem 1rem;
+    background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.82rem;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 2;
+}
+
+.btn-wa-quick:hover {
+    background: linear-gradient(135deg, #20ba5a 0%, #0e7a6e 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(37, 211, 102, 0.35);
+    color: white;
+}
+
+/* ===== MODAL — BOTÓN WHATSAPP ===== */
+.btn-wa-modal {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+    color: white !important;
+    text-decoration: none;
+    border-radius: 980px;
+    font-weight: 500;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.btn-wa-modal:hover {
+    background: linear-gradient(135deg, #20ba5a 0%, #0e7a6e 100%);
+    transform: scale(1.02);
+    box-shadow: 0 8px 20px rgba(37, 211, 102, 0.35);
 }

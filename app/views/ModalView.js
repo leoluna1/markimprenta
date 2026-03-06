@@ -62,6 +62,8 @@ export default class ModalView extends BaseView {
   show(p) {
     if (!this._body || !this.$el) return;
 
+    const waUrl = `https://wa.me/593996884150?text=${encodeURIComponent('Hola! Me interesa: ' + p.name + '. ¿Pueden darme información y precio?')}`;
+
     const price = typeof p.price === 'number'
       ? `Desde $${p.price.toFixed(2)} <small style="font-size:.85rem;font-weight:400;">${this.esc(p.priceUnit ?? '')}</small>`
       : this.esc(p.price ?? 'Consultar');
@@ -88,6 +90,9 @@ export default class ModalView extends BaseView {
           <button class="btn btn-primary" data-action="quote">
             <i class="fas fa-calculator"></i> Cotizar ahora
           </button>
+          <a class="btn btn-wa-modal" href="${waUrl}" target="_blank" rel="noopener noreferrer">
+            <i class="fab fa-whatsapp"></i> WhatsApp
+          </a>
         </div>
       </div>
     `;

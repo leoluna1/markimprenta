@@ -1,275 +1,697 @@
 import BaseView from './BaseView.js';
-import EventBus from '../core/EventBus.js';
 
-/**
- * QuoteView — Formulario y panel de resultado del cotizador
- * Emite:    quote:submit { service, quantity, material, size }
- * Escucha:  quote:result { price, discount, breakdown }
- *           quote:error  { msg }
- */
+// =====================================================
+// Precios reales del catálogo Mark Publicidad
+// =====================================================
+const PRICING = {
+
+  // ── VOLANTES ────────────────────────────────────
+  volantes: {
+    'a6-1c': { label: 'A6 · 1 cara',  dims: '10.5 × 14.8 cm', type: 'tiers', tiers: [{qty:1000,total:80},{qty:2000,total:100},{qty:5000,total:249.50}] },
+    'a6-2c': { label: 'A6 · 2 caras', dims: '10.5 × 14.8 cm', type: 'tiers', tiers: [{qty:1000,total:90},{qty:2000,total:110},{qty:5000,total:175}] },
+    'a5-1c': { label: 'A5 · 1 cara',  dims: '14.8 × 21 cm',   type: 'per1k', unitPer1000: 3.00, minQty: 1000 },
+    'a5-2c': { label: 'A5 · 2 caras', dims: '14.8 × 21 cm',   type: 'per1k', unitPer1000: 2.50, minQty: 1000 },
+    'a4-1c': { label: 'A4 · 1 cara',  dims: '21 × 29.7 cm',   type: 'per1k', unitPer1000: 1.80, minQty: 1000 },
+    'a4-2c': { label: 'A4 · 2 caras', dims: '21 × 29.7 cm',   type: 'per1k', unitPer1000: 1.60, minQty: 1000 },
+  },
+
+  // ── TARJETAS ────────────────────────────────────
+  tarjetas: [
+    { id: 'brillo-uv',  label: 'Con Brillo UV',   price: 35,  desc: 'Couché 300g · Acabado brillante UV' },
+    { id: 'mate',       label: 'Laminado Mate',    price: 55,  desc: 'Couché 300g · Acabado suave elegante' },
+    { id: 'uv-sel',     label: 'UV Selectivo',     price: 75,  desc: 'Brillo UV en zonas específicas' },
+    { id: 'troquelado', label: 'Troquelado',       price: 130, desc: 'Forma o corte personalizado' },
+    { id: 'relieve',    label: 'Alto Relieve',     price: 130, desc: 'Textura repujada en 3D' },
+  ],
+
+  // ── TAZAS ───────────────────────────────────────
+  tazas: [
+    { qty: 1,   label: '1 unidad',    ppu: 4.99 },
+    { qty: 6,   label: '6 unidades',  ppu: 3.50 },
+    { qty: 12,  label: '12 unidades', ppu: 3.00 },
+    { qty: 24,  label: '24 unidades', ppu: 2.50 },
+    { qty: 36,  label: '36 unidades', ppu: 1.80 },
+    { qty: 100, label: '100 uds.',    ppu: 1.60 },
+  ],
+
+  // ── GRAN FORMATO ────────────────────────────────
+  granformato: {
+    'banner':      { label: 'Banners / Lonas',     ppm2: 12, unit: 'm2', specs: 'Lona frontlit · Ojales incluidos · Resistente UV' },
+    'rollup-lona': { label: 'Roll Up · Lona',      ppu:  50, unit: 'u',  specs: '80×200 cm · Estructura aluminio · Bolsa de transporte' },
+    'rollup-pet':  { label: 'Roll Up · Pet Banner',ppu:  60, unit: 'u',  specs: '80×200 cm · Pet Banner premium · Impresión HD 300dpi' },
+    'vinilo':      { label: 'Vinilos Adhesivos',   ppm2:  8, unit: 'm2', specs: 'Vinil de alta calidad · Resistente UV · Varios acabados' },
+    'giganto':     { label: 'Gigantografías',      ppm2: 12, unit: 'm2', specs: 'Hasta 3.20m de ancho · Impresión HD · Para fachadas' },
+  },
+
+  // ── MATERIAL POP ────────────────────────────────
+  pop: {
+    gorras:  { label: 'Gorras Personalizadas', tiers:[{qty:12,ppu:5.00,label:'12 uds.'},{qty:50,ppu:4.50,label:'50 uds.'},{qty:100,ppu:4.00,label:'100 uds.'},{qty:200,ppu:3.50,label:'200 uds.'}] },
+    agendas: { label: 'Agendas / Cuadernos',   tiers:[{qty:50,ppu:3.50,label:'50 uds.'},{qty:100,ppu:3.00,label:'100 uds.'},{qty:200,ppu:2.50,label:'200 uds.'},{qty:500,ppu:2.00,label:'500 uds.'}] },
+    esferos: { label: 'Esferos Personalizados',tiers:[{qty:100,ppu:0.50,label:'100 uds.'},{qty:500,ppu:0.40,label:'500 uds.'},{qty:1000,ppu:0.35,label:'1000 uds.'},{qty:5000,ppu:0.28,label:'5000 uds.'}] },
+  },
+
+  // ── ETIQUETAS ───────────────────────────────────
+  etiquetas: {
+    adhesiva: { label: 'Etiquetas Adhesivas', tiers:[{qty:500,ppu:0.10,label:'500 uds.'},{qty:1000,ppu:0.08,label:'1000 uds.'},{qty:5000,ppu:0.06,label:'5000 uds.'},{qty:10000,ppu:0.05,label:'10 000 uds.'}] },
+    sticker:  { label: 'Stickers / Vinil',    tiers:[{qty:100,ppu:0.15,label:'100 uds.'},{qty:500,ppu:0.12,label:'500 uds.'},{qty:1000,ppu:0.10,label:'1000 uds.'},{qty:5000,ppu:0.08,label:'5000 uds.'}] },
+  },
+
+  // ── PACKAGING ───────────────────────────────────
+  packaging: {
+    cajas:  { label: 'Cajas Personalizadas',  tiers:[{qty:100,ppu:1.50,label:'100 uds.'},{qty:500,ppu:1.20,label:'500 uds.'},{qty:1000,ppu:1.00,label:'1000 uds.'},{qty:5000,ppu:0.80,label:'5000 uds.'}] },
+    bolsas: { label: 'Bolsas de Papel Kraft', tiers:[{qty:100,ppu:0.75,label:'100 uds.'},{qty:500,ppu:0.60,label:'500 uds.'},{qty:1000,ppu:0.50,label:'1000 uds.'},{qty:5000,ppu:0.40,label:'5000 uds.'}] },
+  },
+
+  // ── DISEÑO ──────────────────────────────────────
+  diseno: [
+    { id: 'logo',        label: 'Diseño de Logotipo',       price: 80,  desc: '3 propuestas · Revisiones · Archivos vectoriales · Manual marca',    delivery: '5–7 días hábiles' },
+    { id: 'publicidad',  label: 'Diseño Publicitario',      price: 50,  desc: 'Flyer · Banner · Post RRSS · Entrega 48h',                            delivery: '1–2 días hábiles' },
+    { id: 'identidad',   label: 'Identidad Corporativa',    price: 180, desc: 'Logo + papelería + manual de marca completo',                         delivery: '10–15 días hábiles' },
+    { id: 'membretadas', label: 'Hojas Membretadas (1000)', price: 50,  desc: 'Bond 75g · Full color · Diseño corporativo · 1000 unidades',          delivery: '3–5 días hábiles' },
+    { id: 'catalogos',   label: 'Catálogos (100 uds.)',     price: 250, desc: 'Couché · Encuadernado · Varios formatos · 100 unidades',              delivery: '5–7 días hábiles' },
+  ],
+};
+
+// Tiempos de entrega por tab/subtipo
+const DELIVERY = {
+  volantes:    '2–3 días hábiles',
+  tarjetas:    '3–5 días hábiles',
+  tazas:       '2–3 días hábiles',
+  granformato: { 'banner': '1–2 días hábiles', 'rollup-lona': '2–3 días hábiles', 'rollup-pet': '2–3 días hábiles', 'vinilo': '1–2 días hábiles', 'giganto': '2–3 días hábiles' },
+  pop:         { gorras: '7–10 días hábiles', agendas: '5–7 días hábiles', esferos: '5–7 días hábiles' },
+  etiquetas:   '3–5 días hábiles',
+  packaging:   '5–7 días hábiles',
+};
+
+// Íconos por tab
+const ICONS = {
+  volantes:    { type: 'fa', cls: 'fas fa-file-alt' },
+  tarjetas:    { type: 'fa', cls: 'fas fa-id-card' },
+  tazas:       { type: 'fa', cls: 'fas fa-mug-hot' },
+  granformato: { type: 'fa', cls: 'fas fa-ruler-combined' },
+  pop:         { type: 'fa', cls: 'fas fa-gift' },
+  etiquetas:   { type: 'fa', cls: 'fas fa-tags' },
+  packaging:   { type: 'fa', cls: 'fas fa-box' },
+  diseno:      { type: 'fa', cls: 'fas fa-palette' },
+};
+
+// ── Estado reactivo del cotizador ─────────────────
+const QS = {
+  tab:        'volantes',
+  vol:        { model: 'a6-1c', tierIdx: 0, qty: 1000, material: 'couche115', acabado: 'brillante' },
+  tarjeta:    'brillo-uv',
+  taza:       { tipo: 'Clásica Blanca', tierIdx: 0 },
+  granformato:{ tipo: 'banner', sqm: 1, ancho: 1, alto: 1, qty: 1 },
+  pop:        { tipo: 'gorras',   tierIdx: 0 },
+  etiquetas:  { tipo: 'adhesiva', tierIdx: 0 },
+  packaging:  { tipo: 'cajas',    tierIdx: 0 },
+  diseno:     'logo',
+};
+
+// ── QuoteView ──────────────────────────────────────
 export default class QuoteView extends BaseView {
-  constructor() {
-    super('#cotizador');
-    this._form     = document.getElementById('quoteForm');
-    this._panel    = document.getElementById('quoteResult');
-    this._details  = document.getElementById('resultDetails');
-    this._priceEl  = document.getElementById('priceValue');
-    this._priceRaf = null; // id del rAF activo: cancela animaciones previas si el usuario cotiza rápido
+  constructor() { super('#cotizador'); }
+
+  init() {
+    this._renderTarjetas();
+    this._renderDiseno();
+    this._renderVolTiers();
+    this._renderTazaTiers();
+    this._renderPopTiers();
+    this._renderEtiqTiers();
+    this._renderPackTiers();
+    this._bindTabs();
+    this._bindInputs();
+    this._updateResult();
   }
 
-  bind() {
-    const serviceEl = document.getElementById('quoteService');
-    const qtyInput  = document.getElementById('quoteQuantity');
-    const qtyLabel  = document.querySelector('label[for="quoteQuantity"]');
-    const isSqmSvc  = new Set(['banners', 'vinilos']);
-
-    // Actualizar etiqueta de cantidad según el servicio seleccionado
-    serviceEl?.addEventListener('change', () => {
-      const sqm = isSqmSvc.has(serviceEl.value);
-      if (qtyLabel) qtyLabel.innerHTML = sqm
-        ? '<i class="fas fa-vector-square"></i> Metros cuadrados (m²)'
-        : '<i class="fas fa-sort-numeric-up"></i> Cantidad';
-      if (qtyInput) qtyInput.placeholder = sqm ? '10' : '1000';
-    });
-
-    // Submit del formulario
-    this._form?.addEventListener('submit', e => {
-      e.preventDefault();
-      EventBus.emit('quote:submit', {
-        service:  serviceEl?.value ?? '',
-        quantity: +(qtyInput?.value ?? 0),
-        material: document.getElementById('quoteMaterial')?.value ?? 'estandar',
-        size:     document.getElementById('quoteSize')?.value     ?? 'pequeno',
+  // ── Tabs ──────────────────────────────────────────
+  _bindTabs() {
+    document.querySelectorAll('.qtab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.qtab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.qform').forEach(f => f.classList.remove('active'));
+        btn.classList.add('active');
+        QS.tab = btn.dataset.tab;
+        const form = document.getElementById('form-' + QS.tab);
+        if (form) form.classList.add('active');
+        this._updateResult();
       });
     });
-
-    // Resultado exitoso
-    EventBus.on('quote:result', result => this._showResult(result));
-
-    // Error de validación
-    EventBus.on('quote:error', ({ msg }) => this._showError(msg));
   }
 
-  // ── Privados ────────────────────────────────────────────────────────────
-
-  _showResult({ price, discount, breakdown }) {
-    const unit = breakdown.unit ?? 'uds.';
-    const qty  = breakdown.quantity;
-
-    const unitPriceHTML = !breakdown.isFixed
-      ? `<div class="rb-row">
-           <span>Precio unitario</span>
-           <strong>${breakdown.unitCost.toFixed(breakdown.unitCost < 1 ? 3 : 2)} / ${unit === 'm²' ? 'm²' : 'u'}</strong>
-         </div>`
-      : '';
-
-    const discHTML = discount > 0
-      ? `<div class="rb-row rb-discount">
-           <span><i class="fas fa-tag"></i> Descuento volumen</span>
-           <strong class="discount-val">−${(discount * 100).toFixed(0)}%</strong>
-         </div>`
-      : '';
-
-    const materialHTML = !breakdown.isFixed
-      ? `<div class="rb-row"><span>Material</span><strong>${this.esc(breakdown.material)}</strong></div>
-         <div class="rb-row"><span>Tamaño</span><strong>${this.esc(breakdown.size)}</strong></div>`
-      : '';
-
-    // Tabla de precios por volumen según el servicio
-    const tiersHTML = this._tiersHTML(breakdown.service, qty);
-
-    this._details.innerHTML = `
-      <div class="result-breakdown">
-        <div class="rb-row"><span>Servicio</span><strong>${this.esc(breakdown.service)}</strong></div>
-        <div class="rb-row"><span>Cantidad</span><strong>${qty.toLocaleString()} ${unit}</strong></div>
-        ${materialHTML}
-        ${unitPriceHTML}
-        ${discHTML}
-        <div class="rb-row rb-delivery">
-          <span><i class="fas fa-truck"></i> Entrega est.</span>
-          <strong>${this.esc(breakdown.delivery)}</strong>
-        </div>
-      </div>
-      ${tiersHTML}
-    `;
-
-    this._animatePrice(price);
-
-    // Animación de entrada del panel
-    Object.assign(this._panel.style, {
-      transition: 'none',
-      opacity:    '0',
-      transform:  'scale(.95)',
+  // ── Todos los inputs/selects ──────────────────────
+  _bindInputs() {
+    // ─ Volantes ─
+    document.getElementById('vol-model')?.addEventListener('change', e => {
+      QS.vol.model = e.target.value;
+      this._renderVolTiers();
+      this._updateResult();
     });
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        Object.assign(this._panel.style, {
-          transition: 'opacity .35s ease, transform .35s ease',
-          opacity:    '1',
-          transform:  'scale(1)',
+    document.getElementById('vol-material')?.addEventListener('change', e => {
+      QS.vol.material = e.target.value; this._updateResult();
+    });
+    document.getElementById('vol-acabado')?.addEventListener('change', e => {
+      QS.vol.acabado = e.target.value; this._updateResult();
+    });
+    document.getElementById('vol-qty-input')?.addEventListener('input', e => {
+      const m = PRICING.volantes[QS.vol.model];
+      QS.vol.qty = Math.max(m.minQty || 1000, parseInt(e.target.value) || 1000);
+      this._updateResult();
+    });
+
+    // ─ Tazas ─
+    document.getElementById('taza-tipo')?.addEventListener('change', e => {
+      QS.taza.tipo = e.target.value; this._updateResult();
+    });
+
+    // ─ Gran Formato ─
+    document.getElementById('gf-tipo')?.addEventListener('change', e => {
+      QS.granformato.tipo = e.target.value;
+      this._updateGFFields();
+      this._updateResult();
+    });
+    document.getElementById('gf-ancho')?.addEventListener('input', () => this._updateGFSqm());
+    document.getElementById('gf-alto')?.addEventListener('input',  () => this._updateGFSqm());
+    document.getElementById('gf-qty')?.addEventListener('input', e => {
+      QS.granformato.qty = Math.max(1, parseInt(e.target.value) || 1);
+      this._updateResult();
+    });
+
+    // ─ Material POP ─
+    document.getElementById('pop-tipo')?.addEventListener('change', e => {
+      QS.pop.tipo    = e.target.value;
+      QS.pop.tierIdx = 0;
+      this._renderPopTiers();
+      this._updateResult();
+    });
+
+    // ─ Etiquetas ─
+    document.getElementById('etiq-tipo')?.addEventListener('change', e => {
+      QS.etiquetas.tipo    = e.target.value;
+      QS.etiquetas.tierIdx = 0;
+      this._renderEtiqTiers();
+      this._updateResult();
+    });
+
+    // ─ Packaging ─
+    document.getElementById('pack-tipo')?.addEventListener('change', e => {
+      QS.packaging.tipo    = e.target.value;
+      QS.packaging.tierIdx = 0;
+      this._renderPackTiers();
+      this._updateResult();
+    });
+  }
+
+  // ── Gran Formato: actualizar campos según tipo ────
+  _updateGFFields() {
+    const tipo    = QS.granformato.tipo;
+    const isRollup = tipo === 'rollup-lona' || tipo === 'rollup-pet';
+    const sqmW = document.getElementById('gf-sqm-wrapper');
+    const qtyW = document.getElementById('gf-qty-wrapper');
+    const specs = document.getElementById('gf-specs');
+
+    if (sqmW) sqmW.style.display = isRollup ? 'none' : 'block';
+    if (qtyW) qtyW.style.display = isRollup ? 'block' : 'none';
+
+    if (specs) {
+      const specMap = {
+        'banner':      ['Lona frontlit resistente','Ojales incluidos','Impresión UV · Full color','Material exterior/interior'],
+        'rollup-lona': ['80×200 cm · Estructura aluminio','Sistema retráctil enrollable','Bolsa de transporte incluida','Impresión full color 300dpi'],
+        'rollup-pet':  ['80×200 cm · Pet Banner premium','Imagen nítida y de alto contraste','Bolsa de transporte incluida','Impresión HD full color'],
+        'vinilo':      ['Vinil de alta calidad','Resistente a UV y humedad','Varios acabados: mate, brillante','Instalación disponible'],
+        'giganto':     ['Hasta 3.20m de ancho','Impresión HD gran escala','Material resistente intemperie','Instalación disponible'],
+      };
+      const items = specMap[tipo] || [];
+      specs.innerHTML = items.map(s => `<div class="qspec-item"><i class="fas fa-check"></i> ${s}</div>`).join('');
+    }
+  }
+
+  _updateGFSqm() {
+    const a   = parseFloat(document.getElementById('gf-ancho')?.value) || 0;
+    const h   = parseFloat(document.getElementById('gf-alto')?.value)  || 0;
+    const sqm = Math.max(0.01, a * h);
+    QS.granformato.ancho = a;
+    QS.granformato.alto  = h;
+    QS.granformato.sqm   = sqm;
+    const hint = document.getElementById('gf-sqm-hint');
+    if (hint) hint.textContent = `= ${sqm.toFixed(2)} m²`;
+    this._updateResult();
+  }
+
+  // ── Render: tiers de volantes ─────────────────────
+  _renderVolTiers() {
+    const m       = PRICING.volantes[QS.vol.model];
+    const tiersW  = document.getElementById('vol-tiers-wrapper');
+    const customW = document.getElementById('vol-custom-wrapper');
+    const c       = document.getElementById('vol-tier-buttons');
+    if (!tiersW || !c) return;
+
+    if (m.type === 'tiers') {
+      tiersW.style.display  = 'block';
+      customW.style.display = 'none';
+      c.innerHTML = m.tiers.map((t, i) =>
+        `<button class="qtier-btn${i === QS.vol.tierIdx ? ' active' : ''}" data-tiridx="${i}">
+           <span class="tier-qty">${t.qty.toLocaleString()} uds.</span>
+           <span class="tier-price">$${t.total}</span>
+         </button>`
+      ).join('');
+      c.querySelectorAll('.qtier-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          QS.vol.tierIdx = +btn.dataset.tiridx;
+          c.querySelectorAll('.qtier-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          this._updateResult();
         });
       });
+    } else {
+      tiersW.style.display  = 'none';
+      customW.style.display = 'block';
+      const min    = m.minQty || 1000;
+      const minLbl = document.getElementById('vol-min-label');
+      const hint   = document.getElementById('vol-price-hint');
+      const inp    = document.getElementById('vol-qty-input');
+      if (minLbl) minLbl.textContent = min.toLocaleString();
+      if (hint)   hint.textContent   = `Precio: $${m.unitPer1000.toFixed(2)} por cada 1000 unidades`;
+      if (inp)  { inp.min = min; inp.value = Math.max(QS.vol.qty, min); QS.vol.qty = +inp.value; }
+    }
+  }
+
+  // ── Render: tiers de tazas ───────────────────────
+  _renderTazaTiers() {
+    const c = document.getElementById('taza-tier-buttons');
+    if (!c) return;
+    c.innerHTML = PRICING.tazas.map((t, i) =>
+      `<button class="qtier-btn${i === QS.taza.tierIdx ? ' active' : ''}" data-tazaidx="${i}">
+         <span class="tier-qty">${t.label}</span>
+         <span class="tier-price">$${t.ppu.toFixed(2)} c/u</span>
+       </button>`
+    ).join('');
+    c.querySelectorAll('.qtier-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        QS.taza.tierIdx = +btn.dataset.tazaidx;
+        c.querySelectorAll('.qtier-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this._updateResult();
+      });
     });
-
-    this._launchConfetti();
-
-    setTimeout(() => {
-      this._panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 120);
   }
 
-  _showError(msg) {
-    if (!document.getElementById('shake-kf')) {
-      const s = document.createElement('style');
-      s.id = 'shake-kf';
-      s.textContent = `
-        @keyframes shake {
-          0%,100% { transform: translateX(0); }
-          25%      { transform: translateX(-8px); }
-          75%      { transform: translateX(8px); }
+  // ── Render: tarjetas ─────────────────────────────
+  _renderTarjetas() {
+    const c = document.getElementById('tarjetas-options');
+    if (!c) return;
+    c.innerHTML = PRICING.tarjetas.map(t =>
+      `<button class="qtarjeta-option${t.id === QS.tarjeta ? ' active' : ''}" data-tid="${t.id}">
+         <div class="qtarjeta-info">
+           <div class="name">${t.label}</div>
+           <div class="desc">${t.desc}</div>
+         </div>
+         <div class="qtarjeta-price">$${t.price}</div>
+       </button>`
+    ).join('');
+    c.querySelectorAll('.qtarjeta-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        QS.tarjeta = btn.dataset.tid;
+        c.querySelectorAll('.qtarjeta-option').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this._updateResult();
+      });
+    });
+  }
+
+  // ── Render: diseño ───────────────────────────────
+  _renderDiseno() {
+    const c = document.getElementById('diseno-options');
+    if (!c) return;
+    c.innerHTML = PRICING.diseno.map(d =>
+      `<button class="qtarjeta-option${d.id === QS.diseno ? ' active' : ''}" data-did="${d.id}">
+         <div class="qtarjeta-info">
+           <div class="name">${d.label}</div>
+           <div class="desc">${d.desc}</div>
+         </div>
+         <div class="qtarjeta-price">$${d.price}</div>
+       </button>`
+    ).join('');
+    c.querySelectorAll('.qtarjeta-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        QS.diseno = btn.dataset.did;
+        c.querySelectorAll('.qtarjeta-option').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this._updateResult();
+      });
+    });
+  }
+
+  // ── Render genérico de tiers ──────────────────────
+  _renderTierGroup(containerId, tiers, stateKey) {
+    const c = document.getElementById(containerId);
+    if (!c) return;
+    const tierIdx = QS[stateKey].tierIdx;
+    c.innerHTML = tiers.map((t, i) =>
+      `<button class="qtier-btn${i === tierIdx ? ' active' : ''}" data-gidx="${i}">
+         <span class="tier-qty">${t.label}</span>
+         <span class="tier-price">$${t.ppu.toFixed(2)} c/u</span>
+       </button>`
+    ).join('');
+    c.querySelectorAll('.qtier-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        QS[stateKey].tierIdx = +btn.dataset.gidx;
+        c.querySelectorAll('.qtier-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this._updateResult();
+      });
+    });
+  }
+
+  _renderPopTiers()  { this._renderTierGroup('pop-tier-buttons',  PRICING.pop[QS.pop.tipo].tiers,             'pop'); }
+  _renderEtiqTiers() { this._renderTierGroup('etiq-tier-buttons', PRICING.etiquetas[QS.etiquetas.tipo].tiers, 'etiquetas'); }
+  _renderPackTiers() { this._renderTierGroup('pack-tier-buttons', PRICING.packaging[QS.packaging.tipo].tiers, 'packaging'); }
+
+  // ── Cálculo extendido ─────────────────────────────
+  // Retorna: { total, detail, desc, productName, specs[], stats[], delivery, waMsg }
+  _calc() {
+    const matLabel = { couche115: 'Couché 115g', couche150: 'Couché 150g', bond90: 'Bond 90g' };
+
+    switch (QS.tab) {
+
+      case 'volantes': {
+        const m   = PRICING.volantes[QS.vol.model];
+        const mat = matLabel[QS.vol.material];
+        const aca = QS.vol.acabado.charAt(0).toUpperCase() + QS.vol.acabado.slice(1);
+
+        if (m.type === 'tiers') {
+          const t     = m.tiers[Math.min(QS.vol.tierIdx, m.tiers.length - 1)];
+          const ppu   = t.total / t.qty;
+          return {
+            total: t.total,
+            detail: `${t.qty.toLocaleString()} unidades`,
+            productName: `Volantes / Flyers`,
+            specs: [
+              { label: 'Tamaño',    value: m.dims,              hi: false },
+              { label: 'Modelo',    value: m.label,             hi: false },
+              { label: 'Material',  value: mat,                 hi: false },
+              { label: 'Acabado',   value: aca,                 hi: false },
+              { label: 'Cantidad',  value: `${t.qty.toLocaleString()} unidades`, hi: true },
+            ],
+            stats: [
+              { label: 'Por unidad',  value: `$${ppu.toFixed(4)}`,   cls: 'blue' },
+              { label: 'Por millar',  value: `$${(ppu*1000).toFixed(2)}`, cls: '' },
+            ],
+            delivery: DELIVERY.volantes,
+            desc: `Volante ${m.label} · ${mat} · ${aca} · ${t.qty.toLocaleString()} unidades`,
+          };
+        } else {
+          const qty   = Math.max(QS.vol.qty, m.minQty);
+          const total = (qty / 1000) * m.unitPer1000;
+          const ppu   = total / qty;
+          return {
+            total,
+            detail: `$${m.unitPer1000.toFixed(2)} × 1 millar`,
+            productName: `Volantes / Flyers`,
+            specs: [
+              { label: 'Tamaño',    value: m.dims,                      hi: false },
+              { label: 'Modelo',    value: m.label,                     hi: false },
+              { label: 'Material',  value: mat,                         hi: false },
+              { label: 'Acabado',   value: aca,                         hi: false },
+              { label: 'Cantidad',  value: `${qty.toLocaleString()} unidades`, hi: true },
+            ],
+            stats: [
+              { label: 'Por unidad', value: `$${ppu.toFixed(4)}`, cls: 'blue' },
+              { label: 'Por millar', value: `$${m.unitPer1000.toFixed(2)}`, cls: '' },
+            ],
+            delivery: DELIVERY.volantes,
+            desc: `Volante ${m.label} · ${mat} · ${aca} · ${qty.toLocaleString()} unidades`,
+          };
         }
-        .form-shake { animation: shake .45s ease; }
-      `;
-      document.head.appendChild(s);
-    }
-    this._form?.classList.add('form-shake');
-    this._form?.addEventListener('animationend', () => this._form.classList.remove('form-shake'), { once: true });
+      }
 
-    const alert = document.createElement('div');
-    alert.className = 'form-alert';
-    alert.textContent = msg;
-    this._form?.prepend(alert);
-    setTimeout(() => alert.remove(), 4000);
+      case 'tarjetas': {
+        const t   = PRICING.tarjetas.find(x => x.id === QS.tarjeta);
+        const ppu = t.price / 1000;
+        return {
+          total: t.price,
+          detail: '1000 tarjetas',
+          productName: 'Tarjetas de Presentación',
+          specs: [
+            { label: 'Tamaño',    value: '8.5 × 5.2 cm',    hi: false },
+            { label: 'Papel',     value: 'Cartulina Couché 300g', hi: false },
+            { label: 'Acabado',   value: t.label,            hi: false },
+            { label: 'Cantidad',  value: '1,000 tarjetas',   hi: true  },
+          ],
+          stats: [
+            { label: 'Por unidad', value: `$${ppu.toFixed(3)}`, cls: 'blue' },
+            { label: 'Paquete',    value: '1,000 uds.',         cls: '' },
+          ],
+          delivery: DELIVERY.tarjetas,
+          desc: `Tarjetas ${t.label} · 8.5×5.2 cm · Couché 300g · 1000 unidades`,
+        };
+      }
+
+      case 'tazas': {
+        const t     = PRICING.tazas[QS.taza.tierIdx];
+        const total = t.ppu * t.qty;
+        return {
+          total,
+          detail: `$${t.ppu.toFixed(2)} c/u × ${t.qty}`,
+          productName: `Tazas Sublimadas`,
+          specs: [
+            { label: 'Tipo',      value: QS.taza.tipo,          hi: false },
+            { label: 'Técnica',   value: 'Sublimación',          hi: false },
+            { label: 'Material',  value: 'Cerámica',             hi: false },
+            { label: 'Cantidad',  value: `${t.qty} unidad${t.qty > 1 ? 'es' : ''}`, hi: true },
+          ],
+          stats: [
+            { label: 'Por unidad', value: `$${t.ppu.toFixed(2)}`, cls: 'blue' },
+            { label: 'Total',      value: `$${total.toFixed(2)}`,  cls: 'green' },
+          ],
+          delivery: DELIVERY.tazas,
+          desc: `Taza ${QS.taza.tipo} · ${t.qty} unidad${t.qty > 1 ? 'es' : ''}`,
+        };
+      }
+
+      case 'granformato': {
+        const gf  = PRICING.granformato[QS.granformato.tipo];
+        const del = typeof DELIVERY.granformato === 'object'
+          ? DELIVERY.granformato[QS.granformato.tipo]
+          : DELIVERY.granformato;
+
+        if (gf.unit === 'm2') {
+          const sqm   = Math.max(0.01, QS.granformato.sqm);
+          const total = gf.ppm2 * sqm;
+          return {
+            total,
+            detail: `$${gf.ppm2}/m² × ${sqm.toFixed(2)} m²`,
+            productName: gf.label,
+            specs: [
+              { label: 'Ancho',     value: `${QS.granformato.ancho.toFixed(2)} m`, hi: false },
+              { label: 'Alto',      value: `${QS.granformato.alto.toFixed(2)} m`,  hi: false },
+              { label: 'Superficie',value: `${sqm.toFixed(2)} m²`,                  hi: true  },
+              { label: 'Precio/m²', value: `$${gf.ppm2}`,                           hi: false },
+            ],
+            stats: [
+              { label: 'Por m²', value: `$${gf.ppm2}`,           cls: 'blue' },
+              { label: 'Total m²', value: `${sqm.toFixed(2)} m²`, cls: '' },
+            ],
+            delivery: del,
+            desc: `${gf.label} · ${sqm.toFixed(2)} m² · ${gf.specs}`,
+          };
+        } else {
+          const qty   = QS.granformato.qty;
+          const total = gf.ppu * qty;
+          return {
+            total,
+            detail: qty > 1 ? `$${gf.ppu} × ${qty} uds.` : 'Unidad completa',
+            productName: gf.label,
+            specs: [
+              { label: 'Dimensiones', value: '80 × 200 cm',    hi: false },
+              { label: 'Material',    value: gf.specs.split('·')[0].trim(), hi: false },
+              { label: 'Incluye',     value: 'Estructura + bolsa', hi: false },
+              { label: 'Cantidad',    value: `${qty} unidad${qty > 1 ? 'es' : ''}`, hi: true },
+            ],
+            stats: [
+              { label: 'Por unidad', value: `$${gf.ppu}`,           cls: 'blue' },
+              { label: 'Cantidad',   value: `${qty} unidad${qty > 1 ? 'es' : ''}`, cls: '' },
+            ],
+            delivery: del,
+            desc: `${gf.label} · ${qty} unidad${qty > 1 ? 'es' : ''} · ${gf.specs}`,
+          };
+        }
+      }
+
+      case 'pop': {
+        const data  = PRICING.pop[QS.pop.tipo];
+        const t     = data.tiers[Math.min(QS.pop.tierIdx, data.tiers.length - 1)];
+        const total = t.ppu * t.qty;
+        const del   = DELIVERY.pop[QS.pop.tipo];
+        return {
+          total,
+          detail: `$${t.ppu.toFixed(2)} c/u × ${t.qty}`,
+          productName: data.label,
+          specs: [
+            { label: 'Producto',   value: data.label,    hi: false },
+            { label: 'Logo',       value: 'Personalizado', hi: false },
+            { label: 'Cantidad',   value: `${t.qty.toLocaleString()} unidades`, hi: true },
+          ],
+          stats: [
+            { label: 'Por unidad', value: `$${t.ppu.toFixed(2)}`, cls: 'blue' },
+            { label: 'Total',      value: `$${total.toFixed(2)}`, cls: 'green' },
+          ],
+          delivery: del,
+          desc: `${data.label} · ${t.qty} unidades · Logo personalizado`,
+        };
+      }
+
+      case 'etiquetas': {
+        const data  = PRICING.etiquetas[QS.etiquetas.tipo];
+        const t     = data.tiers[Math.min(QS.etiquetas.tierIdx, data.tiers.length - 1)];
+        const total = t.ppu * t.qty;
+        return {
+          total,
+          detail: `$${t.ppu.toFixed(2)} c/u × ${t.qty.toLocaleString()}`,
+          productName: data.label,
+          specs: [
+            { label: 'Tipo',     value: data.label,    hi: false },
+            { label: 'Corte',    value: 'Personalizado', hi: false },
+            { label: 'Cantidad', value: `${t.qty.toLocaleString()} unidades`, hi: true },
+          ],
+          stats: [
+            { label: 'Por unidad', value: `$${t.ppu.toFixed(2)}`, cls: 'blue' },
+            { label: 'Total',      value: `$${total.toFixed(2)}`, cls: 'green' },
+          ],
+          delivery: DELIVERY.etiquetas,
+          desc: `${data.label} · ${t.qty.toLocaleString()} unidades · Corte personalizado`,
+        };
+      }
+
+      case 'packaging': {
+        const data  = PRICING.packaging[QS.packaging.tipo];
+        const t     = data.tiers[Math.min(QS.packaging.tierIdx, data.tiers.length - 1)];
+        const total = t.ppu * t.qty;
+        return {
+          total,
+          detail: `$${t.ppu.toFixed(2)} c/u × ${t.qty.toLocaleString()}`,
+          productName: data.label,
+          specs: [
+            { label: 'Tipo',       value: data.label,          hi: false },
+            { label: 'Impresión',  value: 'Full color',         hi: false },
+            { label: 'Acabado',    value: 'Troquelado',         hi: false },
+            { label: 'Cantidad',   value: `${t.qty.toLocaleString()} unidades`, hi: true },
+          ],
+          stats: [
+            { label: 'Por unidad', value: `$${t.ppu.toFixed(2)}`, cls: 'blue' },
+            { label: 'Total',      value: `$${total.toFixed(2)}`, cls: 'green' },
+          ],
+          delivery: DELIVERY.packaging,
+          desc: `${data.label} · ${t.qty.toLocaleString()} unidades · Full color · Troquelado`,
+        };
+      }
+
+      case 'diseno': {
+        const d = PRICING.diseno.find(x => x.id === QS.diseno);
+        return {
+          total: d.price,
+          detail: 'Precio por proyecto',
+          productName: d.label,
+          specs: [
+            { label: 'Servicio',  value: d.label,    hi: false },
+            { label: 'Incluye',   value: d.desc.split('·')[0].trim(), hi: false },
+            { label: 'Formatos',  value: 'Vectorial · PDF · PNG', hi: false },
+          ],
+          stats: [
+            { label: 'Entrega', value: d.delivery, cls: '' },
+            { label: 'Tipo',    value: 'Proyecto', cls: '' },
+          ],
+          delivery: d.delivery,
+          desc: `${d.label} · ${d.desc}`,
+        };
+      }
+    }
   }
 
-  _animatePrice(target) {
-    if (!this._priceEl) return;
-    // Cancelar animación anterior si el usuario cotiza dos veces seguidas rápido
-    if (this._priceRaf) {
-      cancelAnimationFrame(this._priceRaf);
-      this._priceRaf = null;
+  // ── Actualizar panel de resultado ─────────────────
+  _updateResult() {
+    const r = this._calc();
+    if (!r) return;
+
+    const placeholder = document.querySelector('.qresult-placeholder');
+    const content     = document.getElementById('qresultContent');
+    const priceVal    = document.getElementById('qPriceValue');
+    const priceDetail = document.getElementById('qPriceDetail');
+    const waBtn       = document.getElementById('qWhatsappBtn');
+
+    if (!priceVal) return;
+
+    if (placeholder) placeholder.style.display = 'none';
+    if (content)     content.style.display      = 'block';
+
+    // ── Cabecera ──
+    const icon = ICONS[QS.tab];
+    const iconEl = document.getElementById('qrProductIcon');
+    const nameEl = document.getElementById('qrProductName');
+    if (iconEl) iconEl.innerHTML = `<i class="${icon.cls}"></i>`;
+    if (nameEl) nameEl.textContent = r.productName;
+
+    // ── Especificaciones ──
+    const specsEl = document.getElementById('qrSpecs');
+    if (specsEl) {
+      specsEl.innerHTML = r.specs.map(s =>
+        `<div class="qr-spec-row">
+           <span class="qr-spec-label">${s.label}</span>
+           <span class="qr-spec-value${s.hi ? ' highlight' : ''}">${s.value}</span>
+         </div>`
+      ).join('');
     }
-    const steps = 50;
+
+    // ── Precio ──
+    this._animatePrice(priceVal, r.total);
+    priceDetail.textContent = r.detail;
+
+    // ── Stats ──
+    const statsEl = document.getElementById('qrStats');
+    if (statsEl && r.stats?.length) {
+      statsEl.style.display = 'grid';
+      statsEl.innerHTML = r.stats.map(s =>
+        `<div class="qr-stat">
+           <div class="qr-stat-label">${s.label}</div>
+           <div class="qr-stat-value${s.cls ? ' ' + s.cls : ''}">${s.value}</div>
+         </div>`
+      ).join('');
+    } else if (statsEl) {
+      statsEl.style.display = 'none';
+    }
+
+    // ── Tiempo de entrega ──
+    const delivEl = document.getElementById('qrDelivery');
+    if (delivEl && r.delivery) {
+      delivEl.style.display = 'flex';
+      delivEl.innerHTML = `<i class="fas fa-clock"></i> Tiempo estimado: <strong style="margin-left:4px;">${r.delivery}</strong>`;
+    }
+
+    // ── WhatsApp ──
+    const msg = `Hola! Me interesa cotizar:\n${r.desc}\nPrecio estimado: $${r.total.toFixed(2)} + IVA\n¿Me pueden confirmar disponibilidad y tiempo de entrega?`;
+    if (waBtn) waBtn.href = 'https://wa.me/593996884150?text=' + encodeURIComponent(msg);
+  }
+
+  // ── Animación de precio ───────────────────────────
+  _animatePrice(el, target) {
+    if (this._priceRaf) { cancelAnimationFrame(this._priceRaf); this._priceRaf = null; }
+    const steps = 40;
     const inc   = target / steps;
     let cur = 0, n = 0;
     const tick = () => {
       cur += inc; n++;
-      this._priceEl.textContent = '$' + cur.toFixed(2);
+      el.textContent = '$' + cur.toFixed(2);
       if (n < steps) {
         this._priceRaf = requestAnimationFrame(tick);
       } else {
-        this._priceEl.textContent = '$' + target.toFixed(2);
+        el.textContent = '$' + target.toFixed(2);
         this._priceRaf = null;
       }
     };
     this._priceRaf = requestAnimationFrame(tick);
   }
 
-  /** Tabla de tramos de precio según servicio — resalta el tramo activo */
-  _tiersHTML(serviceLabel, qty) {
-    const tiers = {
-      'Flyers y Volantes': [
-        { qty: '100 u',   price: '$0.10/u' },
-        { qty: '500 u',   price: '$0.09/u' },
-        { qty: '1 000 u', price: '$0.08/u' },
-        { qty: '2 000 u', price: '$0.07/u' },
-        { qty: '5 000 u', price: '$0.068/u' },
-      ],
-      'Tarjetas de Presentación': [
-        { qty: '100 u',   price: '$0.07/u' },
-        { qty: '500 u',   price: '$0.04/u' },
-        { qty: '1 000 u', price: '$0.035/u' },
-        { qty: '2 000 u', price: '$0.032/u' },
-        { qty: '5 000 u', price: '$0.03/u' },
-      ],
-      'Tazas Sublimadas': [
-        { qty: '1 u',    price: '$4.99/u', threshold: 1  },
-        { qty: '6 u',    price: '$3.50/u', threshold: 6  },
-        { qty: '12 u',   price: '$3.00/u', threshold: 12 },
-        { qty: '24 u',   price: '$2.50/u', threshold: 24 },
-        { qty: '36 u',   price: '$1.80/u', threshold: 36 },
-        { qty: '100 u',  price: '$1.60/u', threshold: 100},
-      ],
-      'Banners y Lonas': [
-        { qty: '1 m²',   price: '$12/m²' },
-        { qty: '5 m²',   price: '$10/m²' },
-        { qty: '10 m²',  price: '$8/m²'  },
-        { qty: '20 m²',  price: '$7.50/m²'},
-      ],
-      'Roll Ups': [
-        { qty: 'Lona',   price: '$50 + IVA' },
-        { qty: 'Pet B.', price: '$60 + IVA' },
-      ],
-    };
-
-    const rows = tiers[serviceLabel];
-    if (!rows) return ''; // sin tabla para este servicio
-
-    const isTazas = serviceLabel === 'Tazas Sublimadas';
-
-    const cells = rows.map(r => {
-      let active = false;
-      if (isTazas && r.threshold !== undefined) {
-        // El tramo activo es el máximo umbral que no supera qty
-        const maxThreshold = rows
-          .filter(x => x.threshold !== undefined && x.threshold <= qty)
-          .reduce((max, x) => Math.max(max, x.threshold), 0);
-        active = r.threshold === maxThreshold;
-      } else if (!isTazas && rows.length > 1) {
-        // Para otros servicios, el mayor tramo disponible según qty
-        const thresholds = [100, 500, 1000, 2000, 5000];
-        const idx = thresholds.filter(t => t <= qty).length - 1;
-        active = rows.indexOf(r) === Math.min(idx, rows.length - 1);
-      }
-      return `<div class="price-tier${active ? ' active' : ''}">
-        <span class="tier-qty">${r.qty}</span>
-        <span class="tier-price">${r.price}</span>
-      </div>`;
-    }).join('');
-
-    return `
-      <div class="rb-price-tiers">
-        <p><i class="fas fa-layer-group"></i> Precios por volumen</p>
-        <div class="price-tier-grid" style="grid-template-columns: repeat(${Math.min(rows.length, 3)}, 1fr)">
-          ${cells}
-        </div>
-      </div>
-    `;
-  }
-
-  _launchConfetti() {
-    if (!document.getElementById('confetti-kf')) {
-      const s = document.createElement('style');
-      s.id = 'confetti-kf';
-      s.textContent = `
-        @keyframes confettiFall {
-          0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-        }
-      `;
-      document.head.appendChild(s);
-    }
-
-    const colors = ['#0071e3', '#1d1d1f', '#30d158', '#ff9f0a', '#ff375f'];
-
-    for (let i = 0; i < 40; i++) {
-      setTimeout(() => {
-        const el = document.createElement('div');
-        el.style.cssText = `
-          position: fixed;
-          left: ${Math.random() * window.innerWidth}px;
-          top: -8px;
-          width: 8px; height: 8px;
-          background: ${colors[Math.floor(Math.random() * colors.length)]};
-          border-radius: 2px;
-          pointer-events: none;
-          z-index: 10000;
-          transform: rotate(${Math.random() * 360}deg);
-          animation: confettiFall 2.4s ease-out forwards;
-        `;
-        document.body.appendChild(el);
-        setTimeout(() => el.remove(), 2400);
-      }, i * 40);
-    }
-  }
+  // Stub de compatibilidad
+  bind() {}
 }

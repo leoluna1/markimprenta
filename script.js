@@ -893,3 +893,305 @@ window.closeProductModal = closeProductModal;
 window.changePage = changePage;
 
 console.log('✨ Mark Publicidad - Sistema cargado correctamente');
+
+// =====================================================
+// COTIZADOR NUEVO — Precios reales del catálogo
+// =====================================================
+
+const QPRICING = {
+    volantes: {
+        models: {
+            'a6-1c': { label: 'A6 · 1 cara',  type: 'tiers',   tiers: [{qty:1000,total:80},{qty:2000,total:100},{qty:5000,total:249.50}] },
+            'a6-2c': { label: 'A6 · 2 caras', type: 'tiers',   tiers: [{qty:1000,total:90},{qty:2000,total:110},{qty:5000,total:175}] },
+            'a5-1c': { label: 'A5 · 1 cara',  type: 'perunit', unitPer1000: 3.00, minQty: 1000 },
+            'a5-2c': { label: 'A5 · 2 caras', type: 'perunit', unitPer1000: 2.50, minQty: 1000 },
+            'a4-1c': { label: 'A4 · 1 cara',  type: 'perunit', unitPer1000: 1.80, minQty: 1000 },
+            'a4-2c': { label: 'A4 · 2 caras', type: 'perunit', unitPer1000: 1.60, minQty: 1000 },
+        }
+    },
+    tarjetas: [
+        { id: 'brillo-uv',  label: 'Con Brillo UV',     price: 35,  desc: 'Couché 300g · Acabado brillante UV' },
+        { id: 'mate',       label: 'Laminado Mate',      price: 55,  desc: 'Couché 300g · Acabado suave elegante' },
+        { id: 'uv-sel',     label: 'UV Selectivo',       price: 75,  desc: 'Brillo UV solo en zonas específicas' },
+        { id: 'troquelado', label: 'Troquelado',         price: 130, desc: 'Forma o corte personalizado' },
+        { id: 'relieve',    label: 'Alto Relieve',       price: 130, desc: 'Textura repujada en 3D' },
+    ],
+    tazas: [
+        { qty: 1,   label: '1 unidad',    pricePerUnit: 4.99 },
+        { qty: 6,   label: '6 unidades',  pricePerUnit: 3.50 },
+        { qty: 12,  label: '12 unidades', pricePerUnit: 3.00 },
+        { qty: 24,  label: '24 unidades', pricePerUnit: 2.50 },
+        { qty: 36,  label: '36 unidades', pricePerUnit: 1.80 },
+        { qty: 100, label: '100 uds.',    pricePerUnit: 1.60 },
+    ],
+    rollup: [
+        { id: 'lona', label: 'Impresión en Lona',       price: 50, desc: 'Lona mate o brillante · Full color 300dpi' },
+        { id: 'pet',  label: 'Impresión en Pet Banner', price: 60, desc: 'Pet banner premium · Full color 300dpi' },
+    ]
+};
+
+// Estado del cotizador
+const QS = {
+    tab: 'volantes',
+    vol: { model: 'a6-1c', tierIdx: 0, qty: 1000, material: 'couche115', acabado: 'brillante' },
+    tarjeta: 'brillo-uv',
+    taza: { tipo: 'Clásica Blanca', tierIdx: 0 },
+    rollup: { model: 'lona', qty: 1 }
+};
+
+function initializeNewQuote() {
+    // Tabs
+    document.querySelectorAll('.qtab').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.qtab').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.qform').forEach(f => f.classList.remove('active'));
+            btn.classList.add('active');
+            QS.tab = btn.dataset.tab;
+            const form = document.getElementById('form-' + QS.tab);
+            if (form) form.classList.add('active');
+            qUpdateResult();
+        });
+    });
+
+    // qoption buttons (volantes modelo + acabado)
+    document.querySelectorAll('.qoption').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const group = btn.dataset.group;
+            document.querySelectorAll(`.qoption[data-group="${group}"]`).forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const val = btn.dataset.val;
+            if (group === 'vol-model')   { QS.vol.model = val; qRenderVolTiers(); }
+            if (group === 'vol-acabado') { QS.vol.acabado = val; }
+            qUpdateResult();
+        });
+    });
+
+    // Volantes — material
+    const volMat = document.getElementById('vol-material');
+    if (volMat) volMat.addEventListener('change', () => { QS.vol.material = volMat.value; qUpdateResult(); });
+
+    // Volantes — input cantidad manual
+    const volQtyInput = document.getElementById('vol-qty-input');
+    if (volQtyInput) volQtyInput.addEventListener('input', () => {
+        const m = QPRICING.volantes.models[QS.vol.model];
+        const min = m.minQty || 1000;
+        QS.vol.qty = Math.max(min, parseInt(volQtyInput.value) || min);
+        qUpdateResult();
+    });
+
+    // Taza — tipo
+    const tazaTipo = document.getElementById('taza-tipo');
+    if (tazaTipo) tazaTipo.addEventListener('change', () => { QS.taza.tipo = tazaTipo.value; qUpdateResult(); });
+
+    // Roll Up — cantidad
+    const rollupQty = document.getElementById('rollup-qty');
+    if (rollupQty) rollupQty.addEventListener('input', () => {
+        QS.rollup.qty = Math.max(1, parseInt(rollupQty.value) || 1);
+        qUpdateResult();
+    });
+
+    // Render estático tarjetas y rollup
+    qRenderTarjetas();
+    qRenderRollup();
+    qRenderVolTiers();
+    qRenderTazaTiers();
+    qUpdateResult();
+}
+
+function qRenderVolTiers() {
+    const m = QPRICING.volantes.models[QS.vol.model];
+    const tiersWrapper  = document.getElementById('vol-tiers-wrapper');
+    const customWrapper = document.getElementById('vol-custom-wrapper');
+    const tierBtns      = document.getElementById('vol-tier-buttons');
+    const minLabel      = document.getElementById('vol-min-label');
+    const priceHint     = document.getElementById('vol-price-hint');
+
+    if (!tiersWrapper) return;
+
+    if (m.type === 'tiers') {
+        tiersWrapper.style.display = 'block';
+        customWrapper.style.display = 'none';
+        tierBtns.innerHTML = m.tiers.map((t, i) =>
+            `<button class="qtier-btn${i === QS.vol.tierIdx ? ' active' : ''}" data-tiridx="${i}">
+                <span class="tier-qty">${t.qty.toLocaleString()}</span>
+                <span class="tier-price">${t.total}</span>
+            </button>`
+        ).join('');
+        tierBtns.querySelectorAll('.qtier-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                QS.vol.tierIdx = parseInt(btn.dataset.tiridx);
+                tierBtns.querySelectorAll('.qtier-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                qUpdateResult();
+            });
+        });
+    } else {
+        tiersWrapper.style.display = 'none';
+        customWrapper.style.display = 'block';
+        const min = m.minQty || 1000;
+        minLabel.textContent = min.toLocaleString();
+        priceHint.textContent = `Precio: ${m.unitPer1000.toFixed(2)} por cada 1000 unidades`;
+        const inp = document.getElementById('vol-qty-input');
+        inp.min = min;
+        inp.value = Math.max(QS.vol.qty, min);
+        QS.vol.qty = parseInt(inp.value);
+    }
+}
+
+function qRenderTazaTiers() {
+    const container = document.getElementById('taza-tier-buttons');
+    if (!container) return;
+    container.innerHTML = QPRICING.tazas.map((t, i) =>
+        `<button class="qtier-btn${i === QS.taza.tierIdx ? ' active' : ''}" data-tazaidx="${i}">
+            <span class="tier-qty">${t.label}</span>
+            <span class="tier-price">${t.pricePerUnit.toFixed(2)} c/u</span>
+        </button>`
+    ).join('');
+    container.querySelectorAll('.qtier-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            QS.taza.tierIdx = parseInt(btn.dataset.tazaidx);
+            container.querySelectorAll('.qtier-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            qUpdateResult();
+        });
+    });
+}
+
+function qRenderTarjetas() {
+    const container = document.getElementById('tarjetas-options');
+    if (!container) return;
+    container.innerHTML = QPRICING.tarjetas.map(t =>
+        `<button class="qtarjeta-option${t.id === QS.tarjeta ? ' active' : ''}" data-tid="${t.id}">
+            <div class="qtarjeta-info">
+                <div class="name">${t.label}</div>
+                <div class="desc">${t.desc}</div>
+            </div>
+            <div class="qtarjeta-price">${t.price}</div>
+        </button>`
+    ).join('');
+    container.querySelectorAll('.qtarjeta-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            QS.tarjeta = btn.dataset.tid;
+            container.querySelectorAll('.qtarjeta-option').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            qUpdateResult();
+        });
+    });
+}
+
+function qRenderRollup() {
+    const container = document.getElementById('rollup-options');
+    if (!container) return;
+    container.innerHTML = QPRICING.rollup.map(r =>
+        `<button class="qrollup-option${r.id === QS.rollup.model ? ' active' : ''}" data-rid="${r.id}">
+            <div class="qrollup-info">
+                <div class="name">${r.label}</div>
+                <div class="desc">${r.desc}</div>
+            </div>
+            <div class="qrollup-price">${r.price}</div>
+        </button>`
+    ).join('');
+    container.querySelectorAll('.qrollup-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            QS.rollup.model = btn.dataset.rid;
+            container.querySelectorAll('.qrollup-option').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            qUpdateResult();
+        });
+    });
+}
+
+function qCalcResult() {
+    switch (QS.tab) {
+        case 'volantes': {
+            const m = QPRICING.volantes.models[QS.vol.model];
+            const mat = { couche115: 'Couché 115g', couche150: 'Couché 150g', bond90: 'Bond 90g' }[QS.vol.material];
+            if (m.type === 'tiers') {
+                const idx = Math.min(QS.vol.tierIdx, m.tiers.length - 1);
+                const t = m.tiers[idx];
+                return {
+                    total: t.total,
+                    qty: t.qty,
+                    perUnit: false,
+                    detail: `${t.qty.toLocaleString()} uds.`,
+                    desc: `${m.label} · ${mat} · Acabado ${QS.vol.acabado} · ${t.qty.toLocaleString()} unidades`
+                };
+            } else {
+                const qty = Math.max(QS.vol.qty, m.minQty);
+                const total = (qty / 1000) * m.unitPer1000;
+                return {
+                    total,
+                    qty,
+                    perUnit: true,
+                    pricePerUnit: m.unitPer1000,
+                    detail: `${m.unitPer1000.toFixed(2)} × cada 1000 uds.`,
+                    desc: `${m.label} · ${mat} · Acabado ${QS.vol.acabado} · ${qty.toLocaleString()} unidades`
+                };
+            }
+        }
+        case 'tarjetas': {
+            const t = QPRICING.tarjetas.find(x => x.id === QS.tarjeta);
+            return { total: t.price, qty: 1000, perUnit: false,
+                detail: '1000 tarjetas',
+                desc: `Tarjetas ${t.label} · 8.5×5.2cm · Couché 300g · 1000 unidades` };
+        }
+        case 'tazas': {
+            const t = QPRICING.tazas[QS.taza.tierIdx];
+            const total = t.pricePerUnit * t.qty;
+            return { total, qty: t.qty, perUnit: true,
+                pricePerUnit: t.pricePerUnit,
+                detail: `${t.pricePerUnit.toFixed(2)} c/u × ${t.qty}`,
+                desc: `Taza ${QS.taza.tipo} · ${t.qty} unidades` };
+        }
+        case 'rollup': {
+            const r = QPRICING.rollup.find(x => x.id === QS.rollup.model);
+            const qty = QS.rollup.qty;
+            return { total: r.price * qty, qty, perUnit: qty > 1,
+                pricePerUnit: r.price,
+                detail: qty > 1 ? `${r.price} × ${qty} uds.` : 'Unidad',
+                desc: `Roll Up ${r.label} · 80×200cm · ${qty} unidad${qty > 1 ? 'es' : ''}` };
+        }
+    }
+}
+
+function qUpdateResult() {
+    const r = qCalcResult();
+    if (!r) return;
+
+    const placeholder = document.querySelector('.qresult-placeholder');
+    const content     = document.getElementById('qresultContent');
+    const priceVal    = document.getElementById('qPriceValue');
+    const priceDetail = document.getElementById('qPriceDetail');
+    const unitBox     = document.getElementById('qUnitBox');
+    const unitVal     = document.getElementById('qUnitValue');
+    const detailsBox  = document.getElementById('qDetailsBox');
+    const waBtn       = document.getElementById('qWhatsappBtn');
+
+    if (!priceVal) return;
+
+    if (placeholder) placeholder.style.display = 'none';
+    if (content) content.style.display = 'block';
+
+    priceVal.textContent    = '
+ + r.total.toFixed(2);
+    priceDetail.textContent = r.detail;
+
+    if (r.perUnit && r.qty > 1) {
+        unitBox.style.display = 'block';
+        unitVal.textContent   = '
+ + r.pricePerUnit.toFixed(2) + ' por unidad';
+    } else {
+        unitBox.style.display = 'none';
+    }
+
+    detailsBox.textContent = r.desc;
+
+    // WhatsApp
+    const msgWA = `Hola! Me interesa cotizar:\n${r.desc}\nPrecio estimado: ${r.total.toFixed(2)} + IVA\n¿Me pueden confirmar disponibilidad?`;
+    waBtn.href = 'https://wa.me/593996884150?text=' + encodeURIComponent(msgWA);
+}
+
+// Inicializar cotizador nuevo junto con el resto de la app
+document.addEventListener('DOMContentLoaded', () => {
+    initializeNewQuote();
+});

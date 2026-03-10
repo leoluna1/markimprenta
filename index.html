@@ -339,90 +339,264 @@
       <div class="section-header">
         <span class="section-subtitle">Calcula tu inversión</span>
         <h2 class="section-title">Cotizador en Línea</h2>
-        <p class="section-description">Obtén una cotización instantánea</p>
+        <p class="section-description">Precios reales · Cálculo instantáneo · Todos los valores + IVA</p>
+      </div>
+
+      <!-- Pestañas de productos -->
+      <div class="quote-tabs">
+        <button class="qtab active" data-tab="volantes"><i class="fas fa-file-alt"></i> Volantes</button>
+        <button class="qtab" data-tab="tarjetas"><i class="fas fa-id-card"></i> Tarjetas</button>
+        <button class="qtab" data-tab="tazas"><i class="fas fa-mug-hot"></i> Tazas</button>
+        <button class="qtab" data-tab="granformato"><i class="fas fa-ruler-combined"></i> Gran Formato</button>
+        <button class="qtab" data-tab="pop"><i class="fas fa-gift"></i> Material POP</button>
+        <button class="qtab" data-tab="etiquetas"><i class="fas fa-tags"></i> Etiquetas</button>
+        <button class="qtab" data-tab="packaging"><i class="fas fa-box"></i> Packaging</button>
+        <button class="qtab" data-tab="diseno"><i class="fas fa-palette"></i> Diseño</button>
       </div>
 
       <div class="quote-container">
-        <form id="quoteForm" class="quote-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="quoteService"><i class="fas fa-cogs"></i> Tipo de Servicio</label>
-              <select id="quoteService" name="service" required autocomplete="off">
-                <option value="">Selecciona un servicio…</option>
-                <optgroup label="─ Impresión">
-                  <option value="flyers">Flyers y Volantes</option>
-                  <option value="tarjetas">Tarjetas de Presentación</option>
-                  <option value="digital">Impresión Digital</option>
-                </optgroup>
-                <optgroup label="─ Gran Formato">
-                  <option value="banners">Banners y Lonas (por m²)</option>
-                  <option value="rollups">Roll Ups (unidad fija $45)</option>
-                  <option value="vinilos">Vinilos Adhesivos (por m²)</option>
-                </optgroup>
-                <optgroup label="─ Packaging">
-                  <option value="cajas">Cajas Personalizadas</option>
-                  <option value="bolsas">Bolsas de Papel</option>
-                  <option value="etiquetas">Etiquetas Adhesivas</option>
-                </optgroup>
-                <optgroup label="─ Material POP">
-                  <option value="gorras">Gorras Personalizadas</option>
-                  <option value="esferos">Esferos Personalizados</option>
-                  <option value="tazas">Tazas Sublimadas</option>
-                </optgroup>
-                <optgroup label="─ Diseño">
-                  <option value="diseno">Diseño Gráfico (precio fijo)</option>
-                  <option value="diseno-logo">Diseño de Logotipo (precio fijo)</option>
-                </optgroup>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="quoteQuantity"><i class="fas fa-sort-numeric-up"></i> Cantidad</label>
-              <input type="number" id="quoteQuantity" name="quantity" min="1" placeholder="1000" inputmode="numeric"
-                autocomplete="off" required>
-            </div>
-          </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label for="quoteMaterial"><i class="fas fa-layer-group"></i> Material</label>
-              <select id="quoteMaterial" name="material">
-                <option value="estandar">Estándar</option>
-                <option value="premium">Premium (+50%)</option>
-                <option value="lujo">Lujo (+100%)</option>
+        <!-- ── Columna izquierda: formularios ── -->
+        <div class="quote-form-wrapper">
+
+          <!-- ═══════════ VOLANTES ═══════════ -->
+          <div id="form-volantes" class="qform active">
+            <h3 class="qform-title"><i class="fas fa-file-alt"></i> Volantes / Flyers</h3>
+            <div class="qfield">
+              <label class="qlabel">Tamaño y caras</label>
+              <select id="vol-model" class="qselect">
+                <option value="a6-1c">A6 · 1 cara (10.5×14.8 cm)</option>
+                <option value="a6-2c">A6 · 2 caras (10.5×14.8 cm)</option>
+                <option value="a5-1c">A5 · 1 cara (14.8×21 cm)</option>
+                <option value="a5-2c">A5 · 2 caras (14.8×21 cm)</option>
+                <option value="a4-1c">A4 · 1 cara (21×29.7 cm)</option>
+                <option value="a4-2c">A4 · 2 caras (21×29.7 cm)</option>
               </select>
             </div>
-            <div class="form-group">
-              <label for="quoteSize"><i class="fas fa-expand-arrows-alt"></i> Tamaño</label>
-              <select id="quoteSize" name="size">
-                <option value="pequeno">Pequeño</option>
-                <option value="mediano">Mediano (+30%)</option>
-                <option value="grande">Grande (+60%)</option>
+            <div id="vol-tiers-wrapper" class="qfield">
+              <label class="qlabel">Cantidad</label>
+              <div class="qtiers" id="vol-tier-buttons"></div>
+            </div>
+            <div id="vol-custom-wrapper" class="qfield" style="display:none;">
+              <label class="qlabel">Cantidad (mín. <span id="vol-min-label">1000</span>)</label>
+              <input type="number" id="vol-qty-input" class="qinput" min="1000" step="100" value="1000">
+              <small class="qhint" id="vol-price-hint">Precio: $3.00 por cada 1000 unidades</small>
+            </div>
+            <div class="qfield">
+              <label class="qlabel">Material</label>
+              <select id="vol-material" class="qselect">
+                <option value="couche115">Couché 115g</option>
+                <option value="couche150">Couché 150g</option>
+                <option value="bond90">Bond 90g</option>
+              </select>
+            </div>
+            <div class="qfield">
+              <label class="qlabel">Acabado</label>
+              <select id="vol-acabado" class="qselect">
+                <option value="brillante">Brillante</option>
+                <option value="mate">Mate</option>
               </select>
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-block">
-            <i class="fas fa-calculator"></i> Calcular Cotización
-          </button>
-        </form>
+          <!-- ═══════════ TARJETAS ═══════════ -->
+          <div id="form-tarjetas" class="qform">
+            <h3 class="qform-title"><i class="fas fa-id-card"></i> Tarjetas de Presentación</h3>
+            <p class="qhint" style="margin-bottom:1rem;">Precio por paquete de 1000 tarjetas · 8.5×5.2 cm · Cartulina Couché 300g</p>
+            <div class="qfield">
+              <label class="qlabel">Acabado</label>
+              <div id="tarjetas-options" class="qtarjetas-list"></div>
+            </div>
+          </div>
 
+          <!-- ═══════════ TAZAS ═══════════ -->
+          <div id="form-tazas" class="qform">
+            <h3 class="qform-title"><i class="fas fa-mug-hot"></i> Tazas Sublimadas</h3>
+            <div class="qfield">
+              <label class="qlabel">Tipo de taza</label>
+              <select id="taza-tipo" class="qselect">
+                <option>Clásica Blanca</option>
+                <option>Otro Color</option>
+                <option>Mágica (efecto térmico)</option>
+                <option>Metálica</option>
+              </select>
+            </div>
+            <div class="qfield">
+              <label class="qlabel">Cantidad</label>
+              <div class="qgrid-3" id="taza-tier-buttons"></div>
+            </div>
+            <div class="qspec-box">
+              <div class="qspec-item"><i class="fas fa-check"></i> Cerámica blanca 11oz</div>
+              <div class="qspec-item"><i class="fas fa-check"></i> Sublimación full color</div>
+              <div class="qspec-item"><i class="fas fa-check"></i> Área 20×9 cm aprox.</div>
+              <div class="qspec-item"><i class="fas fa-check"></i> Apto microondas y lavavajillas</div>
+            </div>
+          </div>
+
+          <!-- ═══════════ GRAN FORMATO ═══════════ -->
+          <div id="form-granformato" class="qform">
+            <h3 class="qform-title"><i class="fas fa-ruler-combined"></i> Gran Formato</h3>
+            <div class="qfield">
+              <label class="qlabel">Tipo de producto</label>
+              <select id="gf-tipo" class="qselect">
+                <option value="banner">Banners / Lonas (precio por m²)</option>
+                <option value="rollup-lona">Roll Up · Lona mate/brillante</option>
+                <option value="rollup-pet">Roll Up · Pet Banner premium</option>
+                <option value="vinilo">Vinilos Adhesivos (precio por m²)</option>
+                <option value="giganto">Gigantografías (precio por m²)</option>
+              </select>
+            </div>
+            <!-- Dimensiones (para productos por m²) -->
+            <div id="gf-sqm-wrapper" class="qfield">
+              <label class="qlabel">Dimensiones</label>
+              <div class="qflex" style="align-items:center; gap:.75rem;">
+                <input type="number" id="gf-ancho" class="qinput" style="width:90px" min="0.1" step="0.1" value="1" placeholder="Ancho">
+                <span style="font-weight:600;">×</span>
+                <input type="number" id="gf-alto" class="qinput" style="width:90px" min="0.1" step="0.1" value="1" placeholder="Alto">
+                <span style="opacity:.7;">metros</span>
+              </div>
+              <small class="qhint" id="gf-sqm-hint">= 1.00 m²</small>
+            </div>
+            <!-- Cantidad de unidades (para Roll Ups) -->
+            <div id="gf-qty-wrapper" class="qfield" style="display:none;">
+              <label class="qlabel">Cantidad</label>
+              <input type="number" id="gf-qty" class="qinput" min="1" value="1">
+            </div>
+            <div class="qspec-box" id="gf-specs">
+              <div class="qspec-item"><i class="fas fa-check"></i> Impresión UV full color</div>
+              <div class="qspec-item"><i class="fas fa-check"></i> Material resistente a la intemperie</div>
+              <div class="qspec-item"><i class="fas fa-check"></i> Ojales incluidos (banners)</div>
+              <div class="qspec-item"><i class="fas fa-check"></i> Instalación disponible</div>
+            </div>
+          </div>
+
+          <!-- ═══════════ MATERIAL POP ═══════════ -->
+          <div id="form-pop" class="qform">
+            <h3 class="qform-title"><i class="fas fa-gift"></i> Material POP Personalizado</h3>
+            <div class="qfield">
+              <label class="qlabel">Producto</label>
+              <select id="pop-tipo" class="qselect">
+                <option value="gorras">Gorras (bordado o estampado)</option>
+                <option value="agendas">Agendas / Cuadernos (tapa dura o blanda)</option>
+                <option value="esferos">Esferos (con logo impreso)</option>
+              </select>
+            </div>
+            <div class="qfield">
+              <label class="qlabel">Cantidad</label>
+              <div class="qtiers" id="pop-tier-buttons"></div>
+            </div>
+            <div class="qspec-box">
+              <div class="qspec-item"><i class="fas fa-check"></i> Logo personalizado incluido</div>
+              <div class="qspec-item"><i class="fas fa-check"></i> Varios colores disponibles</div>
+              <div class="qspec-item"><i class="fas fa-check"></i> Ideal para regalos corporativos</div>
+            </div>
+          </div>
+
+          <!-- ═══════════ ETIQUETAS ═══════════ -->
+          <div id="form-etiquetas" class="qform">
+            <h3 class="qform-title"><i class="fas fa-tags"></i> Etiquetas y Stickers</h3>
+            <div class="qfield">
+              <label class="qlabel">Tipo</label>
+              <select id="etiq-tipo" class="qselect">
+                <option value="adhesiva">Etiquetas Adhesivas (papel / polipropileno)</option>
+                <option value="sticker">Stickers / Vinil troquelado</option>
+              </select>
+            </div>
+            <div class="qfield">
+              <label class="qlabel">Cantidad</label>
+              <div class="qtiers" id="etiq-tier-buttons"></div>
+            </div>
+            <div class="qspec-box">
+              <div class="qspec-item"><i class="fas fa-check"></i> Corte personalizado (troquel)</div>
+              <div class="qspec-item"><i class="fas fa-check"></i> Impresión a full color</div>
+              <div class="qspec-item"><i class="fas fa-check"></i> Material resistente al agua</div>
+              <div class="qspec-item"><i class="fas fa-check"></i> Adhesivo de alta calidad</div>
+            </div>
+          </div>
+
+          <!-- ═══════════ PACKAGING ═══════════ -->
+          <div id="form-packaging" class="qform">
+            <h3 class="qform-title"><i class="fas fa-box"></i> Packaging</h3>
+            <div class="qfield">
+              <label class="qlabel">Tipo de empaque</label>
+              <select id="pack-tipo" class="qselect">
+                <option value="cajas">Cajas Personalizadas (cartón impreso)</option>
+                <option value="bolsas">Bolsas de Papel Kraft</option>
+              </select>
+            </div>
+            <div class="qfield">
+              <label class="qlabel">Cantidad</label>
+              <div class="qtiers" id="pack-tier-buttons"></div>
+            </div>
+            <div class="qspec-box">
+              <div class="qspec-item"><i class="fas fa-check"></i> Impresión full color exterior</div>
+              <div class="qspec-item"><i class="fas fa-check"></i> Cartón / papel resistente</div>
+              <div class="qspec-item"><i class="fas fa-check"></i> Diseño a medida</div>
+              <div class="qspec-item"><i class="fas fa-check"></i> Troquelado incluido</div>
+            </div>
+          </div>
+
+          <!-- ═══════════ DISEÑO ═══════════ -->
+          <div id="form-diseno" class="qform">
+            <h3 class="qform-title"><i class="fas fa-palette"></i> Diseño Gráfico</h3>
+            <div class="qfield">
+              <label class="qlabel">Servicio</label>
+              <div id="diseno-options" class="qtarjetas-list"></div>
+            </div>
+          </div>
+
+        </div><!-- /quote-form-wrapper -->
+
+        <!-- ── Columna derecha: resultado ── -->
         <div class="quote-result" id="quoteResult">
-          <div class="result-icon"><i class="fas fa-file-invoice-dollar"></i></div>
-          <h3>Tu Cotización</h3>
-          <div id="resultDetails"></div>
-          <div class="result-price">
-            <span class="price-label">Precio estimado:</span>
-            <span class="price-value" id="priceValue">$0.00</span>
+
+          <!-- Placeholder vacío -->
+          <div class="qresult-placeholder">
+            <div class="qresult-icon"><i class="fas fa-calculator"></i></div>
+            <p>Selecciona las opciones del producto para ver el precio estimado</p>
           </div>
-          <p class="result-note">
-            <i class="fas fa-info-circle"></i>
-            Cotización aproximada. Contáctanos para un presupuesto exacto.
-          </p>
-          <button class="btn btn-secondary btn-block" data-nav="contacto" style="margin-top:.75rem;">
-            <i class="fas fa-envelope"></i> Solicitar Cotización Formal
-          </button>
+
+          <!-- Resumen visual -->
+          <div id="qresultContent" style="display:none;">
+
+            <!-- Cabecera: icono + nombre del producto -->
+            <div class="qr-header">
+              <div class="qr-product-icon" id="qrProductIcon"></div>
+              <div class="qr-product-name" id="qrProductName"></div>
+            </div>
+
+            <!-- Ficha de especificaciones -->
+            <div class="qr-specs" id="qrSpecs"></div>
+
+            <!-- Precio principal -->
+            <div class="qprice-tag">
+              <div class="qprice-detail" id="qPriceDetail"></div>
+              <div class="qprice-label">Precio estimado</div>
+              <div class="qprice-value" id="qPriceValue">$0.00</div>
+              <div class="qprice-iva">+ IVA (15%)</div>
+            </div>
+
+            <!-- Stats: precio/unidad + ahorro -->
+            <div class="qr-stats" id="qrStats"></div>
+
+            <!-- Tiempo de entrega -->
+            <div class="qr-delivery" id="qrDelivery"></div>
+
+            <p class="qwarning">⚠️ Precio referencial · No incluye IVA · Diseño no incluido (excepto paquetes de diseño)</p>
+
+            <a id="qWhatsappBtn" href="#" target="_blank" class="qwa-btn">
+              <i class="fab fa-whatsapp"></i> Solicitar por WhatsApp
+            </a>
+          </div>
+
+          <div class="qother-products">
+            <div class="qother-title">¿No encuentras lo que buscas?</div>
+            <div class="qother-list">Cajas de luz · Stand PVC · Carpetas corporativas · Hojas membretadas · Catálogos</div>
+            <a href="https://wa.me/593996884150" target="_blank" class="qother-link">Escríbenos y cotizamos →</a>
+          </div>
         </div>
-      </div>
+
+      </div><!-- /quote-container -->
     </div>
   </section>
 

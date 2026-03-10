@@ -2459,3 +2459,999 @@ button:focus-visible {
     transform: scale(1.02);
     box-shadow: 0 8px 20px rgba(37, 211, 102, 0.35);
 }
+
+/* =====================================================
+   COTIZADOR NUEVO — TABS + FORMULARIOS POR PRODUCTO
+   ===================================================== */
+
+.quote-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.qtab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border: 2px solid var(--glass-border);
+    border-radius: 980px;
+    background: var(--bg-gray);
+    color: var(--text-light);
+    font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.qtab:hover {
+    border-color: var(--secondary);
+    color: var(--secondary);
+}
+
+.qtab.active {
+    background: var(--secondary);
+    border-color: var(--secondary);
+    color: #fff;
+}
+
+[data-theme="dark"] .qtab {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.12);
+    color: var(--text-light);
+}
+
+[data-theme="dark"] .qtab.active {
+    background: var(--secondary);
+    border-color: var(--secondary);
+    color: #fff;
+}
+
+/* Contenedor principal: 2 columnas */
+.quote-container {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+/* Columna formulario */
+.quote-form-wrapper {
+    background: var(--bg-light);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    box-shadow: var(--shadow-sm);
+}
+
+[data-theme="dark"] .quote-form-wrapper {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.08);
+}
+
+/* Sub-formularios: ocultar / mostrar */
+.qform { display: none; }
+.qform.active { display: block; }
+
+.qform-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.qform-title i { color: var(--secondary); }
+
+.qfield { margin-bottom: 1.25rem; }
+
+.qlabel {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-light);
+    margin-bottom: 0.5rem;
+}
+
+/* Grids de botones */
+.qgrid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.qgrid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.qflex {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Botón opción seleccionable */
+.qoption {
+    display: flex;
+    flex-direction: column;
+    padding: 0.625rem 0.75rem;
+    border: 1.5px solid var(--glass-border);
+    border-radius: 10px;
+    background: var(--bg-gray);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    line-height: 1.3;
+}
+
+.qoption small {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: var(--text-light);
+    margin-top: 2px;
+}
+
+.qoption:hover {
+    border-color: var(--secondary);
+    color: var(--secondary);
+}
+
+.qoption.active {
+    border-color: var(--secondary);
+    background: rgba(0,113,227,0.08);
+    color: var(--secondary);
+}
+
+[data-theme="dark"] .qoption {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.1);
+    color: var(--text-dark);
+}
+
+[data-theme="dark"] .qoption.active {
+    background: rgba(0,113,227,0.18);
+    border-color: var(--secondary);
+    color: #60aaf0;
+}
+
+/* Tiers de cantidad (volantes) */
+.qtiers {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.qtier-btn {
+    flex: 1;
+    min-width: 70px;
+    padding: 0.625rem 0.5rem;
+    border: 1.5px solid var(--glass-border);
+    border-radius: 10px;
+    background: var(--bg-gray);
+    cursor: pointer;
+    text-align: center;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    transition: all 0.15s ease;
+    line-height: 1.3;
+}
+
+.qtier-btn .tier-qty { display: block; }
+.qtier-btn .tier-price {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-light);
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+.qtier-btn.active {
+    border-color: var(--secondary);
+    background: rgba(0,113,227,0.08);
+    color: var(--secondary);
+}
+
+.qtier-btn.active .tier-price { color: var(--secondary); }
+
+[data-theme="dark"] .qtier-btn {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.1);
+}
+
+[data-theme="dark"] .qtier-btn.active {
+    background: rgba(0,113,227,0.18);
+    border-color: var(--secondary);
+    color: #60aaf0;
+}
+
+/* Input numérico */
+.qinput {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border: 1.5px solid var(--glass-border);
+    border-radius: 10px;
+    background: var(--bg-gray);
+    color: var(--text-dark);
+    font-size: 0.95rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.qinput:focus { border-color: var(--secondary); }
+
+[data-theme="dark"] .qinput {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.1);
+    color: var(--text-dark);
+}
+
+/* Select */
+.qselect {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border: 1.5px solid var(--glass-border);
+    border-radius: 10px;
+    background: var(--bg-gray);
+    color: var(--text-dark);
+    font-size: 0.875rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+    cursor: pointer;
+}
+
+.qselect:focus { border-color: var(--secondary); }
+
+[data-theme="dark"] .qselect {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.1);
+    color: var(--text-dark);
+}
+
+.qhint {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-top: 0.25rem;
+}
+
+/* Lista de tarjetas de presentación */
+.qtarjetas-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.qtarjeta-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.875rem 1rem;
+    border: 1.5px solid var(--glass-border);
+    border-radius: 12px;
+    background: var(--bg-gray);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+    text-align: left;
+}
+
+.qtarjeta-option:hover { border-color: var(--secondary); }
+
+.qtarjeta-option.active {
+    border-color: var(--secondary);
+    background: rgba(0,113,227,0.08);
+}
+
+.qtarjeta-info .name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.qtarjeta-option.active .qtarjeta-info .name { color: var(--secondary); }
+
+.qtarjeta-info .desc {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-top: 2px;
+}
+
+.qtarjeta-price {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-dark);
+    margin-left: 1rem;
+    white-space: nowrap;
+}
+
+.qtarjeta-option.active .qtarjeta-price { color: var(--secondary); }
+
+[data-theme="dark"] .qtarjeta-option {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.08);
+}
+
+[data-theme="dark"] .qtarjeta-option.active {
+    background: rgba(0,113,227,0.15);
+}
+
+/* Lista Roll Up */
+.qrollup-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0;
+}
+
+.qrollup-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.875rem 1rem;
+    border: 1.5px solid var(--glass-border);
+    border-radius: 12px;
+    background: var(--bg-gray);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+    text-align: left;
+}
+
+.qrollup-option:hover { border-color: var(--secondary); }
+
+.qrollup-option.active {
+    border-color: var(--secondary);
+    background: rgba(0,113,227,0.08);
+}
+
+.qrollup-info .name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.qrollup-option.active .qrollup-info .name { color: var(--secondary); }
+
+.qrollup-info .desc {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-top: 2px;
+}
+
+.qrollup-price {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-dark);
+    margin-left: 1rem;
+    white-space: nowrap;
+}
+
+.qrollup-option.active .qrollup-price { color: var(--secondary); }
+
+[data-theme="dark"] .qrollup-option {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.08);
+}
+
+/* Caja de specs */
+.qspec-box {
+    background: var(--bg-gray);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 0.875rem 1rem;
+    margin-top: 0.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem 1rem;
+}
+
+.qspec-item {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.qspec-item i { color: var(--success); font-size: 0.75rem; }
+
+[data-theme="dark"] .qspec-box {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.08);
+}
+
+/* ── Columna resultado ── */
+.quote-result {
+    background: var(--bg-dark);
+    border-radius: var(--radius-xl);
+    padding: 1.75rem;
+    position: sticky;
+    top: 90px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 320px;
+}
+
+[data-theme="dark"] .quote-result {
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* Placeholder vacío */
+.qresult-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    text-align: center;
+    padding: 2rem 0;
+    color: rgba(255,255,255,0.35);
+    gap: 0.75rem;
+}
+
+.qresult-icon {
+    font-size: 2.5rem;
+    opacity: 0.4;
+}
+
+.qresult-placeholder p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    max-width: 200px;
+}
+
+/* Precio */
+.qprice-tag {
+    background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(220,38,38,0.35);
+}
+
+.qprice-detail {
+    color: rgba(255,255,255,0.7);
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+    min-height: 1rem;
+}
+
+.qprice-label {
+    color: rgba(255,255,255,0.7);
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+}
+
+.qprice-value {
+    color: #fff;
+    font-size: 2.75rem;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -1.5px;
+}
+
+.qprice-iva {
+    color: rgba(255,255,255,0.55);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+/* Precio por unidad */
+.qunit-box {
+    background: rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+}
+
+.qunit-label { color: rgba(255,255,255,0.5); font-size: 0.75rem; }
+.qunit-value { color: #fff; font-size: 1.2rem; font-weight: 700; margin-top: 2px; }
+
+/* Detalle */
+.qdetails-box {
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.4);
+    line-height: 1.7;
+}
+
+.qwarning {
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.35);
+    text-align: center;
+    margin: 0;
+}
+
+/* Botón WhatsApp en resultado */
+.qwa-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem;
+    background: linear-gradient(135deg, #25d366, #128c7e);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 14px rgba(37,211,102,0.35);
+}
+
+.qwa-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(37,211,102,0.45);
+    color: #fff;
+}
+
+/* Otros productos */
+.qother-products {
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 1rem;
+    margin-top: auto;
+}
+
+.qother-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 0.25rem;
+}
+
+.qother-list {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.3);
+    line-height: 1.6;
+}
+
+.qother-link {
+    display: inline-block;
+    margin-top: 0.35rem;
+    font-size: 0.75rem;
+    color: #fca5a5;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.qother-link:hover { color: #f87171; }
+
+/* Responsive cotizador */
+@media (max-width: 900px) {
+    .quote-container {
+        grid-template-columns: 1fr;
+    }
+    .quote-result {
+        position: static;
+    }
+    .qgrid-3 {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .qgrid-2 { grid-template-columns: 1fr 1fr; }
+    .qgrid-3 { grid-template-columns: 1fr 1fr; }
+    .qtiers { flex-wrap: wrap; }
+    .qtier-btn { min-width: 80px; }
+    .qspec-box { grid-template-columns: 1fr; }
+}
+
+/* ── Cotizador: Pestañas con scroll en móvil ── */
+@media (max-width: 700px) {
+    .quote-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        justify-content: flex-start;
+        padding-bottom: 0.5rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .quote-tabs::-webkit-scrollbar { display: none; }
+    .qtab { white-space: nowrap; flex-shrink: 0; }
+}
+
+/* ── Gran Formato: campo dimensiones ── */
+#gf-sqm-wrapper .qflex {
+    align-items: center;
+    gap: 0.5rem;
+}
+#gf-sqm-wrapper .qinput {
+    width: 88px;
+    text-align: center;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+}
+#gf-sqm-hint {
+    display: block;
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--secondary);
+    font-weight: 600;
+}
+
+/* ═══════════════════════════════════
+   Cotizador — Panel de resultado mejorado
+   ══════════════════════════════════ */
+
+/* Cabecera del producto */
+.qr-header {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.875rem 1rem;
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    margin-bottom: 0.875rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    animation: qrFadeIn 0.3s ease;
+}
+
+.qr-product-icon {
+    font-size: 2.2rem;
+    line-height: 1;
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.07);
+    border-radius: 10px;
+}
+
+.qr-product-icon i {
+    font-size: 1.4rem;
+    color: var(--secondary);
+}
+
+.qr-product-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.3;
+}
+
+/* Ficha de especificaciones */
+.qr-specs {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: rgba(255,255,255,0.04);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 0.875rem;
+    border: 1px solid rgba(255,255,255,0.07);
+    animation: qrFadeIn 0.35s ease;
+}
+
+.qr-spec-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background 0.15s;
+}
+
+.qr-spec-row:last-child { border-bottom: none; }
+
+.qr-spec-row:hover { background: rgba(255,255,255,0.04); }
+
+.qr-spec-label {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-weight: 500;
+}
+
+.qr-spec-value {
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.9);
+    font-weight: 600;
+    text-align: right;
+    max-width: 60%;
+}
+
+.qr-spec-value.highlight {
+    color: var(--secondary);
+}
+
+/* Stats: precio unitario + ahorro */
+.qr-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.875rem;
+    animation: qrFadeIn 0.4s ease;
+}
+
+.qr-stat {
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 0.65rem 0.875rem;
+    border: 1px solid rgba(255,255,255,0.07);
+}
+
+.qr-stat-label {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 0.2rem;
+}
+
+.qr-stat-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.qr-stat-value.green { color: #4ade80; }
+.qr-stat-value.blue  { color: #60a5fa; }
+
+/* Tiempo de entrega */
+.qr-delivery {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.875rem;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 10px;
+    margin-bottom: 0.875rem;
+    font-size: 0.8rem;
+    color: #6ee7b7;
+    font-weight: 500;
+    animation: qrFadeIn 0.45s ease;
+}
+
+.qr-delivery i {
+    color: #34d399;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+/* Dark mode */
+[data-theme="dark"] .qr-header {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.07);
+}
+
+[data-theme="dark"] .qr-specs {
+    background: rgba(0,0,0,0.2);
+    border-color: rgba(255,255,255,0.06);
+}
+
+@keyframes qrFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════
+   FAQ — Preguntas Frecuentes
+   ══════════════════════════════════ */
+
+.faq-section {
+    background: var(--bg-gray);
+    padding: 5rem 2rem;
+    min-height: auto;
+}
+
+[data-theme="dark"] .faq-section {
+    background: rgba(255,255,255,0.02);
+}
+
+.faq-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 2.5rem;
+    margin-bottom: 3rem;
+}
+
+.faq-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* ─ Item individual ─ */
+.faq-item {
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.faq-item:first-child {
+    border-top: 1px solid var(--glass-border);
+}
+
+[data-theme="dark"] .faq-item,
+[data-theme="dark"] .faq-item:first-child {
+    border-color: rgba(255,255,255,0.08);
+}
+
+/* ─ Botón trigger ─ */
+.faq-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.2rem 0.25rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    font-size: 0.975rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    transition: color 0.2s ease;
+    line-height: 1.4;
+}
+
+[data-theme="dark"] .faq-trigger {
+    color: rgba(255,255,255,0.9);
+}
+
+.faq-trigger:hover {
+    color: var(--secondary);
+}
+
+.faq-trigger[aria-expanded="true"] {
+    color: var(--secondary);
+}
+
+/* ─ Ícono +/× ─ */
+.faq-icon {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    transition: transform 0.3s ease, color 0.2s ease;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--glass-border);
+    border-radius: 50%;
+    padding: 0;
+}
+
+.faq-trigger:hover .faq-icon {
+    border-color: var(--secondary);
+    color: var(--secondary);
+}
+
+.faq-trigger[aria-expanded="true"] .faq-icon {
+    transform: rotate(45deg);
+    background: var(--secondary);
+    border-color: var(--secondary);
+    color: #fff;
+}
+
+[data-theme="dark"] .faq-icon {
+    border-color: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.5);
+}
+
+/* ─ Cuerpo colapsable ─ */
+.faq-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.35s cubic-bezier(0.4,0,0.2,1);
+    overflow: hidden;
+}
+
+.faq-body > * {
+    overflow: hidden;
+}
+
+.faq-body.open {
+    grid-template-rows: 1fr;
+}
+
+/* Contenido interno del body */
+.faq-body p,
+.faq-body ul {
+    padding-bottom: 1.25rem;
+    padding-left: 0.25rem;
+}
+
+.faq-body p {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    line-height: 1.75;
+    margin-bottom: 0.5rem;
+}
+
+.faq-body p:last-child {
+    margin-bottom: 0;
+}
+
+[data-theme="dark"] .faq-body p {
+    color: rgba(255,255,255,0.6);
+}
+
+.faq-body ul {
+    padding-left: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.faq-body li {
+    font-size: 0.875rem;
+    color: var(--text-light);
+    line-height: 1.6;
+}
+
+[data-theme="dark"] .faq-body li {
+    color: rgba(255,255,255,0.55);
+}
+
+.faq-body strong {
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+[data-theme="dark"] .faq-body strong {
+    color: rgba(255,255,255,0.9);
+}
+
+/* ─ CTA inferior ─ */
+.faq-cta {
+    text-align: center;
+    padding-top: 2.5rem;
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+}
+
+[data-theme="dark"] .faq-cta {
+    border-color: rgba(255,255,255,0.08);
+}
+
+.faq-cta p {
+    font-size: 1rem;
+    color: var(--text-light);
+    margin: 0;
+}
+
+[data-theme="dark"] .faq-cta p {
+    color: rgba(255,255,255,0.55);
+}
+
+/* Responsive FAQ */
+@media (max-width: 768px) {
+    .faq-grid {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+    .faq-col:last-child .faq-item:first-child {
+        border-top: none;
+    }
+}

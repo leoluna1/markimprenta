@@ -42,9 +42,9 @@ export default class ModalView extends BaseView {
 
   _isImagePath(img) {
     if (!img) return false;
-    return img.startsWith('http') || img.startsWith('images/') ||
-           img.endsWith('.jpg') || img.endsWith('.png') ||
-           img.endsWith('.webp') || img.endsWith('.jpeg');
+    return img.startsWith('/uploads/') || img.startsWith('http') ||
+           img.startsWith('images/') || img.startsWith('./') ||
+           /\.(jpg|jpeg|png|webp|gif)$/i.test(img);
   }
 
   _imageHTML(p) {

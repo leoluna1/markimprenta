@@ -6,7 +6,7 @@
 // ===== UTILIDAD: detectar si image es ruta o emoji =====
 function isImagePath(img) {
     if (!img) return false;
-    return img.startsWith('http') || img.startsWith('images/') || img.startsWith('./') || img.endsWith('.jpg') || img.endsWith('.png') || img.endsWith('.webp');
+    return img.startsWith('/uploads/') || img.startsWith('http') || img.startsWith('images/') || img.startsWith('./') || /\.(jpg|jpeg|png|webp|gif)$/i.test(img);
 }
 
 // ===== VARIABLES GLOBALES =====
@@ -246,16 +246,36 @@ function animateCounters() {
 }
 
 // ===== CATÁLOGO DE PRODUCTOS =====
+// ── Base de datos en memoria (se llena desde la API o desde products-data.js) ──
+let productsCache = [];
+
+async function fetchProductsFromAPI() {
+    try {
+        const r = await fetch('/api/products');
+        if (!r.ok) throw new Error('API no disponible');
+        productsCache = await r.json();
+        return true;
+    } catch {
+        // Fallback: usar productos del archivo estático
+        if (typeof productsDatabase !== 'undefined') {
+            productsCache = productsDatabase;
+        }
+        return false;
+    }
+}
+
 function initializeProducts() {
-    loadProducts();
-    initializeFilters();
+    fetchProductsFromAPI().then(() => {
+        loadProducts();
+        initializeFilters();
+    });
 }
 
 function loadProducts(filter = 'todos', page = 1) {
     const grid = document.getElementById('productsGrid');
     if (!grid) return;
 
-    if (typeof productsDatabase === 'undefined') {
+    if (productsCache.length === 0) {
         grid.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; color: var(--text-dark); padding: 3rem;">
                 <h3>Productos en carga...</h3>
@@ -265,8 +285,8 @@ function loadProducts(filter = 'todos', page = 1) {
     }
 
     let filteredProducts = filter === 'todos'
-        ? productsDatabase
-        : productsDatabase.filter(p => p.category === filter);
+        ? productsCache
+        : productsCache.filter(p => p.category === filter);
 
     const start = (page - 1) * productsPerPage;
     const end = start + productsPerPage;

@@ -6,6 +6,7 @@ import ModalView    from '../views/ModalView.js';
 /**
  * CatalogController
  * Coordina ProductModel ↔ CatalogView ↔ ModalView
+ * ProductModel ahora es async (lee desde la API Node.js)
  */
 export default class CatalogController {
   constructor() {
@@ -20,7 +21,7 @@ export default class CatalogController {
     };
   }
 
-  init() {
+  async init() {
     this._view.bind();
     this._modal.bind();
 
@@ -48,7 +49,8 @@ export default class CatalogController {
       EventBus.emit('nav:go', { id: 'cotizador' });
     });
 
-    // Carga inicial
+    // Carga inicial desde la API
+    await this._model.load();
     this._load();
   }
 

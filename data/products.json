@@ -1,0 +1,274 @@
+[
+  {
+    "id": 1,
+    "name": "Flyers y Volantes",
+    "category": "impresion",
+    "description": "Impresión de flyers y volantes en alta calidad, ideal para promociones y publicidad masiva.",
+    "image": "/uploads/1773799565571-flyers.png",
+    "price": 0.15,
+    "priceUnit": "por unidad",
+    "features": [
+      "Impresión a full color",
+      "Varios tamaños disponibles",
+      "Papel couché 115gr - 300gr",
+      "Acabados: brillante o mate"
+    ],
+    "popular": true,
+    "minQuantity": 100
+  },
+  {
+    "id": 2,
+    "name": "Tarjetas de Presentación",
+    "category": "impresion",
+    "description": "Tarjetas profesionales que causan una gran primera impresión.",
+    "image": "/uploads/1773800168625-tarjetas_p.png",
+    "price": 35,
+    "priceUnit": "Por millar",
+    "features": [
+      "Impresión doble cara",
+      "Papel couché 300gr",
+      "Acabados especiales disponibles",
+      "Diseño incluido"
+    ],
+    "popular": true,
+    "minQuantity": 1000
+  },
+  {
+    "id": 3,
+    "name": "Hojas Membretadas",
+    "category": "impresion",
+    "description": "Papelería corporativa personalizada para tu empresa.",
+    "image": "/uploads/1773800394347-hojas_membretadas.png",
+    "price": 0.3,
+    "priceUnit": "por unidad",
+    "features": [
+      "Papel bond 75gr",
+      "Full color",
+      "Diseño corporativo",
+      "Entrega rápida"
+    ],
+    "popular": false,
+    "minQuantity": 100
+  },
+  {
+    "id": 4,
+    "name": "Catálogos y Revistas",
+    "category": "impresion",
+    "description": "Impresión de catálogos y revistas con acabados profesionales.",
+    "image": "📚",
+    "price": 2.5,
+    "priceUnit": "por unidad",
+    "features": [
+      "Varios formatos",
+      "Encuadernado incluido",
+      "Papel couché",
+      "Diseño editorial"
+    ],
+    "popular": false,
+    "minQuantity": 50
+  },
+  {
+    "id": 5,
+    "name": "Gorras Personalizadas",
+    "category": "promocional",
+    "description": "Gorras bordadas o estampadas con tu logo.",
+    "image": "/uploads/1773799614478-tasas.png",
+    "price": 5,
+    "priceUnit": "por unidad",
+    "features": [
+      "Bordado o estampado",
+      "Varios colores",
+      "Ajustable",
+      "Logo personalizado"
+    ],
+    "popular": true,
+    "minQuantity": 12
+  },
+  {
+    "id": 6,
+    "name": "Agendas y Cuadernos",
+    "category": "promocional",
+    "description": "Agendas y cuadernos personalizados para regalos corporativos.",
+    "image": "📓",
+    "price": 3.5,
+    "priceUnit": "por unidad",
+    "features": [
+      "Tapa dura o blanda",
+      "Personalización total",
+      "Varios tamaños",
+      "Anillado o cosido"
+    ],
+    "popular": true,
+    "minQuantity": 50
+  },
+  {
+    "id": 7,
+    "name": "Esferos y Bolígrafos",
+    "category": "promocional",
+    "description": "Esferos personalizados con tu marca.",
+    "image": "✏️",
+    "price": 0.5,
+    "priceUnit": "por unidad",
+    "features": [
+      "Impresión de logo",
+      "Varios colores",
+      "Tinta de calidad",
+      "Económicos"
+    ],
+    "popular": true,
+    "minQuantity": 100
+  },
+  {
+    "id": 8,
+    "name": "Tazas Personalizadas",
+    "category": "promocional",
+    "description": "Tazas cerámicas con impresión sublimada.",
+    "image": "☕",
+    "price": 4,
+    "priceUnit": "por unidad",
+    "features": [
+      "Sublimación de alta calidad",
+      "Cerámica resistente",
+      "Diseños a full color",
+      "Apto microondas"
+    ],
+    "popular": false,
+    "minQuantity": 12
+  },
+  {
+    "id": 9,
+    "name": "Cajas Personalizadas",
+    "category": "packaging",
+    "description": "Cajas de cartón impresas para empaque de productos.",
+    "image": "📦",
+    "price": 1.5,
+    "priceUnit": "por unidad",
+    "features": [
+      "Varios tamaños",
+      "Impresión full color",
+      "Cartón resistente",
+      "Diseño incluido"
+    ],
+    "popular": true,
+    "minQuantity": 100
+  },
+  {
+    "id": 10,
+    "name": "Etiquetas Adhesivas",
+    "category": "packaging",
+    "description": "Etiquetas en rollo o pliego para productos.",
+    "image": "🏷️",
+    "price": 0.1,
+    "priceUnit": "por unidad",
+    "features": [
+      "Material resistente",
+      "Impresión a color",
+      "Corte personalizado",
+      "Adhesivo de calidad"
+    ],
+    "popular": true,
+    "minQuantity": 500
+  },
+  {
+    "id": 11,
+    "name": "Bolsas de Papel",
+    "category": "packaging",
+    "description": "Bolsas de papel kraft personalizadas.",
+    "image": "🛍️",
+    "price": 0.75,
+    "priceUnit": "por unidad",
+    "features": [
+      "Papel kraft ecológico",
+      "Asas resistentes",
+      "Impresión personalizada",
+      "Varios tamaños"
+    ],
+    "popular": false,
+    "minQuantity": 100
+  },
+  {
+    "id": 12,
+    "name": "Stickers y Calcomanías",
+    "category": "packaging",
+    "description": "Stickers troquelados en diversos materiales.",
+    "image": "✨",
+    "price": 0.15,
+    "priceUnit": "por unidad",
+    "features": [
+      "Vinil o papel",
+      "Resistente al agua",
+      "Corte personalizado",
+      "Alta durabilidad"
+    ],
+    "popular": true,
+    "minQuantity": 100
+  },
+  {
+    "id": 13,
+    "name": "Banners y Lonas",
+    "category": "gran-formato",
+    "description": "Impresión de banners y lonas para exterior e interior.",
+    "image": "🖼️",
+    "price": 15,
+    "priceUnit": "por m²",
+    "features": [
+      "Material resistente",
+      "Impresión UV",
+      "Ojales incluidos",
+      "Tamaño personalizado"
+    ],
+    "popular": true,
+    "minQuantity": 1
+  },
+  {
+    "id": 14,
+    "name": "Roll Ups",
+    "category": "gran-formato",
+    "description": "Display portátil retráctil con impresión de alta calidad.",
+    "image": "📊",
+    "price": 45,
+    "priceUnit": "por unidad",
+    "features": [
+      "Estructura incluida",
+      "Fácil instalación",
+      "Portátil",
+      "Impresión HD"
+    ],
+    "popular": true,
+    "minQuantity": 1
+  },
+  {
+    "id": 15,
+    "name": "Vinilos y Adhesivos",
+    "category": "gran-formato",
+    "description": "Vinilos autoadhesivos para decoración y publicidad.",
+    "image": "🎨",
+    "price": 8,
+    "priceUnit": "por m²",
+    "features": [
+      "Vinil de alta calidad",
+      "Instalación disponible",
+      "Resistente a UV",
+      "Varios acabados"
+    ],
+    "popular": false,
+    "minQuantity": 1
+  },
+  {
+    "id": 16,
+    "name": "Gigantografías",
+    "category": "gran-formato",
+    "description": "Impresiones de gran formato para fachadas y espacios amplios.",
+    "image": "🏢",
+    "price": 12,
+    "priceUnit": "por m²",
+    "features": [
+      "Hasta 3.20m de ancho",
+      "Impresión HD",
+      "Material resistente",
+      "Instalación disponible"
+    ],
+    "popular": true,
+    "minQuantity": 1
+  }
+]

@@ -1,0 +1,17 @@
+# Credenciales — NUNCA subir
+.env
+
+# Dependencias
+node_modules/
+
+# Imágenes subidas por el admin (Railway usa almacenamiento efímero)
+# Las imágenes se guardan en Cloudinary en producción
+uploads/*
+!uploads/.gitkeep
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/

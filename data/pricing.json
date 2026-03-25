@@ -1,0 +1,31 @@
+{
+  "volantes": {
+    "models": {
+      "a6-1c": { "label": "A6 · 1 cara",  "type": "tiers",   "tiers": [{"qty":1000,"total":80},{"qty":2000,"total":100},{"qty":5000,"total":249.50}] },
+      "a6-2c": { "label": "A6 · 2 caras", "type": "tiers",   "tiers": [{"qty":1000,"total":90},{"qty":2000,"total":110},{"qty":5000,"total":175}] },
+      "a5-1c": { "label": "A5 · 1 cara",  "type": "perunit", "unitPer1000": 3.00, "minQty": 1000 },
+      "a5-2c": { "label": "A5 · 2 caras", "type": "perunit", "unitPer1000": 2.50, "minQty": 1000 },
+      "a4-1c": { "label": "A4 · 1 cara",  "type": "perunit", "unitPer1000": 1.80, "minQty": 1000 },
+      "a4-2c": { "label": "A4 · 2 caras", "type": "perunit", "unitPer1000": 1.60, "minQty": 1000 }
+    }
+  },
+  "tarjetas": [
+    { "id": "brillo-uv",  "label": "Con Brillo UV",        "price": 35,  "desc": "Couché 300g · Acabado brillante UV" },
+    { "id": "mate",       "label": "Laminado Mate",         "price": 55,  "desc": "Couché 300g · Acabado suave elegante" },
+    { "id": "uv-sel",     "label": "UV Selectivo",          "price": 75,  "desc": "Brillo UV solo en zonas específicas" },
+    { "id": "troquelado", "label": "Troquelado",            "price": 130, "desc": "Forma o corte personalizado" },
+    { "id": "relieve",    "label": "Alto Relieve",          "price": 130, "desc": "Textura repujada en 3D" }
+  ],
+  "tazas": [
+    { "qty": 1,   "label": "1 unidad",    "pricePerUnit": 4.99 },
+    { "qty": 6,   "label": "6 unidades",  "pricePerUnit": 3.50 },
+    { "qty": 12,  "label": "12 unidades", "pricePerUnit": 3.00 },
+    { "qty": 24,  "label": "24 unidades", "pricePerUnit": 2.50 },
+    { "qty": 36,  "label": "36 unidades", "pricePerUnit": 1.80 },
+    { "qty": 100, "label": "100 uds.",    "pricePerUnit": 1.60 }
+  ],
+  "rollup": [
+    { "id": "lona", "label": "Impresión en Lona",       "price": 50, "desc": "Lona mate o brillante · Full color 300dpi" },
+    { "id": "pet",  "label": "Impresión en Pet Banner", "price": 60, "desc": "Pet banner premium · Full color 300dpi" }
+  ]
+}

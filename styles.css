@@ -45,17 +45,17 @@
     --transition-bounce: 0.5s cubic-bezier(0.34,1.56,0.64,1);
 
     /* ── Liquid Glass — Modo Claro ── */
-    --glass-bg:          rgba(255, 255, 255, 0.55);
-    --glass-bg-hover:    rgba(255, 255, 255, 0.75);
-    --glass-border:      rgba(255, 255, 255, 0.80);
-    --glass-border-sub:  rgba(255, 255, 255, 0.30);
+    --glass-bg:          rgba(255, 255, 255, 0.72);
+    --glass-bg-hover:    rgba(255, 255, 255, 0.90);
+    --glass-border:      rgba(0, 0, 0, 0.09);
+    --glass-border-sub:  rgba(0, 0, 0, 0.05);
     --glass-blur:        blur(24px) saturate(180%);
-    --glass-shadow:      0 8px 32px rgba(0,0,0,0.10),
-                         inset 0 1px 0 rgba(255,255,255,0.90),
-                         inset 0 -1px 0 rgba(255,255,255,0.25);
-    --glass-shadow-hover:0 16px 48px rgba(0,0,0,0.14),
-                         inset 0 1px 0 rgba(255,255,255,1),
-                         inset 0 -1px 0 rgba(255,255,255,0.35);
+    --glass-shadow:      0 2px 12px rgba(0,0,0,0.07),
+                         0 1px 3px rgba(0,0,0,0.05),
+                         inset 0 1px 0 rgba(255,255,255,0.90);
+    --glass-shadow-hover:0 8px 28px rgba(0,0,0,0.11),
+                         0 2px 8px rgba(0,0,0,0.07),
+                         inset 0 1px 0 rgba(255,255,255,1);
 }
 
 /* ===== MODO OSCURO — Variables ===== */

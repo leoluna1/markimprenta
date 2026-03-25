@@ -17,6 +17,7 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 
 const DATA_FILE      = path.join(__dirname, 'data', 'products.json');
+const PRICING_FILE   = path.join(__dirname, 'data', 'pricing.json');
 const UPLOADS_DIR    = path.join(__dirname, 'uploads');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'mark2024';
 
@@ -90,6 +91,12 @@ function readProducts() {
 }
 function writeProducts(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
+function readPricing() {
+  return JSON.parse(fs.readFileSync(PRICING_FILE, 'utf8'));
+}
+function writePricing(data) {
+  fs.writeFileSync(PRICING_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
 function authenticate(req, res, next) {
   if (req.headers['x-admin-token'] !== ADMIN_PASSWORD)
@@ -297,6 +304,19 @@ app.delete('/api/products/:id', authenticate, (req, res) => {
     writeProducts(filtered);
     res.json({ success: true, deleted: id });
   } catch (e) { res.status(500).json({ error: 'Error eliminando' }); }
+});
+
+// ── Precios del cotizador ────────────────────
+app.get('/api/pricing', (req, res) => {
+  try { res.json(readPricing()); }
+  catch (e) { res.status(500).json({ error: 'Error leyendo precios' }); }
+});
+
+app.put('/api/pricing', authenticate, (req, res) => {
+  try {
+    writePricing(req.body);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: 'Error guardando precios' }); }
 });
 
 // ── Rutas HTML ────────────────────────────────

@@ -918,7 +918,7 @@ console.log('✨ Mark Publicidad - Sistema cargado correctamente');
 // COTIZADOR NUEVO — Precios reales del catálogo
 // =====================================================
 
-const QPRICING = {
+let QPRICING = {
     volantes: {
         models: {
             'a6-1c': { label: 'A6 · 1 cara',  type: 'tiers',   tiers: [{qty:1000,total:80},{qty:2000,total:100},{qty:5000,total:249.50}] },
@@ -1211,7 +1211,11 @@ function qUpdateResult() {
     waBtn.href = 'https://wa.me/593996884150?text=' + encodeURIComponent(msgWA);
 }
 
-// Inicializar cotizador nuevo junto con el resto de la app
+// Inicializar cotizador nuevo: cargar precios desde API primero
 document.addEventListener('DOMContentLoaded', () => {
-    initializeNewQuote();
+    fetch('/api/pricing')
+        .then(r => r.json())
+        .then(data => { QPRICING = data; })
+        .catch(() => { /* usa los valores hardcodeados como fallback */ })
+        .finally(() => { initializeNewQuote(); });
 });

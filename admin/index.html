@@ -198,6 +198,35 @@
   .btn-add-feature { display:flex; align-items:center; gap:.4rem; padding:.5rem .875rem; background:var(--bg); border:1px dashed var(--border); border-radius:var(--radius-sm); font-size:.85rem; color:var(--muted); cursor:pointer; transition:all .15s; margin-top:.25rem; font-family:inherit; }
   .btn-add-feature:hover { border-color:var(--blue); color:var(--blue); background:var(--blue-light); }
 
+  /* ── COTIZADOR ADMIN ── */
+  .pricing-tabs { display:flex; gap:.5rem; margin-bottom:1.5rem; border-bottom:1px solid var(--border); padding-bottom:0; }
+  .pricing-tab { padding:.625rem 1.25rem; border:none; background:transparent; font-size:.9rem; font-family:inherit; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all .15s; font-weight:500; }
+  .pricing-tab:hover { color:var(--text); }
+  .pricing-tab.active { color:var(--blue); border-bottom-color:var(--blue); }
+  .pricing-panel { display:none; } .pricing-panel.active { display:block; }
+  .pricing-card { background:var(--surface); border-radius:var(--radius); border:1px solid var(--border); overflow:hidden; margin-bottom:1rem; }
+  .pricing-card-header { padding:.875rem 1.25rem; background:var(--bg); border-bottom:1px solid var(--border); font-size:.85rem; font-weight:600; color:var(--text); display:flex; align-items:center; gap:.5rem; }
+  .pricing-card-header i { color:var(--blue); }
+  .pricing-row { display:grid; grid-template-columns:1fr repeat(3,110px); gap:.75rem; padding:.75rem 1.25rem; border-bottom:1px solid var(--border); align-items:center; }
+  .pricing-row:last-child { border-bottom:none; }
+  .pricing-row.header { background:var(--bg); font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:.5rem 1.25rem; }
+  .pricing-label { font-size:.9rem; font-weight:500; }
+  .pricing-sub { font-size:.78rem; color:var(--muted); margin-top:.1rem; }
+  .price-input { padding:.5rem .75rem; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; font-family:inherit; outline:none; text-align:right; transition:border-color .2s; width:100%; }
+  .price-input:focus { border-color:var(--blue); }
+  .price-input-sm { padding:.4rem .625rem; font-size:.85rem; }
+  .tier-row { display:grid; grid-template-columns:1fr 130px 130px; gap:.75rem; padding:.625rem 1.25rem; border-bottom:1px solid var(--border); align-items:center; }
+  .tier-row:last-child { border-bottom:none; }
+  .tier-row.header { background:var(--bg); font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:.5rem 1.25rem; }
+  .btn-save-pricing { display:flex; align-items:center; gap:.5rem; padding:.75rem 1.75rem; background:var(--blue); color:white; border:none; border-radius:var(--radius-sm); font-size:.95rem; font-weight:500; cursor:pointer; transition:background .15s; }
+  .btn-save-pricing:hover { background:#005ecb; }
+  .btn-save-pricing:disabled { opacity:.6; cursor:not-allowed; }
+  .pricing-save-bar { display:flex; align-items:center; justify-content:space-between; margin-top:1.5rem; padding:1.25rem 1.5rem; background:var(--surface); border-radius:var(--radius); border:1px solid var(--border); }
+  .pricing-save-bar p { font-size:.875rem; color:var(--muted); }
+  .perunit-row { display:grid; grid-template-columns:1fr 160px 120px; gap:.75rem; padding:.75rem 1.25rem; border-bottom:1px solid var(--border); align-items:center; }
+  .perunit-row:last-child { border-bottom:none; }
+  .perunit-row.header { background:var(--bg); font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:.5rem 1.25rem; }
+
   .toggle-row { display:flex; align-items:center; justify-content:space-between; padding:.875rem; background:var(--bg); border-radius:var(--radius-sm); }
   .toggle-row span { font-size:.9rem; }
   .toggle { position:relative; width:44px; height:26px; }
@@ -265,6 +294,9 @@
       </div>
       <div class="nav-item" id="nav-gallery" onclick="showSection('gallery')">
         <i class="fas fa-images"></i> Imágenes
+      </div>
+      <div class="nav-item" id="nav-pricing" onclick="showSection('pricing')">
+        <i class="fas fa-calculator"></i> Cotizador
       </div>
       <div class="nav-item" onclick="window.open('/','_blank')">
         <i class="fas fa-external-link-alt"></i> Ver sitio web
@@ -439,6 +471,76 @@
     </div>
   </div>
 </div>
+
+    <!-- ══ SECCIÓN COTIZADOR ══ -->
+    <div class="section-panel" id="section-pricing">
+      <div class="topbar">
+        <div>
+          <h2>Precios del Cotizador</h2>
+          <div class="sub">Edita los precios que verán los clientes en el cotizador del sitio web</div>
+        </div>
+      </div>
+
+      <div class="pricing-tabs">
+        <button class="pricing-tab active" onclick="switchPricingTab('volantes', this)"><i class="fas fa-file-alt"></i> Volantes</button>
+        <button class="pricing-tab" onclick="switchPricingTab('tarjetas', this)"><i class="fas fa-id-card"></i> Tarjetas</button>
+        <button class="pricing-tab" onclick="switchPricingTab('tazas', this)"><i class="fas fa-mug-hot"></i> Tazas</button>
+        <button class="pricing-tab" onclick="switchPricingTab('rollup', this)"><i class="fas fa-scroll"></i> Roll-ups</button>
+      </div>
+
+      <!-- VOLANTES -->
+      <div class="pricing-panel active" id="pp-volantes">
+        <div class="pricing-card">
+          <div class="pricing-card-header"><i class="fas fa-layer-group"></i> A6 · 1 cara (precios por cantidad fija)</div>
+          <div class="tier-row header"><span>Cantidad</span><span>Precio total ($)</span><span></span></div>
+          <div id="tiers-a6-1c"></div>
+        </div>
+        <div class="pricing-card">
+          <div class="pricing-card-header"><i class="fas fa-layer-group"></i> A6 · 2 caras (precios por cantidad fija)</div>
+          <div class="tier-row header"><span>Cantidad</span><span>Precio total ($)</span><span></span></div>
+          <div id="tiers-a6-2c"></div>
+        </div>
+        <div class="pricing-card">
+          <div class="pricing-card-header"><i class="fas fa-calculator"></i> Formatos A5, A4 (precio por cada 1000 unidades)</div>
+          <div class="perunit-row header"><span>Formato</span><span>$ por cada 1000 uds.</span><span>Mín. uds.</span></div>
+          <div id="perunit-rows"></div>
+        </div>
+      </div>
+
+      <!-- TARJETAS -->
+      <div class="pricing-panel" id="pp-tarjetas">
+        <div class="pricing-card">
+          <div class="pricing-card-header"><i class="fas fa-info-circle"></i> Precios por 1000 tarjetas de presentación</div>
+          <div class="pricing-row header"><span>Tipo de acabado</span><span>Precio ($)</span><span></span><span></span></div>
+          <div id="tarjetas-rows"></div>
+        </div>
+      </div>
+
+      <!-- TAZAS -->
+      <div class="pricing-panel" id="pp-tazas">
+        <div class="pricing-card">
+          <div class="pricing-card-header"><i class="fas fa-info-circle"></i> Precio por unidad según cantidad de pedido</div>
+          <div class="tier-row header"><span>Cantidad</span><span>Precio por unidad ($)</span><span></span></div>
+          <div id="tazas-rows"></div>
+        </div>
+      </div>
+
+      <!-- ROLLUP -->
+      <div class="pricing-panel" id="pp-rollup">
+        <div class="pricing-card">
+          <div class="pricing-card-header"><i class="fas fa-info-circle"></i> Precio por unidad de Roll-up (80×200cm)</div>
+          <div class="pricing-row header"><span>Tipo de impresión</span><span>Precio ($)</span><span></span><span></span></div>
+          <div id="rollup-rows"></div>
+        </div>
+      </div>
+
+      <div class="pricing-save-bar">
+        <p><i class="fas fa-info-circle"></i> Los cambios se aplican al sitio web inmediatamente al guardar.</p>
+        <button class="btn-save-pricing" id="btn-save-pricing" onclick="savePricing()">
+          <i class="fas fa-save"></i> Guardar precios
+        </button>
+      </div>
+    </div>
 
 <!-- ══════════ CONFIRM ══════════ -->
 <div class="confirm-overlay" id="confirm-overlay">

@@ -9,7 +9,7 @@ export default class QuoteController {
     this._view = new QuoteView();
   }
 
-  init() {
-    this._view.init();
+  async init() {
+    await this._view.init();
   }
 }

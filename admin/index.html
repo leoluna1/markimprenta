@@ -353,6 +353,45 @@
       </div>
     </div>
 
+    <!-- ══ SECCIÓN COTIZADOR (precios) ══ -->
+    <div class="section-panel" id="section-pricing">
+      <div class="topbar">
+        <div>
+          <h2>Precios del Cotizador</h2>
+          <div class="sub">Edita los precios del cotizador. Al guardar, se aplican automáticamente al sitio web.</div>
+        </div>
+      </div>
+
+      <div class="pricing-tabs" id="pricing-tabs-bar">
+        <button type="button" class="pricing-tab active" onclick="switchPricingTab('volantes',this)"><i class="fas fa-file-alt"></i> Volantes</button>
+        <button type="button" class="pricing-tab" onclick="switchPricingTab('tarjetas',this)"><i class="fas fa-id-card"></i> Tarjetas</button>
+        <button type="button" class="pricing-tab" onclick="switchPricingTab('tazas',this)"><i class="fas fa-mug-hot"></i> Tazas</button>
+        <button type="button" class="pricing-tab" onclick="switchPricingTab('granformato',this)"><i class="fas fa-image"></i> Gran Formato</button>
+        <button type="button" class="pricing-tab" onclick="switchPricingTab('pop',this)"><i class="fas fa-gift"></i> Material POP</button>
+        <button type="button" class="pricing-tab" onclick="switchPricingTab('etiquetas',this)"><i class="fas fa-tags"></i> Etiquetas</button>
+        <button type="button" class="pricing-tab" onclick="switchPricingTab('packaging',this)"><i class="fas fa-box"></i> Packaging</button>
+        <button type="button" class="pricing-tab" onclick="switchPricingTab('diseno',this)"><i class="fas fa-palette"></i> Diseño</button>
+      </div>
+
+      <div class="pricing-panel active" id="pp-volantes"></div>
+      <div class="pricing-panel" id="pp-tarjetas"></div>
+      <div class="pricing-panel" id="pp-tazas"></div>
+      <div class="pricing-panel" id="pp-granformato"></div>
+      <div class="pricing-panel" id="pp-pop"></div>
+      <div class="pricing-panel" id="pp-etiquetas"></div>
+      <div class="pricing-panel" id="pp-packaging"></div>
+      <div class="pricing-panel" id="pp-diseno"></div>
+
+      <div class="pricing-save-bar">
+        <p><i class="fas fa-info-circle"></i> Al guardar, los cambios se reflejan en el cotizador del sitio inmediatamente.</p>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;">
+          <button type="button" class="btn-save-pricing" id="btn-save-pricing" onclick="savePricing()">
+            <i class="fas fa-save"></i> Guardar precios
+          </button>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -472,76 +511,6 @@
   </div>
 </div>
 
-    <!-- ══ SECCIÓN COTIZADOR ══ -->
-    <div class="section-panel" id="section-pricing">
-      <div class="topbar">
-        <div>
-          <h2>Precios del Cotizador</h2>
-          <div class="sub">Edita los precios que verán los clientes en el cotizador del sitio web</div>
-        </div>
-      </div>
-
-      <div class="pricing-tabs">
-        <button class="pricing-tab active" onclick="switchPricingTab('volantes', this)"><i class="fas fa-file-alt"></i> Volantes</button>
-        <button class="pricing-tab" onclick="switchPricingTab('tarjetas', this)"><i class="fas fa-id-card"></i> Tarjetas</button>
-        <button class="pricing-tab" onclick="switchPricingTab('tazas', this)"><i class="fas fa-mug-hot"></i> Tazas</button>
-        <button class="pricing-tab" onclick="switchPricingTab('rollup', this)"><i class="fas fa-scroll"></i> Roll-ups</button>
-      </div>
-
-      <!-- VOLANTES -->
-      <div class="pricing-panel active" id="pp-volantes">
-        <div class="pricing-card">
-          <div class="pricing-card-header"><i class="fas fa-layer-group"></i> A6 · 1 cara (precios por cantidad fija)</div>
-          <div class="tier-row header"><span>Cantidad</span><span>Precio total ($)</span><span></span></div>
-          <div id="tiers-a6-1c"></div>
-        </div>
-        <div class="pricing-card">
-          <div class="pricing-card-header"><i class="fas fa-layer-group"></i> A6 · 2 caras (precios por cantidad fija)</div>
-          <div class="tier-row header"><span>Cantidad</span><span>Precio total ($)</span><span></span></div>
-          <div id="tiers-a6-2c"></div>
-        </div>
-        <div class="pricing-card">
-          <div class="pricing-card-header"><i class="fas fa-calculator"></i> Formatos A5, A4 (precio por cada 1000 unidades)</div>
-          <div class="perunit-row header"><span>Formato</span><span>$ por cada 1000 uds.</span><span>Mín. uds.</span></div>
-          <div id="perunit-rows"></div>
-        </div>
-      </div>
-
-      <!-- TARJETAS -->
-      <div class="pricing-panel" id="pp-tarjetas">
-        <div class="pricing-card">
-          <div class="pricing-card-header"><i class="fas fa-info-circle"></i> Precios por 1000 tarjetas de presentación</div>
-          <div class="pricing-row header"><span>Tipo de acabado</span><span>Precio ($)</span><span></span><span></span></div>
-          <div id="tarjetas-rows"></div>
-        </div>
-      </div>
-
-      <!-- TAZAS -->
-      <div class="pricing-panel" id="pp-tazas">
-        <div class="pricing-card">
-          <div class="pricing-card-header"><i class="fas fa-info-circle"></i> Precio por unidad según cantidad de pedido</div>
-          <div class="tier-row header"><span>Cantidad</span><span>Precio por unidad ($)</span><span></span></div>
-          <div id="tazas-rows"></div>
-        </div>
-      </div>
-
-      <!-- ROLLUP -->
-      <div class="pricing-panel" id="pp-rollup">
-        <div class="pricing-card">
-          <div class="pricing-card-header"><i class="fas fa-info-circle"></i> Precio por unidad de Roll-up (80×200cm)</div>
-          <div class="pricing-row header"><span>Tipo de impresión</span><span>Precio ($)</span><span></span><span></span></div>
-          <div id="rollup-rows"></div>
-        </div>
-      </div>
-
-      <div class="pricing-save-bar">
-        <p><i class="fas fa-info-circle"></i> Los cambios se aplican al sitio web inmediatamente al guardar.</p>
-        <button class="btn-save-pricing" id="btn-save-pricing" onclick="savePricing()">
-          <i class="fas fa-save"></i> Guardar precios
-        </button>
-      </div>
-    </div>
-
 <!-- ══════════ CONFIRM ══════════ -->
 <div class="confirm-overlay" id="confirm-overlay">
   <div class="confirm-box">
@@ -604,10 +573,252 @@ async function showApp() {
 // ── Navegación secciones ──────────────────────
 function showSection(name) {
   document.querySelectorAll('.section-panel').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('section-' + name).classList.add('active');
-  document.getElementById('nav-' + name).classList.add('active');
+  document.querySelectorAll('.sidebar-nav .nav-item').forEach(n => n.classList.remove('active'));
+  const panel = document.getElementById('section-' + name);
+  const nav = document.getElementById('nav-' + name);
+  if (panel) panel.classList.add('active');
+  if (nav) nav.classList.add('active');
   if (name === 'gallery') loadGallery();
+  if (name === 'pricing') loadPricing();
+}
+
+// ── Precios cotizador (quote-prices.json) ──────────────────────
+const QUOTE_STORAGE_KEY = 'mp-quote-pricing-v1';
+let quoteConfigCache = null;
+
+function deepMergeQuote(target, source) {
+  if (!source || typeof source !== 'object') return target;
+  if (Array.isArray(source)) return source.slice();
+  const out = target && typeof target === 'object' && !Array.isArray(target) ? { ...target } : {};
+  for (const k of Object.keys(source)) {
+    const sv = source[k];
+    const tv = out[k];
+    if (sv && typeof sv === 'object' && !Array.isArray(sv) && tv && typeof tv === 'object' && !Array.isArray(tv)) {
+      out[k] = deepMergeQuote(tv, sv);
+    } else {
+      out[k] = Array.isArray(sv) ? sv.slice() : sv;
+    }
+  }
+  return out;
+}
+
+async function fetchQuotePricesBase() {
+  try {
+    const r = await fetch(API + '/api/pricing', { cache: 'no-store' });
+    if (r.ok) return await r.json();
+  } catch (_) { /* ignore */ }
+  return null;
+}
+
+async function getMergedQuoteConfig() {
+  let base = await fetchQuotePricesBase();
+  if (!base || !base.pricing) {
+    try {
+      const raw = localStorage.getItem(QUOTE_STORAGE_KEY);
+      if (raw) base = JSON.parse(raw);
+    } catch (_) {}
+  }
+  if (!base || !base.pricing) {
+    toast('No se pudo cargar /api/pricing. Revisa que el servidor Node esté corriendo y que data/pricing.json exista.', 'error');
+    return { pricing: {}, delivery: {} };
+  }
+  try {
+    const raw = localStorage.getItem(QUOTE_STORAGE_KEY);
+    if (raw) base = deepMergeQuote(base, JSON.parse(raw));
+  } catch (_) {}
+  return base;
+}
+
+function switchPricingTab(tab, btn) {
+  document.querySelectorAll('.pricing-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.pricing-panel').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const map = { volantes: 'pp-volantes', tarjetas: 'pp-tarjetas', tazas: 'pp-tazas', rollup: 'pp-rollup' };
+  const id = map[tab];
+  if (id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
+  }
+}
+
+function renderVolTiersAdmin(containerId, key) {
+  const p = quoteConfigCache?.pricing?.volantes?.[key];
+  const el = document.getElementById(containerId);
+  if (!el || !p || p.type !== 'tiers' || !p.tiers) return;
+  el.innerHTML = p.tiers.map((t, i) => `
+    <div class="tier-row">
+      <input type="number" class="price-input" data-vol="${key}" data-i="${i}" data-f="qty" min="1" step="1" value="${t.qty}">
+      <input type="number" class="price-input" data-vol="${key}" data-i="${i}" data-f="total" min="0" step="0.01" value="${t.total}">
+    </div>`).join('');
+}
+
+function renderPerUnitAdmin() {
+  const el = document.getElementById('perunit-rows');
+  const vol = quoteConfigCache?.pricing?.volantes;
+  if (!el || !vol) return;
+  const keys = ['a5-1c', 'a5-2c', 'a4-1c', 'a4-2c'];
+  el.innerHTML = keys.map(k => {
+    const m = vol[k];
+    if (!m || m.type !== 'per1k') return '';
+    return `<div class="perunit-row">
+      <span class="pricing-label">${escHtml(m.label)}</span>
+      <input type="number" class="price-input" data-perk="${k}" data-f="unitPer1000" min="0" step="0.01" value="${m.unitPer1000}">
+      <input type="number" class="price-input" data-perk="${k}" data-f="minQty" min="1" step="1" value="${m.minQty}">
+    </div>`;
+  }).join('');
+}
+
+function renderTarjetasAdmin() {
+  const el = document.getElementById('tarjetas-rows');
+  const arr = quoteConfigCache?.pricing?.tarjetas;
+  if (!el || !arr) return;
+  el.innerHTML = arr.map((t, i) => `
+    <div class="pricing-row">
+      <div><div class="pricing-label">${escHtml(t.label)}</div><div class="pricing-sub">${escHtml(t.desc || '')}</div></div>
+      <input type="number" class="price-input" data-tarjeta="${i}" data-f="price" min="0" step="0.01" value="${t.price}">
+      <span></span><span></span>
+    </div>`).join('');
+}
+
+function renderTazasAdmin() {
+  const el = document.getElementById('tazas-rows');
+  const arr = quoteConfigCache?.pricing?.tazas;
+  if (!el || !arr) return;
+  el.innerHTML = arr.map((t, i) => `
+    <div class="tier-row">
+      <span class="pricing-label">${escHtml(t.label)}</span>
+      <input type="number" class="price-input" data-taza="${i}" data-f="qty" min="1" step="1" value="${t.qty}">
+      <input type="number" class="price-input" data-taza="${i}" data-f="ppu" min="0" step="0.01" value="${t.ppu}">
+    </div>`).join('');
+}
+
+function renderRollupAdmin() {
+  const el = document.getElementById('rollup-rows');
+  const gf = quoteConfigCache?.pricing?.granformato;
+  if (!el || !gf) return;
+  const rl = gf['rollup-lona'];
+  const rp = gf['rollup-pet'];
+  el.innerHTML = `
+    <div class="pricing-row">
+      <div><div class="pricing-label">${rl ? escHtml(rl.label) : 'Roll Up · Lona'}</div></div>
+      <input type="number" class="price-input" data-roll="rollup-lona" min="0" step="0.01" value="${rl ? rl.ppu : 0}">
+      <span></span><span></span>
+    </div>
+    <div class="pricing-row">
+      <div><div class="pricing-label">${rp ? escHtml(rp.label) : 'Roll Up · Pet'}</div></div>
+      <input type="number" class="price-input" data-roll="rollup-pet" min="0" step="0.01" value="${rp ? rp.ppu : 0}">
+      <span></span><span></span>
+    </div>`;
+}
+
+async function loadPricingUI() {
+  quoteConfigCache = await getMergedQuoteConfig();
+  if (!quoteConfigCache.pricing || !quoteConfigCache.pricing.volantes) {
+    toast('Configuración incompleta. Revisa /api/pricing (data/pricing.json).', 'error');
+    return;
+  }
+  renderVolTiersAdmin('tiers-a6-1c', 'a6-1c');
+  renderVolTiersAdmin('tiers-a6-2c', 'a6-2c');
+  renderPerUnitAdmin();
+  renderTarjetasAdmin();
+  renderTazasAdmin();
+  renderRollupAdmin();
+}
+
+function downloadJson(filename, obj) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importQuotePricingFile(input) {
+  const f = input.files && input.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const j = JSON.parse(reader.result);
+      if (!j.pricing) throw new Error('invalid');
+      quoteConfigCache = j;
+      localStorage.setItem(QUOTE_STORAGE_KEY, JSON.stringify(j));
+      renderVolTiersAdmin('tiers-a6-1c', 'a6-1c');
+      renderVolTiersAdmin('tiers-a6-2c', 'a6-2c');
+      renderPerUnitAdmin();
+      renderTarjetasAdmin();
+      renderTazasAdmin();
+      renderRollupAdmin();
+      toast('JSON importado. Revisa los valores y pulsa Guardar si quieres descargar de nuevo.', 'success');
+    } catch (_) {
+      toast('El archivo no es un JSON válido de precios.', 'error');
+    }
+    input.value = '';
+  };
+  reader.readAsText(f);
+}
+
+function savePricing() {
+  if (!quoteConfigCache || !quoteConfigCache.pricing) {
+    toast('Carga primero la sección Cotizador.', 'error');
+    return;
+  }
+  const cfg = JSON.parse(JSON.stringify(quoteConfigCache));
+  const p = cfg.pricing;
+
+  ['a6-1c', 'a6-2c'].forEach(key => {
+    const tiers = p.volantes[key]?.tiers;
+    if (!tiers) return;
+    tiers.forEach((t, i) => {
+      const q = document.querySelector(`[data-vol="${key}"][data-i="${i}"][data-f="qty"]`);
+      const tot = document.querySelector(`[data-vol="${key}"][data-i="${i}"][data-f="total"]`);
+      if (q) t.qty = parseInt(q.value, 10) || t.qty;
+      if (tot) t.total = parseFloat(tot.value) || t.total;
+    });
+  });
+
+  ['a5-1c', 'a5-2c', 'a4-1c', 'a4-2c'].forEach(key => {
+    const u = document.querySelector(`[data-perk="${key}"][data-f="unitPer1000"]`);
+    const m = document.querySelector(`[data-perk="${key}"][data-f="minQty"]`);
+    if (u && p.volantes[key]) p.volantes[key].unitPer1000 = parseFloat(u.value) || 0;
+    if (m && p.volantes[key]) p.volantes[key].minQty = parseInt(m.value, 10) || 1000;
+  });
+
+  (p.tarjetas || []).forEach((t, i) => {
+    const inp = document.querySelector(`[data-tarjeta="${i}"][data-f="price"]`);
+    if (inp) t.price = parseFloat(inp.value) || 0;
+  });
+
+  (p.tazas || []).forEach((t, i) => {
+    const q = document.querySelector(`[data-taza="${i}"][data-f="qty"]`);
+    const pp = document.querySelector(`[data-taza="${i}"][data-f="ppu"]`);
+    if (q) t.qty = parseInt(q.value, 10) || t.qty;
+    if (pp) t.ppu = parseFloat(pp.value) || t.ppu;
+  });
+
+  const l1 = document.querySelector('[data-roll="rollup-lona"]');
+  const l2 = document.querySelector('[data-roll="rollup-pet"]');
+  if (l1 && p.granformato?.['rollup-lona']) p.granformato['rollup-lona'].ppu = parseFloat(l1.value) || 0;
+  if (l2 && p.granformato?.['rollup-pet']) p.granformato['rollup-pet'].ppu = parseFloat(l2.value) || 0;
+
+  quoteConfigCache = cfg;
+  localStorage.setItem(QUOTE_STORAGE_KEY, JSON.stringify(cfg));
+
+  // Guardar directo en el backend para que el sitio se actualice inmediatamente
+  fetch(API + '/api/pricing', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-token': token
+    },
+    body: JSON.stringify(cfg)
+  })
+    .then(r => {
+      if (!r.ok) throw new Error();
+      toast('Precios guardados y aplicados en el sitio ✓', 'success');
+    })
+    .catch(() => toast('Error guardando precios en el servidor', 'error'));
 }
 
 // ── Productos ─────────────────────────────────
@@ -1023,6 +1234,210 @@ window.addEventListener('DOMContentLoaded', () => {
   const saved = sessionStorage.getItem('adminToken');
   if (saved) { token = saved; showApp(); }
 });
+
+// ── COTIZADOR: carga y edición de precios ──────
+let pricingData = null;
+
+async function loadPricing() {
+  try {
+    const r = await fetch(API + '/api/pricing');
+    if (!r.ok) throw new Error();
+    pricingData = await r.json();
+    renderPricingForms();
+  } catch {
+    toast('Error cargando precios del cotizador', 'error');
+  }
+}
+
+function switchPricingTab(name, btn) {
+  document.querySelectorAll('#pricing-tabs-bar .pricing-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.pricing-panel').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const el = document.getElementById('pp-' + name);
+  if (el) el.classList.add('active');
+}
+
+function renderPricingForms() {
+  if (!pricingData?.pricing) { toast('Estructura de precios inválida', 'error'); return; }
+  const p = pricingData.pricing;
+
+  // ── VOLANTES ──
+  const volCont = document.getElementById('pp-volantes');
+  if (volCont && p.volantes) {
+    let html = '';
+    ['a6-1c', 'a6-2c'].forEach(key => {
+      const m = p.volantes[key];
+      if (!m || m.type !== 'tiers') return;
+      html += `<div class="pricing-card">
+        <div class="pricing-card-header"><i class="fas fa-layer-group"></i> ${escHtml(m.label)} &middot; ${escHtml(m.dims || '')} &mdash; precio total por cantidad</div>
+        <div style="display:grid;grid-template-columns:160px 1fr;gap:.75rem;padding:.5rem 1.25rem;background:var(--bg);font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1px solid var(--border)"><span>Cantidad</span><span>Precio total ($)</span></div>
+        ${(m.tiers || []).map((t, i) => `<div style="display:grid;grid-template-columns:160px 1fr;gap:.75rem;padding:.625rem 1.25rem;border-bottom:1px solid var(--border);align-items:center;">
+          <input type="number" class="price-input price-input-sm" step="100" min="100" data-key="pricing.volantes.${key}.tiers.${i}.qty" value="${t.qty}">
+          <input type="number" class="price-input" step="0.01" min="0" data-key="pricing.volantes.${key}.tiers.${i}.total" value="${t.total}">
+        </div>`).join('')}
+      </div>`;
+    });
+    const per1kRows = ['a5-1c','a5-2c','a4-1c','a4-2c'].map(key => {
+      const m = p.volantes[key];
+      if (!m || m.type !== 'per1k') return '';
+      return `<div class="perunit-row">
+        <div><div class="pricing-label">${escHtml(m.label)}</div><div class="pricing-sub">${escHtml(m.dims || '')}</div></div>
+        <input type="number" class="price-input" step="0.01" min="0" data-key="pricing.volantes.${key}.unitPer1000" value="${m.unitPer1000}">
+        <input type="number" class="price-input" step="100" min="100" data-key="pricing.volantes.${key}.minQty" value="${m.minQty}">
+      </div>`;
+    }).join('');
+    html += `<div class="pricing-card">
+      <div class="pricing-card-header"><i class="fas fa-calculator"></i> Formatos A5 y A4 &mdash; precio por cada 1000 unidades + cantidad mínima</div>
+      <div class="perunit-row header"><span>Formato</span><span>$ por 1000 uds.</span><span>Mínimo uds.</span></div>
+      ${per1kRows}
+    </div>`;
+    volCont.innerHTML = html;
+  }
+
+  // ── TARJETAS ──
+  const tarCont = document.getElementById('pp-tarjetas');
+  if (tarCont && p.tarjetas) {
+    tarCont.innerHTML = `<div class="pricing-card">
+      <div class="pricing-card-header"><i class="fas fa-id-card"></i> Precio por 1000 tarjetas de presentación (por acabado)</div>
+      <div class="pricing-row header"><span>Acabado</span><span>Precio ($)</span><span></span><span></span></div>
+      ${p.tarjetas.map((t, i) => `<div class="pricing-row">
+        <div><div class="pricing-label">${escHtml(t.label)}</div><div class="pricing-sub">${escHtml(t.desc || '')}</div></div>
+        <input type="number" class="price-input" step="0.50" min="0" data-key="pricing.tarjetas.${i}.price" value="${t.price}">
+        <span></span><span></span>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // ── TAZAS ──
+  const tazCont = document.getElementById('pp-tazas');
+  if (tazCont && p.tazas) {
+    tazCont.innerHTML = `<div class="pricing-card">
+      <div class="pricing-card-header"><i class="fas fa-mug-hot"></i> Precio por unidad según cantidad de pedido</div>
+      <div class="tier-row header"><span>Etiqueta</span><span>Cantidad</span><span>Precio c/u ($)</span></div>
+      ${p.tazas.map((t, i) => `<div class="tier-row">
+        <input type="text" class="price-input" data-key="pricing.tazas.${i}.label" value="${escHtml(t.label)}">
+        <input type="number" class="price-input" step="1" min="1" data-key="pricing.tazas.${i}.qty" value="${t.qty}">
+        <input type="number" class="price-input" step="0.01" min="0" data-key="pricing.tazas.${i}.ppu" value="${t.ppu}">
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // ── GRAN FORMATO ──
+  const gfCont = document.getElementById('pp-granformato');
+  if (gfCont && p.granformato) {
+    gfCont.innerHTML = `<div class="pricing-card">
+      <div class="pricing-card-header"><i class="fas fa-image"></i> Impresión en gran formato</div>
+      <div class="pricing-row header"><span>Producto</span><span>Precio ($)</span><span>Unidad</span><span></span></div>
+      ${Object.entries(p.granformato).map(([key, v]) => `<div class="pricing-row">
+        <div><div class="pricing-label">${escHtml(v.label)}</div><div class="pricing-sub">${escHtml(v.specs || '')}</div></div>
+        <input type="number" class="price-input" step="0.01" min="0"
+          data-key="pricing.granformato.${key}.${v.unit === 'm2' ? 'ppm2' : 'ppu'}"
+          value="${v.ppm2 ?? v.ppu ?? 0}">
+        <span class="pricing-sub">por ${escHtml(v.unit)}</span>
+        <span></span>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // ── MATERIAL POP ──
+  const popCont = document.getElementById('pp-pop');
+  if (popCont && p.pop) {
+    popCont.innerHTML = Object.entries(p.pop).map(([key, cat]) => `<div class="pricing-card">
+      <div class="pricing-card-header"><i class="fas fa-gift"></i> ${escHtml(cat.label)}</div>
+      <div class="tier-row header"><span>Cantidad</span><span>Precio c/u ($)</span><span></span></div>
+      ${(cat.tiers || []).map((t, i) => `<div class="tier-row">
+        <input type="number" class="price-input" step="1" min="1" data-key="pricing.pop.${key}.tiers.${i}.qty" value="${t.qty}">
+        <input type="number" class="price-input" step="0.01" min="0" data-key="pricing.pop.${key}.tiers.${i}.ppu" value="${t.ppu}">
+        <span class="pricing-sub">${escHtml(t.label || '')}</span>
+      </div>`).join('')}
+    </div>`).join('');
+  }
+
+  // ── ETIQUETAS ──
+  const etqCont = document.getElementById('pp-etiquetas');
+  if (etqCont && p.etiquetas) {
+    etqCont.innerHTML = Object.entries(p.etiquetas).map(([key, cat]) => `<div class="pricing-card">
+      <div class="pricing-card-header"><i class="fas fa-tags"></i> ${escHtml(cat.label)}</div>
+      <div class="tier-row header"><span>Cantidad</span><span>Precio c/u ($)</span><span></span></div>
+      ${(cat.tiers || []).map((t, i) => `<div class="tier-row">
+        <input type="number" class="price-input" step="1" min="1" data-key="pricing.etiquetas.${key}.tiers.${i}.qty" value="${t.qty}">
+        <input type="number" class="price-input" step="0.001" min="0" data-key="pricing.etiquetas.${key}.tiers.${i}.ppu" value="${t.ppu}">
+        <span class="pricing-sub">${escHtml(t.label || '')}</span>
+      </div>`).join('')}
+    </div>`).join('');
+  }
+
+  // ── PACKAGING ──
+  const pkgCont = document.getElementById('pp-packaging');
+  if (pkgCont && p.packaging) {
+    pkgCont.innerHTML = Object.entries(p.packaging).map(([key, cat]) => `<div class="pricing-card">
+      <div class="pricing-card-header"><i class="fas fa-box"></i> ${escHtml(cat.label)}</div>
+      <div class="tier-row header"><span>Cantidad</span><span>Precio c/u ($)</span><span></span></div>
+      ${(cat.tiers || []).map((t, i) => `<div class="tier-row">
+        <input type="number" class="price-input" step="1" min="1" data-key="pricing.packaging.${key}.tiers.${i}.qty" value="${t.qty}">
+        <input type="number" class="price-input" step="0.01" min="0" data-key="pricing.packaging.${key}.tiers.${i}.ppu" value="${t.ppu}">
+        <span class="pricing-sub">${escHtml(t.label || '')}</span>
+      </div>`).join('')}
+    </div>`).join('');
+  }
+
+  // ── DISEÑO ──
+  const disCont = document.getElementById('pp-diseno');
+  if (disCont && p.diseno) {
+    disCont.innerHTML = `<div class="pricing-card">
+      <div class="pricing-card-header"><i class="fas fa-palette"></i> Servicios de diseño gráfico</div>
+      <div class="pricing-row header"><span>Servicio</span><span>Precio ($)</span><span></span><span></span></div>
+      ${p.diseno.map((t, i) => `<div class="pricing-row">
+        <div><div class="pricing-label">${escHtml(t.label)}</div><div class="pricing-sub">${escHtml(t.desc || '')}${t.delivery ? ' &middot; ' + escHtml(t.delivery) : ''}</div></div>
+        <input type="number" class="price-input" step="1" min="0" data-key="pricing.diseno.${i}.price" value="${t.price}">
+        <span></span><span></span>
+      </div>`).join('')}
+    </div>`;
+  }
+}
+
+// Escribe un valor en un path anidado: "pricing.tazas.0.ppu" → obj.pricing.tazas[0].ppu
+function setNestedPath(obj, path, value) {
+  const keys = path.split('.');
+  let cur = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    const k = isNaN(keys[i]) ? keys[i] : parseInt(keys[i]);
+    if (cur[k] == null) return;
+    cur = cur[k];
+  }
+  const lastKey = keys[keys.length - 1];
+  const k = isNaN(lastKey) ? lastKey : parseInt(lastKey);
+  const parsed = parseFloat(value);
+  cur[k] = isNaN(parsed) ? value : parsed;
+}
+
+async function savePricing() {
+  if (!pricingData) { toast('Carga primero la sección Cotizador', 'error'); return; }
+  const btn = document.getElementById('btn-save-pricing');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+  const updated = JSON.parse(JSON.stringify(pricingData));
+  document.querySelectorAll('#section-pricing [data-key]').forEach(input => {
+    setNestedPath(updated, input.dataset.key, input.value);
+  });
+
+  try {
+    const r = await fetch(API + '/api/pricing', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+      body: JSON.stringify(updated)
+    });
+    if (!r.ok) throw new Error();
+    pricingData = updated;
+    toast('Precios guardados ✓ Los cambios ya son visibles en el sitio', 'success');
+  } catch {
+    toast('Error guardando precios en el servidor', 'error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fas fa-save"></i> Guardar precios';
+}
 </script>
 </body>
 </html>

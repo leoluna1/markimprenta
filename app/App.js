@@ -8,11 +8,11 @@ import QuoteController      from './controllers/QuoteController.js';
 import ContactController    from './controllers/ContactController.js';
 import HeroView             from './views/HeroView.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   new NavigationController().init();
   new HeroView().init();
   new CatalogController().init();
-  new QuoteController().init();
+  await new QuoteController().init();
   new ContactController().init();
 
   console.info('✨ Mark Publicidad — App iniciada');

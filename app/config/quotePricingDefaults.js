@@ -1,0 +1,74 @@
+/**
+ * Valores por defecto del cotizador (fallback si no existe quote-prices.json).
+ * Mantener alineado con quote-prices.json en la raíz del proyecto.
+ */
+export const DEFAULT_PRICING = {
+  volantes: {
+    'a6-1c': { label: 'A6 · 1 cara', dims: '10.5 × 14.8 cm', type: 'tiers', tiers: [{ qty: 1000, total: 80 }, { qty: 2000, total: 100 }, { qty: 5000, total: 249.5 }] },
+    'a6-2c': { label: 'A6 · 2 caras', dims: '10.5 × 14.8 cm', type: 'tiers', tiers: [{ qty: 1000, total: 90 }, { qty: 2000, total: 110 }, { qty: 5000, total: 175 }] },
+    'a5-1c': { label: 'A5 · 1 cara', dims: '14.8 × 21 cm', type: 'per1k', unitPer1000: 3.0, minQty: 1000 },
+    'a5-2c': { label: 'A5 · 2 caras', dims: '14.8 × 21 cm', type: 'per1k', unitPer1000: 2.5, minQty: 1000 },
+    'a4-1c': { label: 'A4 · 1 cara', dims: '21 × 29.7 cm', type: 'per1k', unitPer1000: 1.8, minQty: 1000 },
+    'a4-2c': { label: 'A4 · 2 caras', dims: '21 × 29.7 cm', type: 'per1k', unitPer1000: 1.6, minQty: 1000 },
+  },
+  tarjetas: [
+    { id: 'brillo-uv', label: 'Con Brillo UV', price: 35, desc: 'Couché 300g · Acabado brillante UV' },
+    { id: 'mate', label: 'Laminado Mate', price: 55, desc: 'Couché 300g · Acabado suave elegante' },
+    { id: 'uv-sel', label: 'UV Selectivo', price: 75, desc: 'Brillo UV en zonas específicas' },
+    { id: 'troquelado', label: 'Troquelado', price: 130, desc: 'Forma o corte personalizado' },
+    { id: 'relieve', label: 'Alto Relieve', price: 130, desc: 'Textura repujada en 3D' },
+  ],
+  tazas: [
+    { qty: 1, label: '1 unidad', ppu: 4.99 },
+    { qty: 6, label: '6 unidades', ppu: 3.5 },
+    { qty: 12, label: '12 unidades', ppu: 3.0 },
+    { qty: 24, label: '24 unidades', ppu: 2.5 },
+    { qty: 36, label: '36 unidades', ppu: 1.8 },
+    { qty: 100, label: '100 uds.', ppu: 1.6 },
+  ],
+  granformato: {
+    banner: { label: 'Banners / Lonas', ppm2: 12, unit: 'm2', specs: 'Lona frontlit · Ojales incluidos · Resistente UV' },
+    'rollup-lona': { label: 'Roll Up · Lona', ppu: 50, unit: 'u', specs: '80×200 cm · Estructura aluminio · Bolsa de transporte' },
+    'rollup-pet': { label: 'Roll Up · Pet Banner', ppu: 60, unit: 'u', specs: '80×200 cm · Pet Banner premium · Impresión HD 300dpi' },
+    vinilo: { label: 'Vinilos Adhesivos', ppm2: 8, unit: 'm2', specs: 'Vinil de alta calidad · Resistente UV · Varios acabados' },
+    giganto: { label: 'Gigantografías', ppm2: 12, unit: 'm2', specs: 'Hasta 3.20m de ancho · Impresión HD · Para fachadas' },
+  },
+  pop: {
+    gorras: { label: 'Gorras Personalizadas', tiers: [{ qty: 12, ppu: 5.0, label: '12 uds.' }, { qty: 50, ppu: 4.5, label: '50 uds.' }, { qty: 100, ppu: 4.0, label: '100 uds.' }, { qty: 200, ppu: 3.5, label: '200 uds.' }] },
+    agendas: { label: 'Agendas / Cuadernos', tiers: [{ qty: 50, ppu: 3.5, label: '50 uds.' }, { qty: 100, ppu: 3.0, label: '100 uds.' }, { qty: 200, ppu: 2.5, label: '200 uds.' }, { qty: 500, ppu: 2.0, label: '500 uds.' }] },
+    esferos: { label: 'Esferos Personalizados', tiers: [{ qty: 100, ppu: 0.5, label: '100 uds.' }, { qty: 500, ppu: 0.4, label: '500 uds.' }, { qty: 1000, ppu: 0.35, label: '1000 uds.' }, { qty: 5000, ppu: 0.28, label: '5000 uds.' }] },
+  },
+  etiquetas: {
+    adhesiva: { label: 'Etiquetas Adhesivas', tiers: [{ qty: 500, ppu: 0.1, label: '500 uds.' }, { qty: 1000, ppu: 0.08, label: '1000 uds.' }, { qty: 5000, ppu: 0.06, label: '5000 uds.' }, { qty: 10000, ppu: 0.05, label: '10 000 uds.' }] },
+    sticker: { label: 'Stickers / Vinil', tiers: [{ qty: 100, ppu: 0.15, label: '100 uds.' }, { qty: 500, ppu: 0.12, label: '500 uds.' }, { qty: 1000, ppu: 0.1, label: '1000 uds.' }, { qty: 5000, ppu: 0.08, label: '5000 uds.' }] },
+  },
+  packaging: {
+    cajas: { label: 'Cajas Personalizadas', tiers: [{ qty: 100, ppu: 1.5, label: '100 uds.' }, { qty: 500, ppu: 1.2, label: '500 uds.' }, { qty: 1000, ppu: 1.0, label: '1000 uds.' }, { qty: 5000, ppu: 0.8, label: '5000 uds.' }] },
+    bolsas: { label: 'Bolsas de Papel Kraft', tiers: [{ qty: 100, ppu: 0.75, label: '100 uds.' }, { qty: 500, ppu: 0.6, label: '500 uds.' }, { qty: 1000, ppu: 0.5, label: '1000 uds.' }, { qty: 5000, ppu: 0.4, label: '5000 uds.' }] },
+  },
+  diseno: [
+    { id: 'logo', label: 'Diseño de Logotipo', price: 80, desc: '3 propuestas · Revisiones · Archivos vectoriales · Manual marca', delivery: '5–7 días hábiles' },
+    { id: 'publicidad', label: 'Diseño Publicitario', price: 50, desc: 'Flyer · Banner · Post RRSS · Entrega 48h', delivery: '1–2 días hábiles' },
+    { id: 'identidad', label: 'Identidad Corporativa', price: 180, desc: 'Logo + papelería + manual de marca completo', delivery: '10–15 días hábiles' },
+    { id: 'membretadas', label: 'Hojas Membretadas (1000)', price: 50, desc: 'Bond 75g · Full color · Diseño corporativo · 1000 unidades', delivery: '3–5 días hábiles' },
+    { id: 'catalogos', label: 'Catálogos (100 uds.)', price: 250, desc: 'Couché · Encuadernado · Varios formatos · 100 unidades', delivery: '5–7 días hábiles' },
+  ],
+};
+
+export const DEFAULT_DELIVERY = {
+  volantes: '2–3 días hábiles',
+  tarjetas: '3–5 días hábiles',
+  tazas: '2–3 días hábiles',
+  granformato: { banner: '1–2 días hábiles', 'rollup-lona': '2–3 días hábiles', 'rollup-pet': '2–3 días hábiles', vinilo: '1–2 días hábiles', giganto: '2–3 días hábiles' },
+  pop: { gorras: '7–10 días hábiles', agendas: '5–7 días hábiles', esferos: '5–7 días hábiles' },
+  etiquetas: '3–5 días hábiles',
+  packaging: '5–7 días hábiles',
+};
+
+function clone(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+export function getDefaultConfig() {
+  return { pricing: clone(DEFAULT_PRICING), delivery: clone(DEFAULT_DELIVERY) };
+}

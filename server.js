@@ -146,11 +146,25 @@ app.post('/api/contact', async (req, res) => {
     return res.status(400).json({ error: 'Email inválido.' });
   }
 
-  const errors   = [];
-  const results  = { email: false, whatsapp: false };
+  // ── 1. Guardar contacto en historial ─────────
+  try {
+    const contacts = readContacts();
+    contacts.unshift({
+      id:      Date.now(),
+      name, email, phone: phone || '',
+      message,
+      date:    new Date().toISOString(),
+      read:    false,
+    });
+    writeContacts(contacts);
+  } catch (e) {
+    console.error('[Contacto] ❌ Error guardando contacto:', e.message);
+  }
 
-  // ── 1. Enviar email ──────────────────────────
+  // ── 2. Enviar email ──────────────────────────
   const transport = createMailTransport();
+  let emailOk = false;
+
   if (transport) {
     try {
       await transport.sendMail({
@@ -190,55 +204,46 @@ app.post('/api/contact', async (req, res) => {
           </div>
         `,
       });
-      results.email = true;
+      emailOk = true;
       console.log(`[Contacto] ✅ Email enviado a ${process.env.CONTACT_EMAIL}`);
     } catch (err) {
-      errors.push(`Email: ${err.message}`);
       console.error('[Contacto] ❌ Error email:', err.message);
     }
   } else {
-    console.warn('[Contacto] ⚠️  Gmail no configurado — revisa .env (GMAIL_USER / GMAIL_PASS)');
-    errors.push('Email: credenciales no configuradas');
+    console.warn('[Contacto] ⚠️  Gmail no configurado — revisa .env');
   }
 
-  // ── 2. Notificación WhatsApp ──────────────────
+  // ── 3. Responder al cliente inmediatamente ────
+  // No esperamos WhatsApp ni el email de confirmación para responder
+  if (emailOk) {
+    res.json({ success: true, message: '¡Mensaje enviado correctamente!' });
+  } else {
+    res.status(500).json({
+      success: false,
+      error: 'No se pudo enviar el mensaje. Por favor contáctanos directamente por WhatsApp.',
+    });
+  }
+
+  // ── 4. WhatsApp en background (no bloquea) ────
   const waNumber = process.env.WHATSAPP_NUMBER;
   const waApiKey = process.env.WHATSAPP_APIKEY;
+  const waValida = waNumber && waApiKey && /^\d{4,10}$/.test(waApiKey);
 
-  if (waNumber && waApiKey && !waApiKey.includes('PEGA_')) {
-    try {
-      const waMsg =
-        `📩 *Nuevo mensaje - Mark Publicidad*\n\n` +
-        `👤 *Nombre:* ${name}\n` +
-        `📧 *Email:* ${email}\n` +
-        `📞 *Teléfono:* ${phone || 'No indicado'}\n\n` +
-        `💬 *Mensaje:*\n${message}`;
+  if (waValida) {
+    const waMsg =
+      `📩 *Nuevo mensaje - Mark Publicidad*\n\n` +
+      `👤 *Nombre:* ${name}\n` +
+      `📧 *Email:* ${email}\n` +
+      `📞 *Teléfono:* ${phone || 'No indicado'}\n\n` +
+      `💬 *Mensaje:*\n${message}`;
 
-      await sendWhatsApp(waNumber, waApiKey, waMsg);
-      results.whatsapp = true;
-      console.log(`[Contacto] ✅ WhatsApp enviado al ${waNumber}`);
-    } catch (err) {
-      errors.push(`WhatsApp: ${err.message}`);
-      console.error('[Contacto] ❌ Error WhatsApp:', err.message);
-    }
-  } else {
-    console.warn('[Contacto] ⚠️  WhatsApp no configurado — revisa .env (WHATSAPP_NUMBER / WHATSAPP_APIKEY)');
+    sendWhatsApp(waNumber, waApiKey, waMsg)
+      .then(() => console.log(`[Contacto] ✅ WhatsApp enviado al ${waNumber}`))
+      .catch(err => console.warn('[Contacto] ⚠️  WhatsApp falló:', err.message));
   }
 
-  // ── 3. Guardar contacto en historial ─────────
-  const contacts = readContacts();
-  const newContact = {
-    id:        Date.now(),
-    name, email, phone: phone || '',
-    message,
-    date:      new Date().toISOString(),
-    read:      false,
-  };
-  contacts.unshift(newContact);
-  writeContacts(contacts);
-
-  // ── 4. Email de confirmación al usuario ──────
-  if (transport) {
+  // ── 5. Email de confirmación al usuario (background) ──
+  if (transport && emailOk) {
     transport.sendMail({
       from:    `"Mark Publicidad Impresa" <${process.env.GMAIL_USER}>`,
       to:      email,
@@ -246,7 +251,7 @@ app.post('/api/contact', async (req, res) => {
       html: `
         <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
           <div style="background:#E30613;padding:24px 32px;border-radius:12px 12px 0 0;">
-            <h2 style="color:white;margin:0;font-size:1.4rem;">Gracias por contactarnos, ${name}!</h2>
+            <h2 style="color:white;margin:0;font-size:1.4rem;">¡Gracias por contactarnos, ${name}!</h2>
           </div>
           <div style="background:#ffffff;padding:32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
             <p>Recibimos tu mensaje y te responderemos a la brevedad posible.</p>
@@ -256,24 +261,7 @@ app.post('/api/contact', async (req, res) => {
           </div>
         </div>
       `,
-    }).catch(() => {}); // No bloquear la respuesta si falla
-  }
-
-  // ── Respuesta al cliente ──────────────────────
-  const anySuccess = results.email || results.whatsapp;
-
-  if (anySuccess) {
-    return res.json({
-      success: true,
-      results,
-      message: '¡Mensaje enviado correctamente!',
-    });
-  } else {
-    return res.status(500).json({
-      success: false,
-      error: 'No se pudo enviar el mensaje. Por favor contáctanos directamente por WhatsApp.',
-      details: errors,
-    });
+    }).catch(() => {});
   }
 });
 

@@ -7,6 +7,7 @@ import CatalogController    from './controllers/CatalogController.js';
 import QuoteController      from './controllers/QuoteController.js';
 import ContactController    from './controllers/ContactController.js';
 import HeroView             from './views/HeroView.js';
+import FaqView              from './views/FaqView.js';
 import SettingsController   from './controllers/SettingsController.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -15,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   new CatalogController().init();
   await new QuoteController().init();
   new ContactController().init();
+  new FaqView().bind();
   new SettingsController().init();
 
   console.info('✨ Mark Publicidad — App iniciada');

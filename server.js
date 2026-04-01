@@ -19,12 +19,15 @@ const PORT = process.env.PORT || 3000;
 const DATA_FILE      = path.join(__dirname, 'data', 'products.json');
 const PRICING_FILE   = path.join(__dirname, 'data', 'pricing.json');
 const SETTINGS_FILE  = path.join(__dirname, 'data', 'settings.json');
+const CONTACTS_FILE  = path.join(__dirname, 'data', 'contacts.json');
 const UPLOADS_DIR    = path.join(__dirname, 'uploads');
+const VIDEOS_DIR     = path.join(__dirname, 'uploads', 'videos');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'mark2024';
 
 // ── Crear carpeta uploads si no existe ────────
 // En Railway el sistema de archivos es efímero, pero la carpeta debe existir
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+if (!fs.existsSync(VIDEOS_DIR))  fs.mkdirSync(VIDEOS_DIR,  { recursive: true });
 if (!fs.existsSync(path.join(__dirname, 'data'))) fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
 
 // ── Configuración Multer ──────────────────────
@@ -84,6 +87,7 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(__dirname));
 app.use('/uploads', express.static(UPLOADS_DIR));
+app.use('/uploads/videos', express.static(VIDEOS_DIR));
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 
 // ── Helpers ───────────────────────────────────
@@ -105,6 +109,13 @@ function readSettings() {
 }
 function writeSettings(data) {
   fs.writeFileSync(SETTINGS_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
+function readContacts() {
+  if (!fs.existsSync(CONTACTS_FILE)) return [];
+  try { return JSON.parse(fs.readFileSync(CONTACTS_FILE, 'utf8')); } catch { return []; }
+}
+function writeContacts(data) {
+  fs.writeFileSync(CONTACTS_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
 function authenticate(req, res, next) {
   if (req.headers['x-admin-token'] !== ADMIN_PASSWORD)
@@ -214,6 +225,40 @@ app.post('/api/contact', async (req, res) => {
     console.warn('[Contacto] ⚠️  WhatsApp no configurado — revisa .env (WHATSAPP_NUMBER / WHATSAPP_APIKEY)');
   }
 
+  // ── 3. Guardar contacto en historial ─────────
+  const contacts = readContacts();
+  const newContact = {
+    id:        Date.now(),
+    name, email, phone: phone || '',
+    message,
+    date:      new Date().toISOString(),
+    read:      false,
+  };
+  contacts.unshift(newContact);
+  writeContacts(contacts);
+
+  // ── 4. Email de confirmación al usuario ──────
+  if (transport) {
+    transport.sendMail({
+      from:    `"Mark Publicidad Impresa" <${process.env.GMAIL_USER}>`,
+      to:      email,
+      subject: `✅ Recibimos tu mensaje — Mark Publicidad`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+          <div style="background:#E30613;padding:24px 32px;border-radius:12px 12px 0 0;">
+            <h2 style="color:white;margin:0;font-size:1.4rem;">Gracias por contactarnos, ${name}!</h2>
+          </div>
+          <div style="background:#ffffff;padding:32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
+            <p>Recibimos tu mensaje y te responderemos a la brevedad posible.</p>
+            <p style="color:#6b7280;font-size:0.9rem;border-left:3px solid #e5e7eb;padding-left:1rem;margin:1.5rem 0;">${message.replace(/\n/g, '<br>')}</p>
+            <p>Si tienes urgencia puedes contactarnos directamente por WhatsApp.</p>
+            <p style="color:#9ca3af;font-size:0.8rem;margin-top:2rem;">— Equipo Mark Publicidad Impresa · Ibarra, Ecuador</p>
+          </div>
+        </div>
+      `,
+    }).catch(() => {}); // No bloquear la respuesta si falla
+  }
+
   // ── Respuesta al cliente ──────────────────────
   const anySuccess = results.email || results.whatsapp;
 
@@ -230,6 +275,57 @@ app.post('/api/contact', async (req, res) => {
       details: errors,
     });
   }
+});
+
+// ── Historial de contactos (admin) ────────────
+app.get('/api/contacts', authenticate, (req, res) => {
+  res.json(readContacts());
+});
+
+app.patch('/api/contacts/:id/read', authenticate, (req, res) => {
+  const contacts = readContacts();
+  const c = contacts.find(x => x.id === +req.params.id);
+  if (!c) return res.status(404).json({ error: 'No encontrado' });
+  c.read = true;
+  writeContacts(contacts);
+  res.json({ success: true });
+});
+
+app.delete('/api/contacts/:id', authenticate, (req, res) => {
+  const contacts = readContacts().filter(x => x.id !== +req.params.id);
+  writeContacts(contacts);
+  res.json({ success: true });
+});
+
+// ── Multer para videos ────────────────────────
+const videoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, VIDEOS_DIR),
+    filename: (req, file, cb) => {
+      const ext  = path.extname(file.originalname).toLowerCase();
+      const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '-').substring(0, 40);
+      cb(null, `${Date.now()}-${base}${ext}`);
+    },
+  }),
+  fileFilter: (req, file, cb) => {
+    const ok = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/ogg'];
+    ok.includes(file.mimetype) ? cb(null, true) : cb(new Error('Solo videos MP4/WEBM/MOV/AVI'));
+  },
+  limits: { fileSize: 500 * 1024 * 1024 }, // 500MB
+});
+
+app.post('/api/upload/video', authenticate, videoUpload.single('video'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
+  res.json({ url: `/uploads/videos/${req.file.filename}`, filename: req.file.filename, size: req.file.size });
+});
+
+app.delete('/api/upload/video/:filename', authenticate, (req, res) => {
+  const filename = req.params.filename;
+  if (filename.includes('/') || filename.includes('..'))
+    return res.status(400).json({ error: 'Nombre inválido' });
+  const filepath = path.join(VIDEOS_DIR, filename);
+  if (fs.existsSync(filepath)) { fs.unlinkSync(filepath); res.json({ success: true }); }
+  else res.status(404).json({ error: 'Archivo no encontrado' });
 });
 
 // ── Subida de imagen ──────────────────────────

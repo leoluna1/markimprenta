@@ -14,12 +14,26 @@ export default class CatalogView extends BaseView {
   }
 
   bind() {
-    // Filtros
+    // Filtros por categoría
     this.on('click', '.filter-btn[data-filter]', (e, el) => {
       this.$$('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
       el.classList.add('active');
       EventBus.emit('catalog:filter', { filter: el.dataset.filter });
     });
+
+    // Búsqueda por texto
+    document.getElementById('catalogSearch')?.addEventListener('input', e => {
+      EventBus.emit('catalog:search', { query: e.target.value });
+    });
+
+    // Filtro por precio
+    const emitPrice = () => {
+      const min = parseFloat(document.getElementById('catalogPriceMin')?.value) || null;
+      const max = parseFloat(document.getElementById('catalogPriceMax')?.value) || null;
+      EventBus.emit('catalog:price', { min, max });
+    };
+    document.getElementById('catalogPriceMin')?.addEventListener('change', emitPrice);
+    document.getElementById('catalogPriceMax')?.addEventListener('change', emitPrice);
 
     // Click en tarjeta de producto
     this._grid?.addEventListener('click', e => {
@@ -67,11 +81,14 @@ export default class CatalogView extends BaseView {
 
   _imageHTML(p) {
     if (this._isImagePath(p.image)) {
+      const placeholder = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
       return `<img
-        src="${p.image}"
+        src="${placeholder}"
+        data-src="${p.image}"
         alt="${this.esc(p.name)}"
+        class="lazy-img"
         style="width:100%;height:100%;object-fit:contain;display:block;padding:8px;"
-        onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+        onerror="this.src='';this.style.display='none';this.nextElementSibling.style.display='flex';"
       /><span style="display:none;font-size:3.5rem;align-items:center;justify-content:center;width:100%;height:100%;">📦</span>`;
     }
     return `<span style="font-size:3.5rem;display:flex;align-items:center;justify-content:center;width:100%;height:100%;">${p.image ?? '📦'}</span>`;
@@ -108,7 +125,7 @@ export default class CatalogView extends BaseView {
       <div class="catalog-empty">
         <span>🔍</span>
         <h3>Sin resultados</h3>
-        <p>Intenta con otra categoría</p>
+        <p>Intenta con otra categoría o modifica los filtros de búsqueda</p>
       </div>
     `;
   }
@@ -154,6 +171,19 @@ export default class CatalogView extends BaseView {
       card.style.transform  = 'translateY(28px)';
       card.style.transition = `opacity .4s ease ${delay}, transform .4s ease ${delay}`;
       this._cardObs.observe(card);
+
+      // Lazy loading: cargar imagen real al entrar al viewport
+      const lazyImg = card.querySelector('img.lazy-img');
+      if (lazyImg?.dataset.src) {
+        const imgObs = new IntersectionObserver(([entry]) => {
+          if (entry.isIntersecting) {
+            lazyImg.src = lazyImg.dataset.src;
+            lazyImg.removeAttribute('data-src');
+            imgObs.disconnect();
+          }
+        }, { rootMargin: '100px' });
+        imgObs.observe(lazyImg);
+      }
     });
   }
 }

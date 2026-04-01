@@ -968,7 +968,74 @@ button:focus-visible {
     justify-content: center;
     gap: 0.5rem;
     flex-wrap: wrap;
-    margin-bottom: 3rem;
+    margin-bottom: 1.25rem;
+}
+
+.catalog-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+.catalog-search-input {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    background: var(--glass-bg);
+    border: 1.5px solid var(--glass-border);
+    border-radius: 99px;
+    padding: .5rem 1rem;
+    flex: 1;
+    min-width: 200px;
+    transition: border-color .2s;
+}
+.catalog-search-input:focus-within {
+    border-color: var(--secondary);
+}
+.catalog-search-input i {
+    color: var(--text-light);
+    font-size: .85rem;
+    flex-shrink: 0;
+}
+.catalog-search-input input {
+    border: none;
+    background: transparent;
+    outline: none;
+    width: 100%;
+    font-family: inherit;
+    font-size: .9rem;
+    color: var(--text-dark);
+}
+.catalog-price-filter {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .85rem;
+    color: var(--text-light);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.catalog-price-filter input {
+    width: 80px;
+    padding: .45rem .7rem;
+    border: 1.5px solid var(--glass-border);
+    border-radius: 99px;
+    background: var(--glass-bg);
+    font-family: inherit;
+    font-size: .85rem;
+    color: var(--text-dark);
+    outline: none;
+    transition: border-color .2s;
+}
+.catalog-price-filter input:focus {
+    border-color: var(--secondary);
+}
+[data-theme="dark"] .catalog-search-input,
+[data-theme="dark"] .catalog-price-filter input {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.12);
+    color: #f5f5f7;
 }
 
 .filter-btn {
@@ -3017,6 +3084,82 @@ button:focus-visible {
     color: rgba(255,255,255,0.35);
     text-align: center;
     margin: 0;
+}
+
+/* Guía de 3 pasos */
+.qstep-guide {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+.qstep {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    color: var(--text-light);
+}
+.qstep-num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--secondary);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.qstep-arrow {
+    color: var(--text-light);
+    opacity: 0.35;
+    margin: 0 0.6rem;
+    font-size: 0.75rem;
+}
+
+/* Subtítulo descriptivo debajo del título del formulario */
+.qform-desc {
+    font-size: 0.82rem;
+    color: var(--text-light);
+    margin-top: -1rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+/* Hint de relación cantidad-precio */
+.qtier-note {
+    font-size: 0.75rem;
+    color: var(--secondary);
+    font-weight: 500;
+    margin-left: 0.4rem;
+    opacity: 0.85;
+}
+
+/* Pasos en el placeholder */
+.qplaceholder-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.qplaceholder-steps li {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.45);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.qplaceholder-steps li i {
+    font-size: 0.7rem;
+    color: var(--secondary);
+    opacity: 0.7;
 }
 
 /* Botón WhatsApp en resultado */

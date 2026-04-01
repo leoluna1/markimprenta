@@ -354,6 +354,9 @@
       <div class="nav-item" id="nav-social" onclick="showSection('social')">
         <i class="fas fa-share-alt"></i> Redes Sociales
       </div>
+      <div class="nav-item" id="nav-contacts" onclick="showSection('contacts')">
+        <i class="fas fa-envelope"></i> Contactos <span id="contacts-badge" style="display:none;background:#E30613;color:#fff;font-size:.65rem;font-weight:700;border-radius:99px;padding:1px 6px;margin-left:auto;"></span>
+      </div>
       <div class="nav-item" onclick="window.open('/','_blank')">
         <i class="fas fa-external-link-alt"></i> Ver sitio web
       </div>
@@ -523,8 +526,76 @@
       </div>
     </div>
 
+    <div class="section-panel" id="section-contacts">
+      <div class="topbar">
+        <div><h2>Mensajes de Contacto</h2><div class="sub">Mensajes recibidos desde el formulario del sitio web</div></div>
+        <button class="btn-save-pricing" onclick="loadContacts()" style="min-width:auto;padding:.5rem 1rem;"><i class="fas fa-sync-alt"></i> Actualizar</button>
+      </div>
+      <div id="contacts-list" style="display:flex;flex-direction:column;gap:.75rem;margin-top:1rem;"></div>
+    </div>
+
   </main>
 </div>
+
+<script>
+// ── Contactos ──────────────────────────────────
+async function loadContacts() {
+  const token = localStorage.getItem('adminToken');
+  const list  = document.getElementById('contacts-list');
+  const badge = document.getElementById('contacts-badge');
+  try {
+    const res  = await fetch('/api/contacts', { headers: { 'x-admin-token': token } });
+    const data = await res.json();
+    if (!Array.isArray(data)) { list.innerHTML = '<p style="color:var(--muted)">Error al cargar mensajes.</p>'; return; }
+    if (data.length === 0) { list.innerHTML = '<p style="color:var(--muted);padding:2rem;text-align:center;">No hay mensajes aún.</p>'; return; }
+
+    const unread = data.filter(c => !c.read).length;
+    if (badge) { badge.textContent = unread || ''; badge.style.display = unread ? 'inline' : 'none'; }
+
+    list.innerHTML = data.map(c => `
+      <div id="contact-${c.id}" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.25rem 1.5rem;${!c.read ? 'border-left:3px solid #E30613;' : ''}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+          <div>
+            <strong>${c.name}</strong>${!c.read ? ' <span style="background:#E30613;color:#fff;font-size:.65rem;font-weight:700;border-radius:99px;padding:1px 6px;">Nuevo</span>' : ''}
+            <div style="font-size:.82rem;color:var(--muted);margin-top:2px;">
+              <a href="mailto:${c.email}" style="color:var(--blue);">${c.email}</a>
+              ${c.phone ? ` · ${c.phone}` : ''}
+              · ${new Date(c.date).toLocaleString('es-EC')}
+            </div>
+          </div>
+          <div style="display:flex;gap:.5rem;flex-shrink:0;">
+            ${!c.read ? `<button onclick="markRead(${c.id})" style="font-size:.75rem;padding:.3rem .7rem;border:1px solid var(--border);border-radius:6px;background:transparent;cursor:pointer;color:var(--text);">Marcar leído</button>` : ''}
+            <button onclick="deleteContact(${c.id})" style="font-size:.75rem;padding:.3rem .7rem;border:1px solid #fca5a5;border-radius:6px;background:transparent;cursor:pointer;color:#dc2626;">Eliminar</button>
+          </div>
+        </div>
+        <p style="margin:1rem 0 0;font-size:.9rem;line-height:1.6;white-space:pre-wrap;">${c.message}</p>
+      </div>
+    `).join('');
+  } catch {
+    list.innerHTML = '<p style="color:var(--muted)">Error de conexión.</p>';
+  }
+}
+
+async function markRead(id) {
+  const token = localStorage.getItem('adminToken');
+  await fetch(`/api/contacts/${id}/read`, { method: 'PATCH', headers: { 'x-admin-token': token } });
+  loadContacts();
+}
+
+async function deleteContact(id) {
+  if (!confirm('¿Eliminar este mensaje?')) return;
+  const token = localStorage.getItem('adminToken');
+  await fetch(`/api/contacts/${id}`, { method: 'DELETE', headers: { 'x-admin-token': token } });
+  document.getElementById(`contact-${id}`)?.remove();
+}
+
+// Cargar contactos cuando se abre la sección
+const _origShowSection = window.showSection;
+window.showSection = function(sec) {
+  _origShowSection(sec);
+  if (sec === 'contacts') loadContacts();
+};
+</script>
 
 <!-- ══════════ MODAL PRODUCTO ══════════ -->
 <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
@@ -662,16 +733,55 @@
   <div class="video-modal">
     <h3 id="video-modal-title">Agregar video</h3>
 
+    <!-- Selector de tipo -->
     <div class="vform-group">
-      <label>URL o ID del video de YouTube <span style="color:var(--red)">*</span></label>
-      <input type="text" id="vf-yt-url" placeholder="Ej: https://www.youtube.com/watch?v=dQw4w9WgXcQ" oninput="previewYtThumb()">
-      <div class="yt-preview" id="yt-preview">
-        <img id="yt-thumb-img" src="" alt="Vista previa">
+      <label>Tipo de video</label>
+      <div style="display:flex;gap:.5rem;">
+        <button type="button" id="vtype-youtube" onclick="setVideoType('youtube')"
+          style="flex:1;padding:.6rem;border-radius:8px;border:2px solid var(--blue);background:var(--blue-light);color:var(--blue);font-weight:600;cursor:pointer;font-family:inherit;">
+          <i class="fab fa-youtube"></i> YouTube
+        </button>
+        <button type="button" id="vtype-local" onclick="setVideoType('local')"
+          style="flex:1;padding:.6rem;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--muted);font-weight:600;cursor:pointer;font-family:inherit;">
+          <i class="fas fa-upload"></i> Video local
+        </button>
       </div>
-      <div id="yt-id-detected" style="font-size:.78rem;color:var(--green);margin-top:.3rem;display:none;">
-        <i class="fas fa-check-circle"></i> ID detectado: <strong id="yt-id-val"></strong>
+    </div>
+
+    <!-- YouTube -->
+    <div id="vf-youtube-section">
+      <div class="vform-group">
+        <label>URL o ID del video de YouTube <span style="color:var(--red)">*</span></label>
+        <input type="text" id="vf-yt-url" placeholder="Ej: https://www.youtube.com/watch?v=dQw4w9WgXcQ" oninput="previewYtThumb()">
+        <div class="yt-preview" id="yt-preview">
+          <img id="yt-thumb-img" src="" alt="Vista previa">
+        </div>
+        <div id="yt-id-detected" style="font-size:.78rem;color:var(--green);margin-top:.3rem;display:none;">
+          <i class="fas fa-check-circle"></i> ID detectado: <strong id="yt-id-val"></strong>
+        </div>
+        <div class="hint" style="font-size:.75rem;color:var(--muted);margin-top:.35rem;">Pega la URL completa de YouTube o solo el código del video</div>
       </div>
-      <div class="hint" style="font-size:.75rem;color:var(--muted);margin-top:.35rem;">Pega la URL completa de YouTube o solo el código del video</div>
+    </div>
+
+    <!-- Video local -->
+    <div id="vf-local-section" style="display:none;">
+      <div class="vform-group">
+        <label>Archivo de video <span style="color:var(--red)">*</span></label>
+        <input type="file" id="vf-video-file" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
+          style="width:100%;padding:.5rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-family:inherit;"
+          onchange="previewLocalVideo()">
+        <div class="hint" style="font-size:.75rem;color:var(--muted);margin-top:.35rem;">MP4, WEBM, MOV, AVI · Máx 500MB</div>
+        <div id="vf-local-preview" style="display:none;margin-top:.75rem;">
+          <video id="vf-local-video-el" controls style="width:100%;border-radius:8px;max-height:180px;background:#000;"></video>
+        </div>
+        <div id="vf-local-existing" style="display:none;font-size:.8rem;color:var(--muted);margin-top:.5rem;"></div>
+        <div id="vf-upload-progress" style="display:none;margin-top:.75rem;">
+          <div style="font-size:.82rem;color:var(--muted);margin-bottom:.3rem;">Subiendo video...</div>
+          <div style="background:var(--border);border-radius:99px;height:6px;">
+            <div id="vf-progress-bar" style="background:var(--blue);height:6px;border-radius:99px;width:0%;transition:width .2s;"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="vform-group">
@@ -1495,18 +1605,20 @@ function renderVideosAdmin() {
     return;
   }
   container.innerHTML = videosData.map(v => {
-    const hasId = v.youtubeId && !v.youtubeId.startsWith('REEMPLAZA');
-    const thumbSrc = hasId ? `https://img.youtube.com/vi/${v.youtubeId}/mqdefault.jpg` : '';
+    const isLocal  = v.type === 'local';
+    const hasYtId  = !isLocal && v.youtubeId && !v.youtubeId.startsWith('REEMPLAZA');
+    const thumbSrc = hasYtId ? `https://img.youtube.com/vi/${v.youtubeId}/mqdefault.jpg` : '';
+    const thumbEl  = isLocal
+      ? `<div class="video-thumb-placeholder" style="background:#1a1a2e;"><i class="fas fa-film" style="color:#6366f1;"></i></div>`
+      : (hasYtId ? `<img class="video-thumb-preview" src="${thumbSrc}" alt="thumb">` : `<div class="video-thumb-placeholder"><i class="fas fa-play-circle"></i></div>`);
+    const metaText = isLocal
+      ? `<span style="color:#6366f1;font-size:.75rem;"><i class="fas fa-hdd"></i> Local</span> · ${escHtml(v.url?.split('/').pop() || '—')}`
+      : `<span style="color:#ff0000;font-size:.75rem;"><i class="fab fa-youtube"></i> YouTube</span> · ${escHtml(v.youtubeId || '—')}`;
     return `<div class="video-admin-card ${v.active ? '' : 'video-inactive'}">
-      ${hasId
-        ? `<img class="video-thumb-preview" src="${thumbSrc}" alt="thumb">`
-        : `<div class="video-thumb-placeholder"><i class="fas fa-play-circle"></i></div>`}
+      ${thumbEl}
       <div class="video-admin-info">
         <div class="video-admin-title">${escHtml(v.title || '(Sin título)')}</div>
-        <div class="video-admin-meta">
-          ID: <span class="video-admin-id">${escHtml(v.youtubeId || '—')}</span>
-          ${v.tag ? ` &nbsp;·&nbsp; ${escHtml(v.tag)}` : ''}
-        </div>
+        <div class="video-admin-meta">${metaText}${v.tag ? ` &nbsp;·&nbsp; ${escHtml(v.tag)}` : ''}</div>
       </div>
       <span class="badge ${v.active ? 'active' : 'inactive'}">${v.active ? 'Visible' : 'Oculto'}</span>
       <div class="video-admin-actions">
@@ -1519,28 +1631,96 @@ function renderVideosAdmin() {
   }).join('');
 }
 
+// Estado del tipo actual en el modal
+let _currentVideoType = 'youtube';
+// URL del video local existente (cuando editamos)
+let _existingLocalUrl = '';
+
+function setVideoType(type) {
+  _currentVideoType = type;
+  const ytBtn    = document.getElementById('vtype-youtube');
+  const localBtn = document.getElementById('vtype-local');
+  const ytSec    = document.getElementById('vf-youtube-section');
+  const localSec = document.getElementById('vf-local-section');
+
+  if (type === 'local') {
+    ytBtn.style.border    = '2px solid var(--border)';
+    ytBtn.style.background = 'transparent';
+    ytBtn.style.color      = 'var(--muted)';
+    localBtn.style.border    = '2px solid var(--blue)';
+    localBtn.style.background = 'var(--blue-light)';
+    localBtn.style.color      = 'var(--blue)';
+    ytSec.style.display    = 'none';
+    localSec.style.display = 'block';
+  } else {
+    ytBtn.style.border    = '2px solid var(--blue)';
+    ytBtn.style.background = 'var(--blue-light)';
+    ytBtn.style.color      = 'var(--blue)';
+    localBtn.style.border    = '2px solid var(--border)';
+    localBtn.style.background = 'transparent';
+    localBtn.style.color      = 'var(--muted)';
+    ytSec.style.display    = 'block';
+    localSec.style.display = 'none';
+  }
+}
+
+function previewLocalVideo() {
+  const file = document.getElementById('vf-video-file').files[0];
+  const preview = document.getElementById('vf-local-preview');
+  const videoEl = document.getElementById('vf-local-video-el');
+  if (!file) { preview.style.display = 'none'; return; }
+  const url = URL.createObjectURL(file);
+  videoEl.src = url;
+  preview.style.display = 'block';
+}
+
 function openVideoModal(id) {
   editingVideoId = id || null;
+  _existingLocalUrl = '';
   const modal = document.getElementById('video-modal-overlay');
   document.getElementById('video-modal-title').textContent = id ? 'Editar video' : 'Agregar video';
+
+  // Reset campos comunes
+  document.getElementById('vf-title').value  = '';
+  document.getElementById('vf-desc').value   = '';
+  document.getElementById('vf-tag').value    = '';
+  document.getElementById('vf-icon').value   = 'fa-video';
+  document.getElementById('vf-active').value = 'true';
+  // Reset local
+  document.getElementById('vf-video-file').value = '';
+  document.getElementById('vf-local-preview').style.display  = 'none';
+  document.getElementById('vf-local-existing').style.display = 'none';
+  document.getElementById('vf-upload-progress').style.display = 'none';
+  // Reset YT
+  document.getElementById('vf-yt-url').value = '';
+
   if (id) {
     const v = videosData.find(x => x.id === id);
     if (!v) return;
-    document.getElementById('vf-yt-url').value = v.youtubeId || '';
-    document.getElementById('vf-title').value = v.title || '';
-    document.getElementById('vf-desc').value = v.description || '';
-    document.getElementById('vf-tag').value = v.tag || '';
-    document.getElementById('vf-icon').value = v.tagIcon || 'fa-video';
+    document.getElementById('vf-title').value  = v.title || '';
+    document.getElementById('vf-desc').value   = v.description || '';
+    document.getElementById('vf-tag').value    = v.tag || '';
+    document.getElementById('vf-icon').value   = v.tagIcon || 'fa-video';
     document.getElementById('vf-active').value = String(v.active !== false);
+
+    if (v.type === 'local') {
+      setVideoType('local');
+      _existingLocalUrl = v.url || '';
+      if (_existingLocalUrl) {
+        const existing = document.getElementById('vf-local-existing');
+        existing.textContent = 'Archivo actual: ' + _existingLocalUrl.split('/').pop();
+        existing.style.display = 'block';
+      }
+    } else {
+      setVideoType('youtube');
+      document.getElementById('vf-yt-url').value = v.youtubeId || '';
+      previewYtThumb();
+    }
   } else {
-    document.getElementById('vf-yt-url').value = '';
-    document.getElementById('vf-title').value = '';
-    document.getElementById('vf-desc').value = '';
-    document.getElementById('vf-tag').value = '';
-    document.getElementById('vf-icon').value = 'fa-video';
-    document.getElementById('vf-active').value = 'true';
+    setVideoType('youtube');
+    previewYtThumb();
   }
-  previewYtThumb();
+
   modal.classList.add('open');
 }
 
@@ -1590,21 +1770,44 @@ function previewYtThumb() {
 }
 
 async function saveVideo() {
-  const rawUrl = document.getElementById('vf-yt-url').value.trim();
-  const ytId = extractYoutubeId(rawUrl);
   const title = document.getElementById('vf-title').value.trim();
-  if (!ytId) { toast('URL de YouTube inválida. Pega la URL completa del video.', 'error'); return; }
   if (!title) { toast('Ingresa el título del video', 'error'); return; }
 
-  const videoObj = {
-    id: editingVideoId || (Date.now()),
-    youtubeId: ytId,
+  let videoObj = {
+    id:      editingVideoId || Date.now(),
     title,
     description: document.getElementById('vf-desc').value.trim(),
-    tag: document.getElementById('vf-tag').value.trim(),
-    tagIcon: document.getElementById('vf-icon').value,
-    active: document.getElementById('vf-active').value === 'true',
+    tag:         document.getElementById('vf-tag').value.trim(),
+    tagIcon:     document.getElementById('vf-icon').value,
+    active:      document.getElementById('vf-active').value === 'true',
   };
+
+  if (_currentVideoType === 'local') {
+    const file = document.getElementById('vf-video-file').files[0];
+
+    // Si estamos editando y no hay archivo nuevo, mantener la URL existente
+    if (!file && !_existingLocalUrl) {
+      toast('Selecciona un archivo de video', 'error'); return;
+    }
+
+    if (file) {
+      // Subir archivo primero
+      const uploadedUrl = await uploadVideoFile(file);
+      if (!uploadedUrl) return; // uploadVideoFile ya muestra el toast de error
+      videoObj.type = 'local';
+      videoObj.url  = uploadedUrl;
+    } else {
+      // Edición sin cambiar archivo
+      videoObj.type = 'local';
+      videoObj.url  = _existingLocalUrl;
+    }
+  } else {
+    const rawUrl = document.getElementById('vf-yt-url').value.trim();
+    const ytId   = extractYoutubeId(rawUrl);
+    if (!ytId) { toast('URL de YouTube inválida. Pega la URL completa del video.', 'error'); return; }
+    videoObj.type      = 'youtube';
+    videoObj.youtubeId = ytId;
+  }
 
   if (editingVideoId) {
     const idx = videosData.findIndex(v => v.id === editingVideoId);
@@ -1619,10 +1822,62 @@ async function saveVideo() {
   toast(editingVideoId ? 'Video actualizado ✓' : 'Video agregado ✓', 'success');
 }
 
+function uploadVideoFile(file) {
+  return new Promise((resolve) => {
+    const progressWrap = document.getElementById('vf-upload-progress');
+    const progressBar  = document.getElementById('vf-progress-bar');
+    progressWrap.style.display = 'block';
+    progressBar.style.width    = '0%';
+
+    const formData = new FormData();
+    formData.append('video', file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', API + '/api/upload/video');
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        progressBar.style.width = Math.round((e.loaded / e.total) * 100) + '%';
+      }
+    };
+
+    xhr.onload = () => {
+      progressWrap.style.display = 'none';
+      if (xhr.status === 200) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          resolve(data.url || null);
+        } catch {
+          toast('Error procesando respuesta del servidor', 'error');
+          resolve(null);
+        }
+      } else {
+        toast('Error al subir el video (' + xhr.status + ')', 'error');
+        resolve(null);
+      }
+    };
+
+    xhr.onerror = () => {
+      progressWrap.style.display = 'none';
+      toast('Error de conexión al subir el video', 'error');
+      resolve(null);
+    };
+
+    xhr.send(formData);
+  });
+}
+
 async function deleteVideo(id) {
   if (!confirm('¿Eliminar este video del sitio web?')) return;
-  videosData = videosData.filter(v => v.id !== id);
+  const v = videosData.find(x => x.id === id);
+  videosData = videosData.filter(x => x.id !== id);
   await persistSettings();
+  // Si era local, borrar el archivo del servidor
+  if (v && v.type === 'local' && v.url) {
+    const filename = v.url.split('/').pop();
+    fetch(API + '/api/upload/video/' + encodeURIComponent(filename), { method: 'DELETE' })
+      .catch(() => {}); // no bloqueamos si falla
+  }
   renderVideosAdmin();
   toast('Video eliminado', 'success');
 }

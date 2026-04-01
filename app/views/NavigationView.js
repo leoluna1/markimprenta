@@ -60,7 +60,7 @@ export default class NavigationView extends BaseView {
   /** Actualiza el link activo en el menú (top nav + bottom nav) */
   setActive(sectionId) {
     // Top nav
-    this.$('.nav-link').forEach(link => {
+    this.$$('.nav-link').forEach(link => {
       link.classList.toggle('active', link.getAttribute('href') === '#' + sectionId);
     });
     // Bottom nav

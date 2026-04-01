@@ -9,6 +9,12 @@ node_modules/
 uploads/*
 !uploads/.gitkeep
 
+# Datos editables desde el admin (precios, productos, settings)
+# Estos se editan directo en el NAS — git pull NO debe sobreescribirlos
+data/pricing.json
+data/settings.json
+quote-prices.json
+
 # Sistema operativo
 .DS_Store
 Thumbs.db

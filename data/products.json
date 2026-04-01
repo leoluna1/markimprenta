@@ -270,5 +270,24 @@
     ],
     "popular": true,
     "minQuantity": 1
+  },
+  {
+    "id": 17,
+    "name": "Letreros en 3D",
+    "category": "gran-formato",
+    "description": "Letras y logos en relieve para fachadas, locales y eventos. Disponibles en acrílico, foam PVC o con iluminación LED.",
+    "image": "🔡",
+    "price": 8,
+    "priceUnit": "por letra",
+    "features": [
+      "Acrílico 3D desde $8/letra",
+      "Foam/PVC 3D desde $5/letra",
+      "LED Iluminado desde $18/letra",
+      "Corte láser de precisión",
+      "Pintado, vinil o iluminado",
+      "Instalación disponible"
+    ],
+    "popular": true,
+    "minQuantity": 1
   }
 ]

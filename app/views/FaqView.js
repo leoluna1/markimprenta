@@ -17,7 +17,7 @@ export default class FaqView extends BaseView {
       // Opción: cerrar todos antes de abrir uno (comportamiento acordeón)
       // Comentar las 3 líneas siguientes si se prefiere que varios ítems
       // puedan estar abiertos al mismo tiempo.
-      this.$('.faq-trigger[aria-expanded="true"]').forEach(t => {
+      this.$$('.faq-trigger[aria-expanded="true"]').forEach(t => {
         if (t !== trigger) this._close(t);
       });
 
@@ -26,7 +26,7 @@ export default class FaqView extends BaseView {
 
     // Abrir el primer ítem de cada columna por defecto (opcional)
     // Si no lo quieres, elimina estas líneas.
-    this.$('.faq-col').forEach(col => {
+    this.$$('.faq-col').forEach(col => {
       const first = col.querySelector('.faq-trigger');
       if (first) this._open(first);
     });

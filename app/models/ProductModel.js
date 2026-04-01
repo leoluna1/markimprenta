@@ -25,6 +25,7 @@ const FALLBACK_PRODUCTS = [
   { id: 18, name: 'Stand PVC',                category: 'gran-formato',image: 'images/stand-pvc.png',        price: 130.00, priceUnit: 'por unidad (+IVA)', popular: false, minQuantity: 1,    description: 'Stand publicitario portátil de PVC expandido.',                                                           features: ['PVC expandido', 'Fácil montaje'] },
   { id: 19, name: 'Identidad Corporativa',    category: 'diseno',      image: '🏆',                          price: 150.00, priceUnit: 'paquete completo',  popular: true,  minQuantity: 1,    description: 'Diseño completo de imagen corporativa para tu empresa.',                                                  features: ['Logo + manual de marca', 'Archivos vectoriales'] },
   { id: 20, name: 'Diseño de Logotipo',       category: 'diseno',      image: '✍️',                          price: 80.00,  priceUnit: 'por proyecto',      popular: true,  minQuantity: 1,    description: 'Diseño profesional de logotipo con múltiples propuestas.',                                                features: ['3 propuestas iniciales', '2 rondas de revisión'] },
+  { id: 21, name: 'Letreros en 3D',           category: 'gran-formato',image: '🔡',                          price: 8.00,   priceUnit: 'por letra',         popular: true,  minQuantity: 1,    description: 'Letras y logos en relieve para fachadas, locales y eventos. Disponibles en acrílico, foam PVC o con iluminación LED.', features: ['Acrílico 3D desde $8/letra', 'Foam/PVC 3D desde $5/letra', 'LED Iluminado desde $18/letra', 'Corte láser de precisión', 'Pintado, vinil o iluminado', 'Instalación disponible'] },
 ];
 
 export default class ProductModel {
@@ -73,6 +74,24 @@ export default class ProductModel {
   getByCategory(category) {
     if (category === 'todos') return this._products;
     return this._products.filter(p => p.category === category);
+  }
+
+  getBySearch(items, query) {
+    if (!query || !query.trim()) return items;
+    const q = query.toLowerCase().trim();
+    return items.filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      p.description?.toLowerCase().includes(q)
+    );
+  }
+
+  getByPriceRange(items, min, max) {
+    return items.filter(p => {
+      if (typeof p.price !== 'number') return true;
+      if (min !== null && p.price < min) return false;
+      if (max !== null && p.price > max) return false;
+      return true;
+    });
   }
 
   paginate(items, page = 1, perPage = 12) {

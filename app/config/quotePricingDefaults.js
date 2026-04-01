@@ -46,6 +46,11 @@ export const DEFAULT_PRICING = {
     cajas: { label: 'Cajas Personalizadas', tiers: [{ qty: 100, ppu: 1.5, label: '100 uds.' }, { qty: 500, ppu: 1.2, label: '500 uds.' }, { qty: 1000, ppu: 1.0, label: '1000 uds.' }, { qty: 5000, ppu: 0.8, label: '5000 uds.' }] },
     bolsas: { label: 'Bolsas de Papel Kraft', tiers: [{ qty: 100, ppu: 0.75, label: '100 uds.' }, { qty: 500, ppu: 0.6, label: '500 uds.' }, { qty: 1000, ppu: 0.5, label: '1000 uds.' }, { qty: 5000, ppu: 0.4, label: '5000 uds.' }] },
   },
+  letreros: {
+    acrilico: { label: 'Acrílico 3D', tiers: [{ label: 'Altura 10 cm', ppu: 8 }, { label: 'Altura 15 cm', ppu: 12 }, { label: 'Altura 20 cm', ppu: 18 }, { label: 'Altura 30 cm', ppu: 28 }] },
+    foam:     { label: 'Foam / PVC 3D', tiers: [{ label: 'Altura 10 cm', ppu: 5 }, { label: 'Altura 15 cm', ppu: 8 }, { label: 'Altura 20 cm', ppu: 12 }, { label: 'Altura 30 cm', ppu: 18 }] },
+    led:      { label: 'LED Iluminado', tiers: [{ label: 'Altura 10 cm', ppu: 18 }, { label: 'Altura 15 cm', ppu: 25 }, { label: 'Altura 20 cm', ppu: 35 }, { label: 'Altura 30 cm', ppu: 50 }] },
+  },
   diseno: [
     { id: 'logo', label: 'Diseño de Logotipo', price: 80, desc: '3 propuestas · Revisiones · Archivos vectoriales · Manual marca', delivery: '5–7 días hábiles' },
     { id: 'publicidad', label: 'Diseño Publicitario', price: 50, desc: 'Flyer · Banner · Post RRSS · Entrega 48h', delivery: '1–2 días hábiles' },
@@ -63,6 +68,7 @@ export const DEFAULT_DELIVERY = {
   pop: { gorras: '7–10 días hábiles', agendas: '5–7 días hábiles', esferos: '5–7 días hábiles' },
   etiquetas: '3–5 días hábiles',
   packaging: '5–7 días hábiles',
+  letreros: { acrilico: '5–7 días hábiles', foam: '4–6 días hábiles', led: '7–10 días hábiles' },
 };
 
 function clone(obj) {

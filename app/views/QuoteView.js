@@ -15,6 +15,7 @@ const ICONS = {
   etiquetas:   { type: 'fa', cls: 'fas fa-tags' },
   packaging:   { type: 'fa', cls: 'fas fa-box' },
   diseno:      { type: 'fa', cls: 'fas fa-palette' },
+  letreros:    { type: 'fa', cls: 'fas fa-font' },
 };
 
 // ── Estado reactivo del cotizador ─────────────────
@@ -29,6 +30,7 @@ const QS = {
   etiquetas:  { tipo: 'adhesiva', tierIdx: 0 },
   packaging:  { tipo: 'cajas',    tierIdx: 0 },
   diseno:     'logo',
+  letreros:   { tipo: 'acrilico', tierIdx: 0, letras: 5 },
 };
 
 // ── QuoteView ──────────────────────────────────────
@@ -47,6 +49,7 @@ export default class QuoteView extends BaseView {
     this._renderPopTiers();
     this._renderEtiqTiers();
     this._renderPackTiers();
+    this._renderLetTiers();
     this._bindTabs();
     this._bindInputs();
     this._updateResult();
@@ -132,6 +135,18 @@ export default class QuoteView extends BaseView {
       QS.packaging.tipo    = e.target.value;
       QS.packaging.tierIdx = 0;
       this._renderPackTiers();
+      this._updateResult();
+    });
+
+    // ─ Letreros 3D ─
+    document.getElementById('let-tipo')?.addEventListener('change', e => {
+      QS.letreros.tipo    = e.target.value;
+      QS.letreros.tierIdx = 0;
+      this._renderLetTiers();
+      this._updateResult();
+    });
+    document.getElementById('let-letras')?.addEventListener('input', e => {
+      QS.letreros.letras = Math.max(1, parseInt(e.target.value) || 1);
       this._updateResult();
     });
   }
@@ -301,6 +316,27 @@ export default class QuoteView extends BaseView {
   _renderEtiqTiers() { this._renderTierGroup('etiq-tier-buttons', PRICING.etiquetas[QS.etiquetas.tipo].tiers, 'etiquetas'); }
   _renderPackTiers() { this._renderTierGroup('pack-tier-buttons', PRICING.packaging[QS.packaging.tipo].tiers, 'packaging'); }
 
+  _renderLetTiers() {
+    const c = document.getElementById('let-tier-buttons');
+    if (!c || !PRICING.letreros) return;
+    const tiers = PRICING.letreros[QS.letreros.tipo]?.tiers;
+    if (!tiers) return;
+    c.innerHTML = tiers.map((t, i) =>
+      `<button class="qtier-btn${i === QS.letreros.tierIdx ? ' active' : ''}" data-letidx="${i}">
+         <span class="tier-qty">${t.label}</span>
+         <span class="tier-price">$${t.ppu.toFixed(2)}/letra</span>
+       </button>`
+    ).join('');
+    c.querySelectorAll('.qtier-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        QS.letreros.tierIdx = +btn.dataset.letidx;
+        c.querySelectorAll('.qtier-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this._updateResult();
+      });
+    });
+  }
+
   // ── Cálculo extendido ─────────────────────────────
   // Retorna: { total, detail, desc, productName, specs[], stats[], delivery, waMsg }
   _calc() {
@@ -359,6 +395,7 @@ export default class QuoteView extends BaseView {
 
       case 'tarjetas': {
         const t      = PRICING.tarjetas.find(x => x.id === QS.tarjeta);
+        if (!t) return null;
         const qty    = QS.tarjetaQty || 1000;
         const factor = qty / 1000;
         const total  = t.price * factor;
@@ -454,6 +491,7 @@ export default class QuoteView extends BaseView {
 
       case 'pop': {
         const data  = PRICING.pop[QS.pop.tipo];
+        if (!data) return null;
         const t     = data.tiers[Math.min(QS.pop.tierIdx, data.tiers.length - 1)];
         const total = t.ppu * t.qty;
         const del   = DELIVERY.pop[QS.pop.tipo];
@@ -477,6 +515,7 @@ export default class QuoteView extends BaseView {
 
       case 'etiquetas': {
         const data  = PRICING.etiquetas[QS.etiquetas.tipo];
+        if (!data) return null;
         const t     = data.tiers[Math.min(QS.etiquetas.tierIdx, data.tiers.length - 1)];
         const total = t.ppu * t.qty;
         return {
@@ -499,6 +538,7 @@ export default class QuoteView extends BaseView {
 
       case 'packaging': {
         const data  = PRICING.packaging[QS.packaging.tipo];
+        if (!data) return null;
         const t     = data.tiers[Math.min(QS.packaging.tierIdx, data.tiers.length - 1)];
         const total = t.ppu * t.qty;
         return {
@@ -520,8 +560,33 @@ export default class QuoteView extends BaseView {
         };
       }
 
+      case 'letreros': {
+        const data = PRICING.letreros?.[QS.letreros.tipo];
+        if (!data) return null;
+        const t      = data.tiers[Math.min(QS.letreros.tierIdx, data.tiers.length - 1)];
+        const letras = QS.letreros.letras;
+        const total  = t.ppu * letras;
+        return {
+          total,
+          detail: `$${t.ppu.toFixed(2)}/letra × ${letras} letras`,
+          productName: `Letreros en 3D — ${data.label}`,
+          specs: [
+            { label: 'Material',   value: data.label,          hi: false },
+            { label: 'Altura',     value: t.label,             hi: false },
+            { label: 'Caracteres', value: `${letras} letras`,  hi: true  },
+          ],
+          stats: [
+            { label: 'Por letra', value: `$${t.ppu.toFixed(2)}`, cls: 'blue' },
+            { label: 'Total',     value: `$${total.toFixed(2)}`, cls: 'green' },
+          ],
+          delivery: DELIVERY.letreros?.[QS.letreros.tipo] ?? '7–10 días hábiles',
+          desc: `Letrero 3D ${data.label} · ${t.label} · ${letras} letras`,
+        };
+      }
+
       case 'diseno': {
         const d = PRICING.diseno.find(x => x.id === QS.diseno);
+        if (!d) return null;
         return {
           total: d.price,
           detail: 'Precio por proyecto',

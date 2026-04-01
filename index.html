@@ -19,6 +19,13 @@
   <meta property="og:url" content="https://markpublicidad.com/">
   <meta property="og:image" content="/og-mark-publicidad.jpg">
   <meta property="og:image:alt" content="Mark Publicidad Impresa - Impresión y publicidad en Ibarra">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="robots" content="index, follow">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#E30613">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Mark Publicidad Impresa – Impresión y publicidad en Ibarra">
@@ -326,6 +333,19 @@
           Formato</button>
       </div>
 
+      <div class="catalog-search-bar">
+        <div class="catalog-search-input">
+          <i class="fas fa-search"></i>
+          <input type="text" id="catalogSearch" placeholder="Buscar producto..." autocomplete="off">
+        </div>
+        <div class="catalog-price-filter">
+          <span>Precio $:</span>
+          <input type="number" id="catalogPriceMin" placeholder="Mín" min="0">
+          <span>—</span>
+          <input type="number" id="catalogPriceMax" placeholder="Máx" min="0">
+        </div>
+      </div>
+
       <div class="products-grid" id="productsGrid"></div>
       <div class="pagination" id="catalogPagination"></div>
     </div>
@@ -342,6 +362,15 @@
         <p class="section-description">Precios reales · Cálculo instantáneo · Todos los valores + IVA</p>
       </div>
 
+      <!-- Guía de 3 pasos -->
+      <div class="qstep-guide">
+        <div class="qstep"><span class="qstep-num">1</span> Elige el producto</div>
+        <span class="qstep-arrow">›</span>
+        <div class="qstep"><span class="qstep-num">2</span> Configura las opciones</div>
+        <span class="qstep-arrow">›</span>
+        <div class="qstep"><span class="qstep-num">3</span> Ve tu precio al instante</div>
+      </div>
+
       <!-- Pestañas de productos -->
       <div class="quote-tabs">
         <button class="qtab active" data-tab="volantes"><i class="fas fa-file-alt"></i> Volantes</button>
@@ -352,6 +381,7 @@
         <button class="qtab" data-tab="etiquetas"><i class="fas fa-tags"></i> Etiquetas</button>
         <button class="qtab" data-tab="packaging"><i class="fas fa-box"></i> Packaging</button>
         <button class="qtab" data-tab="diseno"><i class="fas fa-palette"></i> Diseño</button>
+        <button class="qtab" data-tab="letreros"><i class="fas fa-font"></i> Letreros 3D</button>
       </div>
 
       <div class="quote-container">
@@ -362,6 +392,7 @@
           <!-- ═══════════ VOLANTES ═══════════ -->
           <div id="form-volantes" class="qform active">
             <h3 class="qform-title"><i class="fas fa-file-alt"></i> Volantes / Flyers</h3>
+            <p class="qform-desc">Elige tamaño, cantidad y tipo de papel. A mayor cantidad, menor precio por unidad.</p>
             <div class="qfield">
               <label class="qlabel">Tamaño del volante</label>
               <select id="vol-model" class="qselect">
@@ -374,7 +405,7 @@
               </select>
             </div>
             <div id="vol-tiers-wrapper" class="qfield">
-              <label class="qlabel">Cantidad</label>
+              <label class="qlabel">Cantidad <span class="qtier-note">↓ Mayor cantidad = menor precio</span></label>
               <div class="qtiers" id="vol-tier-buttons"></div>
             </div>
             <div id="vol-custom-wrapper" class="qfield" style="display:none;">
@@ -402,7 +433,7 @@
           <!-- ═══════════ TARJETAS ═══════════ -->
           <div id="form-tarjetas" class="qform">
             <h3 class="qform-title"><i class="fas fa-id-card"></i> Tarjetas de Presentación</h3>
-            <p class="qhint" style="margin-bottom:1rem;">Tarjetas full color, doble cara, acabado profesional</p>
+            <p class="qform-desc">Cartulina Couché 300g · Full color · Doble cara. Elige cantidad y tipo de acabado.</p>
             <div class="qfield">
               <label class="qlabel">Cantidad</label>
               <select id="tar-qty" class="qselect">
@@ -421,6 +452,7 @@
           <!-- ═══════════ TAZAS ═══════════ -->
           <div id="form-tazas" class="qform">
             <h3 class="qform-title"><i class="fas fa-mug-hot"></i> Tazas Sublimadas</h3>
+            <p class="qform-desc">Impresión full color por sublimación. Elige el tipo de taza y la cantidad.</p>
             <div class="qfield">
               <label class="qlabel">Tipo de taza</label>
               <select id="taza-tipo" class="qselect">
@@ -432,6 +464,7 @@
             </div>
             <div class="qfield">
               <label class="qlabel">Cantidad</label>
+              <label class="qlabel" style="margin-bottom:0.5rem; display:block;">Cantidad <span class="qtier-note">↓ Mayor cantidad = menor precio</span></label>
               <div class="qgrid-3" id="taza-tier-buttons"></div>
             </div>
             <div class="qspec-box">
@@ -445,6 +478,7 @@
           <!-- ═══════════ GRAN FORMATO ═══════════ -->
           <div id="form-granformato" class="qform">
             <h3 class="qform-title"><i class="fas fa-ruler-combined"></i> Gran Formato</h3>
+            <p class="qform-desc">Banners, lonas, vinilos y roll-ups. El precio se calcula por metro cuadrado (m²).</p>
             <div class="qfield">
               <label class="qlabel">Tipo de producto</label>
               <select id="gf-tipo" class="qselect">
@@ -457,12 +491,18 @@
             </div>
             <!-- Dimensiones (para productos por m²) -->
             <div id="gf-sqm-wrapper" class="qfield">
-              <label class="qlabel">Dimensiones</label>
+              <label class="qlabel">Dimensiones <span style="font-weight:400; font-size:0.78rem; opacity:0.7;">(ingresa en metros)</span></label>
               <div class="qflex" style="align-items:center; gap:.75rem;">
-                <input type="number" id="gf-ancho" class="qinput" style="width:90px" min="0.1" step="0.1" value="1" placeholder="Ancho">
+                <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+                  <input type="number" id="gf-ancho" class="qinput" style="width:90px" min="0.1" step="0.1" value="1" placeholder="Ancho">
+                  <small style="font-size:0.7rem; opacity:0.6;">ancho</small>
+                </div>
                 <span style="font-weight:600;">×</span>
-                <input type="number" id="gf-alto" class="qinput" style="width:90px" min="0.1" step="0.1" value="1" placeholder="Alto">
-                <span style="opacity:.7;">metros</span>
+                <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+                  <input type="number" id="gf-alto" class="qinput" style="width:90px" min="0.1" step="0.1" value="1" placeholder="Alto">
+                  <small style="font-size:0.7rem; opacity:0.6;">alto</small>
+                </div>
+                <span style="opacity:.7;">m</span>
               </div>
               <small class="qhint" id="gf-sqm-hint">= 1.00 m²</small>
             </div>
@@ -482,6 +522,7 @@
           <!-- ═══════════ MATERIAL POP ═══════════ -->
           <div id="form-pop" class="qform">
             <h3 class="qform-title"><i class="fas fa-gift"></i> Material POP Personalizado</h3>
+            <p class="qform-desc">Artículos promocionales con tu logo: gorras, agendas, esferos. A mayor cantidad, mejor precio.</p>
             <div class="qfield">
               <label class="qlabel">Producto</label>
               <select id="pop-tipo" class="qselect">
@@ -491,7 +532,7 @@
               </select>
             </div>
             <div class="qfield">
-              <label class="qlabel">Cantidad</label>
+              <label class="qlabel">Cantidad <span class="qtier-note">↓ Mayor cantidad = menor precio</span></label>
               <div class="qtiers" id="pop-tier-buttons"></div>
             </div>
             <div class="qspec-box">
@@ -504,6 +545,7 @@
           <!-- ═══════════ ETIQUETAS ═══════════ -->
           <div id="form-etiquetas" class="qform">
             <h3 class="qform-title"><i class="fas fa-tags"></i> Etiquetas y Stickers</h3>
+            <p class="qform-desc">Etiquetas adhesivas y stickers a full color con corte a tu medida. Elige tipo y cantidad.</p>
             <div class="qfield">
               <label class="qlabel">Tipo</label>
               <select id="etiq-tipo" class="qselect">
@@ -512,7 +554,7 @@
               </select>
             </div>
             <div class="qfield">
-              <label class="qlabel">Cantidad</label>
+              <label class="qlabel">Cantidad <span class="qtier-note">↓ Mayor cantidad = menor precio</span></label>
               <div class="qtiers" id="etiq-tier-buttons"></div>
             </div>
             <div class="qspec-box">
@@ -526,6 +568,7 @@
           <!-- ═══════════ PACKAGING ═══════════ -->
           <div id="form-packaging" class="qform">
             <h3 class="qform-title"><i class="fas fa-box"></i> Packaging</h3>
+            <p class="qform-desc">Cajas y bolsas con diseño personalizado e impresión full color. A mayor cantidad, mejor precio.</p>
             <div class="qfield">
               <label class="qlabel">Tipo de empaque</label>
               <select id="pack-tipo" class="qselect">
@@ -534,7 +577,7 @@
               </select>
             </div>
             <div class="qfield">
-              <label class="qlabel">Cantidad</label>
+              <label class="qlabel">Cantidad <span class="qtier-note">↓ Mayor cantidad = menor precio</span></label>
               <div class="qtiers" id="pack-tier-buttons"></div>
             </div>
             <div class="qspec-box">
@@ -545,9 +588,39 @@
             </div>
           </div>
 
+          <!-- ═══════════ LETREROS 3D ═══════════ -->
+          <div id="form-letreros" class="qform">
+            <h3 class="qform-title"><i class="fas fa-font"></i> Letreros en 3D</h3>
+            <p class="qform-desc">Letras y logos en relieve para fachadas, locales y eventos. Elige material, altura y número de letras.</p>
+            <div class="qfield">
+              <label class="qlabel">Material</label>
+              <select id="let-tipo" class="qselect">
+                <option value="acrilico">Acrílico 3D</option>
+                <option value="foam">Foam / PVC 3D</option>
+                <option value="led">LED Iluminado</option>
+              </select>
+            </div>
+            <div class="qfield">
+              <label class="qlabel">Altura de las letras</label>
+              <div class="qtiers" id="let-tier-buttons"></div>
+            </div>
+            <div class="qfield">
+              <label class="qlabel">Número de letras / caracteres</label>
+              <input type="number" id="let-letras" class="qinput" min="1" value="5">
+              <small class="qhint">Incluye espacios y símbolos si los hay</small>
+            </div>
+            <div class="qspec-box">
+              <div class="qspec-item"><i class="fas fa-check"></i> Corte láser de precisión</div>
+              <div class="qspec-item"><i class="fas fa-check"></i> Pintado, vinil o iluminado LED</div>
+              <div class="qspec-item"><i class="fas fa-check"></i> Resistente a intemperie</div>
+              <div class="qspec-item"><i class="fas fa-check"></i> Instalación disponible</div>
+            </div>
+          </div>
+
           <!-- ═══════════ DISEÑO ═══════════ -->
           <div id="form-diseno" class="qform">
             <h3 class="qform-title"><i class="fas fa-palette"></i> Diseño Gráfico</h3>
+            <p class="qform-desc">Diseño profesional para tu marca. Precio fijo por proyecto, con entrega en archivos vectoriales.</p>
             <div class="qfield">
               <label class="qlabel">Servicio</label>
               <div id="diseno-options" class="qtarjetas-list"></div>
@@ -562,7 +635,12 @@
           <!-- Placeholder vacío -->
           <div class="qresult-placeholder">
             <div class="qresult-icon"><i class="fas fa-calculator"></i></div>
-            <p>Selecciona las opciones del producto para ver el precio estimado</p>
+            <p>Tu precio aparecerá aquí</p>
+            <ul class="qplaceholder-steps">
+              <li><i class="fas fa-hand-pointer"></i> Elige un producto en las pestañas</li>
+              <li><i class="fas fa-sliders-h"></i> Configura tamaño y cantidad</li>
+              <li><i class="fas fa-tag"></i> Ve el precio al instante</li>
+            </ul>
           </div>
 
           <!-- Resumen visual -->
@@ -595,7 +673,7 @@
             <!-- Tiempo de entrega -->
             <div class="qr-delivery" id="qrDelivery"></div>
 
-            <p class="qwarning">⚠️ Precio referencial · El diseño se cotiza por separado</p>
+            <p class="qwarning">Precio referencial · Confirma disponibilidad con nuestro equipo</p>
 
             <a id="qWhatsappBtn" href="#" target="_blank" class="qwa-btn">
               <i class="fab fa-whatsapp"></i> Solicitar por WhatsApp
@@ -863,6 +941,15 @@
 
   <!-- ── WhatsApp Chat Widget ─────────────────── -->
   <script src="whatsapp-widget.js" defer></script>
+
+  <!-- ── Service Worker (PWA) ──────────────────── -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
 
 </body>
 

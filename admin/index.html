@@ -263,6 +263,56 @@
 
   @media (max-width:900px) { .sidebar { width:200px; } .main-content { margin-left:200px; } .stats-grid { grid-template-columns:repeat(2,1fr); } }
   @media (max-width:640px) { .sidebar { display:none; } .main-content { margin-left:0; } .form-grid { grid-template-columns:1fr; } }
+
+  /* ── VIDEOS SECTION ── */
+  .videos-admin-grid { display:grid; gap:1rem; margin-top:1rem; }
+  .video-admin-card { background:var(--surface); border-radius:var(--radius); border:1px solid var(--border); display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; }
+  .video-thumb-preview { width:80px; height:54px; border-radius:6px; object-fit:cover; background:#000; flex-shrink:0; }
+  .video-thumb-placeholder { width:80px; height:54px; border-radius:6px; background:var(--bg); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:1.4rem; flex-shrink:0; }
+  .video-admin-info { flex:1; min-width:0; }
+  .video-admin-title { font-weight:600; font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .video-admin-meta { font-size:.8rem; color:var(--muted); margin-top:.2rem; }
+  .video-admin-id { font-family:monospace; font-size:.78rem; background:var(--bg); padding:2px 6px; border-radius:4px; }
+  .video-admin-actions { display:flex; gap:.5rem; flex-shrink:0; }
+  .video-inactive { opacity:.45; }
+
+  /* Badge estado */
+  .badge { display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .6rem; border-radius:20px; font-size:.75rem; font-weight:500; }
+  .badge.active  { background:var(--green-light); color:var(--green); }
+  .badge.inactive{ background:var(--orange-light); color:var(--orange); }
+
+  /* Modal vídeo */
+  .video-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:2000; opacity:0; pointer-events:none; transition:opacity .2s; }
+  .video-modal-overlay.open { opacity:1; pointer-events:all; }
+  .video-modal { background:var(--surface); border-radius:16px; width:100%; max-width:520px; padding:2rem; box-shadow:0 8px 40px rgba(0,0,0,.15); }
+  .video-modal h3 { font-size:1.15rem; font-weight:600; margin-bottom:1.25rem; }
+  .vform-group { margin-bottom:1rem; }
+  .vform-group label { display:block; font-size:.825rem; font-weight:500; color:var(--muted); margin-bottom:.35rem; }
+  .vform-group input, .vform-group textarea, .vform-group select { width:100%; padding:.7rem .875rem; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; font-family:inherit; outline:none; background:var(--surface); color:var(--text); transition:border-color .2s; }
+  .vform-group input:focus, .vform-group textarea:focus, .vform-group select:focus { border-color:var(--blue); }
+  .vform-group textarea { min-height:72px; resize:vertical; }
+  .yt-preview { display:none; margin-top:.5rem; border-radius:6px; overflow:hidden; }
+  .yt-preview img { width:100%; height:auto; display:block; }
+  .vform-row { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+  .vform-actions { display:flex; gap:.75rem; justify-content:flex-end; margin-top:1.5rem; }
+
+  /* ── REDES SOCIALES ── */
+  .social-admin-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  .social-admin-card { background:var(--surface); border-radius:var(--radius); border:1px solid var(--border); padding:1.25rem; }
+  .social-admin-card label { display:flex; align-items:center; gap:.5rem; font-size:.875rem; font-weight:600; margin-bottom:.6rem; }
+  .social-admin-card label i { width:20px; text-align:center; }
+  .social-admin-card input { width:100%; padding:.7rem .875rem; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.875rem; font-family:inherit; outline:none; transition:border-color .2s; }
+  .social-admin-card input:focus { border-color:var(--blue); }
+  .social-admin-card .hint { font-size:.75rem; color:var(--muted); margin-top:.35rem; }
+  .social-icon-yt { color:#ff0000; }
+  .social-icon-ig { color:#e1306c; }
+  .social-icon-tk { color:#010101; }
+  .social-icon-fb { color:#1877f2; }
+  .social-icon-wa { color:#25d366; }
+  .social-icon-tw { color:#1da1f2; }
+  .social-icon-li { color:#0077b5; }
+  .save-social-bar { display:flex; align-items:center; justify-content:space-between; margin-top:1.5rem; padding:1.25rem 1.5rem; background:var(--surface); border-radius:var(--radius); border:1px solid var(--border); }
+  .save-social-bar p { font-size:.875rem; color:var(--muted); }
 </style>
 </head>
 <body>
@@ -297,6 +347,12 @@
       </div>
       <div class="nav-item" id="nav-pricing" onclick="showSection('pricing')">
         <i class="fas fa-calculator"></i> Cotizador
+      </div>
+      <div class="nav-item" id="nav-videos" onclick="showSection('videos')">
+        <i class="fas fa-video"></i> Videos
+      </div>
+      <div class="nav-item" id="nav-social" onclick="showSection('social')">
+        <i class="fas fa-share-alt"></i> Redes Sociales
       </div>
       <div class="nav-item" onclick="window.open('/','_blank')">
         <i class="fas fa-external-link-alt"></i> Ver sitio web
@@ -389,6 +445,79 @@
             <i class="fas fa-save"></i> Guardar precios
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- ── SECCIÓN VIDEOS ── -->
+    <div class="section-panel" id="section-videos">
+      <div class="topbar">
+        <div><h2>Videos de YouTube</h2><div class="sub">Gestiona los videos que se muestran en el sitio web</div></div>
+        <button class="btn-add" onclick="openVideoModal()"><i class="fas fa-plus"></i> Agregar video</button>
+      </div>
+
+      <div style="background:var(--blue-light);border:1px solid #c7dafd;border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;gap:.75rem;align-items:flex-start;">
+        <i class="fas fa-info-circle" style="color:var(--blue);margin-top:.15rem;"></i>
+        <div style="font-size:.875rem;color:#1a4a8a;">
+          <strong>¿Cómo agregar un video?</strong><br>
+          Abre el video en YouTube, copia la URL desde la barra de direcciones y pégala directamente en el formulario. El sistema detecta el video automáticamente. También puedes usar URLs cortas (youtu.be/...) o de Shorts.
+        </div>
+      </div>
+
+      <div class="videos-admin-grid" id="videos-admin-list">
+        <div style="text-align:center;padding:3rem;color:var(--muted);">
+          <i class="fas fa-video" style="font-size:2rem;display:block;margin-bottom:1rem;opacity:.3;"></i>
+          Cargando videos...
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECCIÓN REDES SOCIALES ── -->
+    <div class="section-panel" id="section-social">
+      <div class="topbar">
+        <div><h2>Redes Sociales</h2><div class="sub">Configura los enlaces a tus redes sociales</div></div>
+      </div>
+
+      <div class="social-admin-grid">
+        <div class="social-admin-card">
+          <label><i class="fab fa-youtube social-icon-yt"></i> YouTube</label>
+          <input type="url" id="social-youtube" placeholder="https://www.youtube.com/@tucuenta">
+          <div class="hint">URL de tu canal de YouTube</div>
+        </div>
+        <div class="social-admin-card">
+          <label><i class="fab fa-instagram social-icon-ig"></i> Instagram</label>
+          <input type="url" id="social-instagram" placeholder="https://www.instagram.com/tucuenta">
+          <div class="hint">URL de tu perfil de Instagram</div>
+        </div>
+        <div class="social-admin-card">
+          <label><i class="fab fa-tiktok social-icon-tk"></i> TikTok</label>
+          <input type="url" id="social-tiktok" placeholder="https://www.tiktok.com/@tucuenta">
+          <div class="hint">URL de tu perfil de TikTok</div>
+        </div>
+        <div class="social-admin-card">
+          <label><i class="fab fa-facebook social-icon-fb"></i> Facebook</label>
+          <input type="url" id="social-facebook" placeholder="https://www.facebook.com/tupagina">
+          <div class="hint">URL de tu página de Facebook</div>
+        </div>
+        <div class="social-admin-card">
+          <label><i class="fab fa-whatsapp social-icon-wa"></i> WhatsApp</label>
+          <input type="url" id="social-whatsapp" placeholder="https://wa.me/593XXXXXXXXX">
+          <div class="hint">Ej: https://wa.me/593987654321</div>
+        </div>
+        <div class="social-admin-card">
+          <label><i class="fab fa-twitter social-icon-tw"></i> Twitter / X</label>
+          <input type="url" id="social-twitter" placeholder="https://twitter.com/tucuenta">
+          <div class="hint">URL de tu perfil de Twitter/X</div>
+        </div>
+        <div class="social-admin-card">
+          <label><i class="fab fa-linkedin social-icon-li"></i> LinkedIn</label>
+          <input type="url" id="social-linkedin" placeholder="https://www.linkedin.com/company/tuempresa">
+          <div class="hint">URL de tu página de LinkedIn</div>
+        </div>
+      </div>
+
+      <div class="save-social-bar">
+        <p><i class="fas fa-info-circle"></i> Al guardar, los enlaces se actualizan en el sitio web automáticamente.</p>
+        <button class="btn-save-pricing" onclick="saveSocialMedia()"><i class="fas fa-save"></i> Guardar redes</button>
       </div>
     </div>
 
@@ -526,6 +655,69 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- ══════════ MODAL VIDEO ══════════ -->
+<div class="video-modal-overlay" id="video-modal-overlay" onclick="handleVideoOverlayClick(event)">
+  <div class="video-modal">
+    <h3 id="video-modal-title">Agregar video</h3>
+
+    <div class="vform-group">
+      <label>URL o ID del video de YouTube <span style="color:var(--red)">*</span></label>
+      <input type="text" id="vf-yt-url" placeholder="Ej: https://www.youtube.com/watch?v=dQw4w9WgXcQ" oninput="previewYtThumb()">
+      <div class="yt-preview" id="yt-preview">
+        <img id="yt-thumb-img" src="" alt="Vista previa">
+      </div>
+      <div id="yt-id-detected" style="font-size:.78rem;color:var(--green);margin-top:.3rem;display:none;">
+        <i class="fas fa-check-circle"></i> ID detectado: <strong id="yt-id-val"></strong>
+      </div>
+      <div class="hint" style="font-size:.75rem;color:var(--muted);margin-top:.35rem;">Pega la URL completa de YouTube o solo el código del video</div>
+    </div>
+
+    <div class="vform-group">
+      <label>Título del video <span style="color:var(--red)">*</span></label>
+      <input type="text" id="vf-title" placeholder="Ej: Proceso de fabricación de cajas" maxlength="80">
+    </div>
+
+    <div class="vform-group">
+      <label>Descripción</label>
+      <textarea id="vf-desc" placeholder="Breve descripción del video..." maxlength="200"></textarea>
+    </div>
+
+    <div class="vform-row">
+      <div class="vform-group">
+        <label>Etiqueta (categoría)</label>
+        <input type="text" id="vf-tag" placeholder="Ej: Packaging" maxlength="30">
+      </div>
+      <div class="vform-group">
+        <label>Ícono de etiqueta</label>
+        <select id="vf-icon">
+          <option value="fa-box">📦 Packaging</option>
+          <option value="fa-print">🖨️ Impresión</option>
+          <option value="fa-tags">🏷️ Etiquetas</option>
+          <option value="fa-mug-hot">☕ Tazas</option>
+          <option value="fa-image">🖼️ Gran Formato</option>
+          <option value="fa-gift">🎁 Material POP</option>
+          <option value="fa-palette">🎨 Diseño</option>
+          <option value="fa-star">⭐ Destacado</option>
+          <option value="fa-video">🎬 Video</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="vform-group">
+      <label>Estado</label>
+      <select id="vf-active">
+        <option value="true">✅ Visible en el sitio</option>
+        <option value="false">⏸️ Oculto</option>
+      </select>
+    </div>
+
+    <div class="vform-actions">
+      <button class="btn-logout" onclick="closeVideoModal()" style="width:auto;">Cancelar</button>
+      <button class="btn-add" onclick="saveVideo()"><i class="fas fa-save"></i> Guardar video</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API = '';
 let token = '';
@@ -580,245 +772,8 @@ function showSection(name) {
   if (nav) nav.classList.add('active');
   if (name === 'gallery') loadGallery();
   if (name === 'pricing') loadPricing();
-}
-
-// ── Precios cotizador (quote-prices.json) ──────────────────────
-const QUOTE_STORAGE_KEY = 'mp-quote-pricing-v1';
-let quoteConfigCache = null;
-
-function deepMergeQuote(target, source) {
-  if (!source || typeof source !== 'object') return target;
-  if (Array.isArray(source)) return source.slice();
-  const out = target && typeof target === 'object' && !Array.isArray(target) ? { ...target } : {};
-  for (const k of Object.keys(source)) {
-    const sv = source[k];
-    const tv = out[k];
-    if (sv && typeof sv === 'object' && !Array.isArray(sv) && tv && typeof tv === 'object' && !Array.isArray(tv)) {
-      out[k] = deepMergeQuote(tv, sv);
-    } else {
-      out[k] = Array.isArray(sv) ? sv.slice() : sv;
-    }
-  }
-  return out;
-}
-
-async function fetchQuotePricesBase() {
-  try {
-    const r = await fetch(API + '/api/pricing', { cache: 'no-store' });
-    if (r.ok) return await r.json();
-  } catch (_) { /* ignore */ }
-  return null;
-}
-
-async function getMergedQuoteConfig() {
-  let base = await fetchQuotePricesBase();
-  if (!base || !base.pricing) {
-    try {
-      const raw = localStorage.getItem(QUOTE_STORAGE_KEY);
-      if (raw) base = JSON.parse(raw);
-    } catch (_) {}
-  }
-  if (!base || !base.pricing) {
-    toast('No se pudo cargar /api/pricing. Revisa que el servidor Node esté corriendo y que data/pricing.json exista.', 'error');
-    return { pricing: {}, delivery: {} };
-  }
-  try {
-    const raw = localStorage.getItem(QUOTE_STORAGE_KEY);
-    if (raw) base = deepMergeQuote(base, JSON.parse(raw));
-  } catch (_) {}
-  return base;
-}
-
-function switchPricingTab(tab, btn) {
-  document.querySelectorAll('.pricing-tab').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.pricing-panel').forEach(p => p.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  const map = { volantes: 'pp-volantes', tarjetas: 'pp-tarjetas', tazas: 'pp-tazas', rollup: 'pp-rollup' };
-  const id = map[tab];
-  if (id) {
-    const el = document.getElementById(id);
-    if (el) el.classList.add('active');
-  }
-}
-
-function renderVolTiersAdmin(containerId, key) {
-  const p = quoteConfigCache?.pricing?.volantes?.[key];
-  const el = document.getElementById(containerId);
-  if (!el || !p || p.type !== 'tiers' || !p.tiers) return;
-  el.innerHTML = p.tiers.map((t, i) => `
-    <div class="tier-row">
-      <input type="number" class="price-input" data-vol="${key}" data-i="${i}" data-f="qty" min="1" step="1" value="${t.qty}">
-      <input type="number" class="price-input" data-vol="${key}" data-i="${i}" data-f="total" min="0" step="0.01" value="${t.total}">
-    </div>`).join('');
-}
-
-function renderPerUnitAdmin() {
-  const el = document.getElementById('perunit-rows');
-  const vol = quoteConfigCache?.pricing?.volantes;
-  if (!el || !vol) return;
-  const keys = ['a5-1c', 'a5-2c', 'a4-1c', 'a4-2c'];
-  el.innerHTML = keys.map(k => {
-    const m = vol[k];
-    if (!m || m.type !== 'per1k') return '';
-    return `<div class="perunit-row">
-      <span class="pricing-label">${escHtml(m.label)}</span>
-      <input type="number" class="price-input" data-perk="${k}" data-f="unitPer1000" min="0" step="0.01" value="${m.unitPer1000}">
-      <input type="number" class="price-input" data-perk="${k}" data-f="minQty" min="1" step="1" value="${m.minQty}">
-    </div>`;
-  }).join('');
-}
-
-function renderTarjetasAdmin() {
-  const el = document.getElementById('tarjetas-rows');
-  const arr = quoteConfigCache?.pricing?.tarjetas;
-  if (!el || !arr) return;
-  el.innerHTML = arr.map((t, i) => `
-    <div class="pricing-row">
-      <div><div class="pricing-label">${escHtml(t.label)}</div><div class="pricing-sub">${escHtml(t.desc || '')}</div></div>
-      <input type="number" class="price-input" data-tarjeta="${i}" data-f="price" min="0" step="0.01" value="${t.price}">
-      <span></span><span></span>
-    </div>`).join('');
-}
-
-function renderTazasAdmin() {
-  const el = document.getElementById('tazas-rows');
-  const arr = quoteConfigCache?.pricing?.tazas;
-  if (!el || !arr) return;
-  el.innerHTML = arr.map((t, i) => `
-    <div class="tier-row">
-      <span class="pricing-label">${escHtml(t.label)}</span>
-      <input type="number" class="price-input" data-taza="${i}" data-f="qty" min="1" step="1" value="${t.qty}">
-      <input type="number" class="price-input" data-taza="${i}" data-f="ppu" min="0" step="0.01" value="${t.ppu}">
-    </div>`).join('');
-}
-
-function renderRollupAdmin() {
-  const el = document.getElementById('rollup-rows');
-  const gf = quoteConfigCache?.pricing?.granformato;
-  if (!el || !gf) return;
-  const rl = gf['rollup-lona'];
-  const rp = gf['rollup-pet'];
-  el.innerHTML = `
-    <div class="pricing-row">
-      <div><div class="pricing-label">${rl ? escHtml(rl.label) : 'Roll Up · Lona'}</div></div>
-      <input type="number" class="price-input" data-roll="rollup-lona" min="0" step="0.01" value="${rl ? rl.ppu : 0}">
-      <span></span><span></span>
-    </div>
-    <div class="pricing-row">
-      <div><div class="pricing-label">${rp ? escHtml(rp.label) : 'Roll Up · Pet'}</div></div>
-      <input type="number" class="price-input" data-roll="rollup-pet" min="0" step="0.01" value="${rp ? rp.ppu : 0}">
-      <span></span><span></span>
-    </div>`;
-}
-
-async function loadPricingUI() {
-  quoteConfigCache = await getMergedQuoteConfig();
-  if (!quoteConfigCache.pricing || !quoteConfigCache.pricing.volantes) {
-    toast('Configuración incompleta. Revisa /api/pricing (data/pricing.json).', 'error');
-    return;
-  }
-  renderVolTiersAdmin('tiers-a6-1c', 'a6-1c');
-  renderVolTiersAdmin('tiers-a6-2c', 'a6-2c');
-  renderPerUnitAdmin();
-  renderTarjetasAdmin();
-  renderTazasAdmin();
-  renderRollupAdmin();
-}
-
-function downloadJson(filename, obj) {
-  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-function importQuotePricingFile(input) {
-  const f = input.files && input.files[0];
-  if (!f) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const j = JSON.parse(reader.result);
-      if (!j.pricing) throw new Error('invalid');
-      quoteConfigCache = j;
-      localStorage.setItem(QUOTE_STORAGE_KEY, JSON.stringify(j));
-      renderVolTiersAdmin('tiers-a6-1c', 'a6-1c');
-      renderVolTiersAdmin('tiers-a6-2c', 'a6-2c');
-      renderPerUnitAdmin();
-      renderTarjetasAdmin();
-      renderTazasAdmin();
-      renderRollupAdmin();
-      toast('JSON importado. Revisa los valores y pulsa Guardar si quieres descargar de nuevo.', 'success');
-    } catch (_) {
-      toast('El archivo no es un JSON válido de precios.', 'error');
-    }
-    input.value = '';
-  };
-  reader.readAsText(f);
-}
-
-function savePricing() {
-  if (!quoteConfigCache || !quoteConfigCache.pricing) {
-    toast('Carga primero la sección Cotizador.', 'error');
-    return;
-  }
-  const cfg = JSON.parse(JSON.stringify(quoteConfigCache));
-  const p = cfg.pricing;
-
-  ['a6-1c', 'a6-2c'].forEach(key => {
-    const tiers = p.volantes[key]?.tiers;
-    if (!tiers) return;
-    tiers.forEach((t, i) => {
-      const q = document.querySelector(`[data-vol="${key}"][data-i="${i}"][data-f="qty"]`);
-      const tot = document.querySelector(`[data-vol="${key}"][data-i="${i}"][data-f="total"]`);
-      if (q) t.qty = parseInt(q.value, 10) || t.qty;
-      if (tot) t.total = parseFloat(tot.value) || t.total;
-    });
-  });
-
-  ['a5-1c', 'a5-2c', 'a4-1c', 'a4-2c'].forEach(key => {
-    const u = document.querySelector(`[data-perk="${key}"][data-f="unitPer1000"]`);
-    const m = document.querySelector(`[data-perk="${key}"][data-f="minQty"]`);
-    if (u && p.volantes[key]) p.volantes[key].unitPer1000 = parseFloat(u.value) || 0;
-    if (m && p.volantes[key]) p.volantes[key].minQty = parseInt(m.value, 10) || 1000;
-  });
-
-  (p.tarjetas || []).forEach((t, i) => {
-    const inp = document.querySelector(`[data-tarjeta="${i}"][data-f="price"]`);
-    if (inp) t.price = parseFloat(inp.value) || 0;
-  });
-
-  (p.tazas || []).forEach((t, i) => {
-    const q = document.querySelector(`[data-taza="${i}"][data-f="qty"]`);
-    const pp = document.querySelector(`[data-taza="${i}"][data-f="ppu"]`);
-    if (q) t.qty = parseInt(q.value, 10) || t.qty;
-    if (pp) t.ppu = parseFloat(pp.value) || t.ppu;
-  });
-
-  const l1 = document.querySelector('[data-roll="rollup-lona"]');
-  const l2 = document.querySelector('[data-roll="rollup-pet"]');
-  if (l1 && p.granformato?.['rollup-lona']) p.granformato['rollup-lona'].ppu = parseFloat(l1.value) || 0;
-  if (l2 && p.granformato?.['rollup-pet']) p.granformato['rollup-pet'].ppu = parseFloat(l2.value) || 0;
-
-  quoteConfigCache = cfg;
-  localStorage.setItem(QUOTE_STORAGE_KEY, JSON.stringify(cfg));
-
-  // Guardar directo en el backend para que el sitio se actualice inmediatamente
-  fetch(API + '/api/pricing', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-admin-token': token
-    },
-    body: JSON.stringify(cfg)
-  })
-    .then(r => {
-      if (!r.ok) throw new Error();
-      toast('Precios guardados y aplicados en el sitio ✓', 'success');
-    })
-    .catch(() => toast('Error guardando precios en el servidor', 'error'));
+  if (name === 'videos') loadVideos();
+  if (name === 'social') loadSocialMedia();
 }
 
 // ── Productos ─────────────────────────────────
@@ -1386,12 +1341,34 @@ function renderPricingForms() {
   if (disCont && p.diseno) {
     disCont.innerHTML = `<div class="pricing-card">
       <div class="pricing-card-header"><i class="fas fa-palette"></i> Servicios de diseño gráfico</div>
-      <div class="pricing-row header"><span>Servicio</span><span>Precio ($)</span><span></span><span></span></div>
-      ${p.diseno.map((t, i) => `<div class="pricing-row">
-        <div><div class="pricing-label">${escHtml(t.label)}</div><div class="pricing-sub">${escHtml(t.desc || '')}${t.delivery ? ' &middot; ' + escHtml(t.delivery) : ''}</div></div>
+      <div style="display:grid;grid-template-columns:1fr 120px 160px;gap:.75rem;padding:.5rem 1.25rem;background:var(--bg);font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1px solid var(--border)"><span>Servicio</span><span>Precio ($)</span><span>Tiempo entrega</span></div>
+      ${p.diseno.map((t, i) => `<div style="display:grid;grid-template-columns:1fr 120px 160px;gap:.75rem;padding:.625rem 1.25rem;border-bottom:1px solid var(--border);align-items:center;">
+        <div><div class="pricing-label">${escHtml(t.label)}</div><div class="pricing-sub">${escHtml(t.desc || '')}</div></div>
         <input type="number" class="price-input" step="1" min="0" data-key="pricing.diseno.${i}.price" value="${t.price}">
-        <span></span><span></span>
+        <input type="text" class="price-input" placeholder="Ej: 3-5 días" data-key="pricing.diseno.${i}.delivery" value="${escHtml(t.delivery || '')}">
       </div>`).join('')}
+    </div>`;
+  }
+
+  // ── TIEMPOS DE ENTREGA ──
+  const d = pricingData.delivery || {};
+  const delivCont = document.getElementById('pp-diseno');
+  if (delivCont) {
+    delivCont.innerHTML += `<div class="pricing-card" style="margin-top:1rem;">
+      <div class="pricing-card-header"><i class="fas fa-clock"></i> Tiempos de entrega por categoría</div>
+      <div style="padding:.75rem 1.25rem;display:grid;gap:.625rem;">
+        ${[
+          ['volantes','Volantes / Flyers'],
+          ['tarjetas','Tarjetas de presentación'],
+          ['tazas','Tazas personalizadas'],
+          ['etiquetas','Etiquetas'],
+          ['packaging','Packaging'],
+        ].map(([key, label]) => `<div style="display:grid;grid-template-columns:1fr 200px;gap:.75rem;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--border);">
+          <div class="pricing-label">${label}</div>
+          <input type="text" class="price-input" placeholder="Ej: 3-5 días hábiles" data-key="delivery.${key}" value="${escHtml(d[key] || '')}">
+        </div>`).join('')}
+        <div style="margin-top:.5rem;font-size:.8rem;color:var(--muted)"><i class="fas fa-info-circle"></i> Gran formato y material POP tienen tiempos por subtipo — edítalos directamente en los JSON si es necesario.</div>
+      </div>
     </div>`;
   }
 }
@@ -1402,7 +1379,7 @@ function setNestedPath(obj, path, value) {
   let cur = obj;
   for (let i = 0; i < keys.length - 1; i++) {
     const k = isNaN(keys[i]) ? keys[i] : parseInt(keys[i]);
-    if (cur[k] == null) return;
+    if (cur[k] == null) cur[k] = {};
     cur = cur[k];
   }
   const lastKey = keys[keys.length - 1];
@@ -1437,6 +1414,234 @@ async function savePricing() {
 
   btn.disabled = false;
   btn.innerHTML = '<i class="fas fa-save"></i> Guardar precios';
+}
+
+// ════════════════════════════════════════════
+//  VIDEOS
+// ════════════════════════════════════════════
+let videosData = [];
+let editingVideoId = null;
+
+async function loadVideos() {
+  try {
+    const r = await fetch(API + '/api/settings', { cache: 'no-store' });
+    if (!r.ok) throw new Error();
+    const s = await r.json();
+    videosData = s.videos || [];
+    renderVideosAdmin();
+  } catch {
+    toast('Error cargando videos', 'error');
+  }
+}
+
+function renderVideosAdmin() {
+  const container = document.getElementById('videos-admin-list');
+  if (!container) return;
+  if (!videosData.length) {
+    container.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--muted);">
+      <i class="fas fa-video" style="font-size:2rem;display:block;margin-bottom:1rem;opacity:.3;"></i>
+      No hay videos. Haz clic en <strong>Agregar video</strong> para empezar.
+    </div>`;
+    return;
+  }
+  container.innerHTML = videosData.map(v => {
+    const hasId = v.youtubeId && !v.youtubeId.startsWith('REEMPLAZA');
+    const thumbSrc = hasId ? `https://img.youtube.com/vi/${v.youtubeId}/mqdefault.jpg` : '';
+    return `<div class="video-admin-card ${v.active ? '' : 'video-inactive'}">
+      ${hasId
+        ? `<img class="video-thumb-preview" src="${thumbSrc}" alt="thumb">`
+        : `<div class="video-thumb-placeholder"><i class="fas fa-play-circle"></i></div>`}
+      <div class="video-admin-info">
+        <div class="video-admin-title">${escHtml(v.title || '(Sin título)')}</div>
+        <div class="video-admin-meta">
+          ID: <span class="video-admin-id">${escHtml(v.youtubeId || '—')}</span>
+          ${v.tag ? ` &nbsp;·&nbsp; ${escHtml(v.tag)}` : ''}
+        </div>
+      </div>
+      <span class="badge ${v.active ? 'active' : 'inactive'}">${v.active ? 'Visible' : 'Oculto'}</span>
+      <div class="video-admin-actions">
+        <button class="btn-icon" onclick="moveVideoUp(${v.id})" title="Subir" style="color:var(--muted)"><i class="fas fa-chevron-up"></i></button>
+        <button class="btn-icon" onclick="moveVideoDown(${v.id})" title="Bajar" style="color:var(--muted)"><i class="fas fa-chevron-down"></i></button>
+        <button class="btn-icon edit" onclick="editVideo(${v.id})" title="Editar"><i class="fas fa-edit"></i></button>
+        <button class="btn-icon del" onclick="deleteVideo(${v.id})" title="Eliminar"><i class="fas fa-trash"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openVideoModal(id) {
+  editingVideoId = id || null;
+  const modal = document.getElementById('video-modal-overlay');
+  document.getElementById('video-modal-title').textContent = id ? 'Editar video' : 'Agregar video';
+  if (id) {
+    const v = videosData.find(x => x.id === id);
+    if (!v) return;
+    document.getElementById('vf-yt-url').value = v.youtubeId || '';
+    document.getElementById('vf-title').value = v.title || '';
+    document.getElementById('vf-desc').value = v.description || '';
+    document.getElementById('vf-tag').value = v.tag || '';
+    document.getElementById('vf-icon').value = v.tagIcon || 'fa-video';
+    document.getElementById('vf-active').value = String(v.active !== false);
+  } else {
+    document.getElementById('vf-yt-url').value = '';
+    document.getElementById('vf-title').value = '';
+    document.getElementById('vf-desc').value = '';
+    document.getElementById('vf-tag').value = '';
+    document.getElementById('vf-icon').value = 'fa-video';
+    document.getElementById('vf-active').value = 'true';
+  }
+  previewYtThumb();
+  modal.classList.add('open');
+}
+
+function editVideo(id) { openVideoModal(id); }
+
+function closeVideoModal() {
+  document.getElementById('video-modal-overlay').classList.remove('open');
+  editingVideoId = null;
+}
+
+function handleVideoOverlayClick(e) {
+  if (e.target === document.getElementById('video-modal-overlay')) closeVideoModal();
+}
+
+function extractYoutubeId(input) {
+  input = (input || '').trim();
+  // URL corta: youtu.be/ID
+  let m = input.match(/youtu\.be\/([a-zA-Z0-9_-]{8,15})/);
+  if (m) return m[1];
+  // Shorts: /shorts/ID
+  m = input.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{8,15})/);
+  if (m) return m[1];
+  // URL normal: ?v=ID o &v=ID
+  m = input.match(/[?&]v=([a-zA-Z0-9_-]{8,15})/);
+  if (m) return m[1];
+  // Si ya es solo el ID
+  if (/^[a-zA-Z0-9_-]{8,15}$/.test(input)) return input;
+  return null;
+}
+
+function previewYtThumb() {
+  const raw = document.getElementById('vf-yt-url').value;
+  const ytId = extractYoutubeId(raw);
+  const preview = document.getElementById('yt-preview');
+  const img = document.getElementById('yt-thumb-img');
+  const detected = document.getElementById('yt-id-detected');
+  const idVal = document.getElementById('yt-id-val');
+  if (ytId) {
+    img.src = `https://img.youtube.com/vi/${ytId}/mqdefault.jpg`;
+    preview.style.display = 'block';
+    detected.style.display = 'block';
+    idVal.textContent = ytId;
+  } else {
+    preview.style.display = 'none';
+    detected.style.display = 'none';
+  }
+}
+
+async function saveVideo() {
+  const rawUrl = document.getElementById('vf-yt-url').value.trim();
+  const ytId = extractYoutubeId(rawUrl);
+  const title = document.getElementById('vf-title').value.trim();
+  if (!ytId) { toast('URL de YouTube inválida. Pega la URL completa del video.', 'error'); return; }
+  if (!title) { toast('Ingresa el título del video', 'error'); return; }
+
+  const videoObj = {
+    id: editingVideoId || (Date.now()),
+    youtubeId: ytId,
+    title,
+    description: document.getElementById('vf-desc').value.trim(),
+    tag: document.getElementById('vf-tag').value.trim(),
+    tagIcon: document.getElementById('vf-icon').value,
+    active: document.getElementById('vf-active').value === 'true',
+  };
+
+  if (editingVideoId) {
+    const idx = videosData.findIndex(v => v.id === editingVideoId);
+    if (idx !== -1) videosData[idx] = videoObj;
+  } else {
+    videosData.push(videoObj);
+  }
+
+  await persistSettings();
+  closeVideoModal();
+  renderVideosAdmin();
+  toast(editingVideoId ? 'Video actualizado ✓' : 'Video agregado ✓', 'success');
+}
+
+async function deleteVideo(id) {
+  if (!confirm('¿Eliminar este video del sitio web?')) return;
+  videosData = videosData.filter(v => v.id !== id);
+  await persistSettings();
+  renderVideosAdmin();
+  toast('Video eliminado', 'success');
+}
+
+async function moveVideoUp(id) {
+  const idx = videosData.findIndex(v => v.id === id);
+  if (idx <= 0) return;
+  [videosData[idx - 1], videosData[idx]] = [videosData[idx], videosData[idx - 1]];
+  await persistSettings();
+  renderVideosAdmin();
+}
+
+async function moveVideoDown(id) {
+  const idx = videosData.findIndex(v => v.id === id);
+  if (idx < 0 || idx >= videosData.length - 1) return;
+  [videosData[idx], videosData[idx + 1]] = [videosData[idx + 1], videosData[idx]];
+  await persistSettings();
+  renderVideosAdmin();
+}
+
+// ════════════════════════════════════════════
+//  REDES SOCIALES
+// ════════════════════════════════════════════
+let socialData = {};
+
+async function loadSocialMedia() {
+  try {
+    const r = await fetch(API + '/api/settings', { cache: 'no-store' });
+    if (!r.ok) throw new Error();
+    const s = await r.json();
+    socialData = s.socialMedia || {};
+    populateSocialFields();
+  } catch {
+    toast('Error cargando redes sociales', 'error');
+  }
+}
+
+function populateSocialFields() {
+  const fields = ['youtube', 'instagram', 'tiktok', 'facebook', 'whatsapp', 'twitter', 'linkedin'];
+  fields.forEach(key => {
+    const el = document.getElementById('social-' + key);
+    if (el) el.value = socialData[key] || '';
+  });
+}
+
+async function saveSocialMedia() {
+  const fields = ['youtube', 'instagram', 'tiktok', 'facebook', 'whatsapp', 'twitter', 'linkedin'];
+  fields.forEach(key => {
+    const el = document.getElementById('social-' + key);
+    if (el) socialData[key] = el.value.trim();
+  });
+  await persistSettings();
+  toast('Redes sociales guardadas ✓ Los cambios ya son visibles en el sitio', 'success');
+}
+
+// ── Persistir settings (videos + redes) al servidor ──
+async function persistSettings() {
+  try {
+    const currentSettings = await (await fetch(API + '/api/settings', { cache: 'no-store' })).json();
+    const updated = { ...currentSettings, videos: videosData, socialMedia: socialData };
+    const r = await fetch(API + '/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+      body: JSON.stringify(updated),
+    });
+    if (!r.ok) throw new Error();
+  } catch {
+    toast('Error guardando en el servidor', 'error');
+  }
 }
 </script>
 </body>

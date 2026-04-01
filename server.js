@@ -18,6 +18,7 @@ const PORT = process.env.PORT || 3000;
 
 const DATA_FILE      = path.join(__dirname, 'data', 'products.json');
 const PRICING_FILE   = path.join(__dirname, 'data', 'pricing.json');
+const SETTINGS_FILE  = path.join(__dirname, 'data', 'settings.json');
 const UPLOADS_DIR    = path.join(__dirname, 'uploads');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'mark2024';
 
@@ -97,6 +98,13 @@ function readPricing() {
 }
 function writePricing(data) {
   fs.writeFileSync(PRICING_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
+function readSettings() {
+  if (!fs.existsSync(SETTINGS_FILE)) return { videos: [], socialMedia: {} };
+  return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
+}
+function writeSettings(data) {
+  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
 function authenticate(req, res, next) {
   if (req.headers['x-admin-token'] !== ADMIN_PASSWORD)
@@ -317,6 +325,19 @@ app.put('/api/pricing', authenticate, (req, res) => {
     writePricing(req.body);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Error guardando precios' }); }
+});
+
+// ── Configuración (videos + redes sociales) ──
+app.get('/api/settings', (req, res) => {
+  try { res.json(readSettings()); }
+  catch (e) { res.status(500).json({ error: 'Error leyendo configuración' }); }
+});
+
+app.put('/api/settings', authenticate, (req, res) => {
+  try {
+    writeSettings(req.body);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: 'Error guardando configuración' }); }
 });
 
 // ── Rutas HTML ────────────────────────────────

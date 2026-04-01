@@ -720,179 +720,38 @@
         <p class="section-description">Mira cómo fabricamos cajas, flyers y mucho más</p>
       </div>
 
-      <!-- Botones de redes sociales -->
-      <div class="social-links">
-        <a href="https://www.youtube.com/@markpublicidad" target="_blank" rel="noopener noreferrer"
-          class="social-btn youtube">
+      <!-- Botones de redes sociales — se cargan dinámicamente desde /api/settings -->
+      <div class="social-links" id="social-links-container">
+        <!-- Fallback mientras carga -->
+        <a href="https://www.youtube.com/@markpublicidad" target="_blank" rel="noopener noreferrer" class="social-btn youtube" id="sl-youtube">
           <i class="fab fa-youtube"></i>
-          <span class="social-btn-info">
-            <small>Suscríbete en</small>
-            YouTube
-          </span>
+          <span class="social-btn-info"><small>Suscríbete en</small>YouTube</span>
         </a>
-        <a href="https://www.instagram.com/markpublicidad" target="_blank" rel="noopener noreferrer"
-          class="social-btn instagram">
+        <a href="https://www.instagram.com/markpublicidad" target="_blank" rel="noopener noreferrer" class="social-btn instagram" id="sl-instagram">
           <i class="fab fa-instagram"></i>
-          <span class="social-btn-info">
-            <small>Síguenos en</small>
-            Instagram
-          </span>
+          <span class="social-btn-info"><small>Síguenos en</small>Instagram</span>
         </a>
-        <a href="https://www.tiktok.com/@markpublicidad" target="_blank" rel="noopener noreferrer"
-          class="social-btn tiktok">
+        <a href="https://www.tiktok.com/@markpublicidad" target="_blank" rel="noopener noreferrer" class="social-btn tiktok" id="sl-tiktok">
           <i class="fab fa-tiktok"></i>
-          <span class="social-btn-info">
-            <small>Síguenos en</small>
-            TikTok
-          </span>
+          <span class="social-btn-info"><small>Síguenos en</small>TikTok</span>
         </a>
-        <a href="https://www.facebook.com/markpublicidad" target="_blank" rel="noopener noreferrer"
-          class="social-btn facebook">
+        <a href="https://www.facebook.com/markpublicidad" target="_blank" rel="noopener noreferrer" class="social-btn facebook" id="sl-facebook">
           <i class="fab fa-facebook-f"></i>
-          <span class="social-btn-info">
-            <small>Síguenos en</small>
-            Facebook
-          </span>
+          <span class="social-btn-info"><small>Síguenos en</small>Facebook</span>
         </a>
       </div>
 
-      <!--
-        ╔══════════════════════════════════════════════╗
-        ║  CÓMO AGREGAR TUS VIDEOS DE YOUTUBE          ║
-        ║  1. Ve a tu video en YouTube                 ║
-        ║  2. Copia el ID (lo que va después de ?v=)   ║
-        ║     Ej: youtube.com/watch?v=ABC123  → ABC123 ║
-        ║  3. Reemplaza el data-id de cada video-card  ║
-        ║  4. Cambia también el src de la imagen thumb ║
-        ║     https://img.youtube.com/vi/ABC123/hqdefault.jpg
-        ╚══════════════════════════════════════════════╝
-      -->
-
-      <!-- Grid de videos -->
-      <div class="videos-grid">
-
-        <!-- ── Video 1 ── -->
-        <div class="video-card">
-          <div class="video-wrapper" data-id="REEMPLAZA_ID_1" role="button" tabindex="0"
-            aria-label="Reproducir video: Proceso de fabricación de cajas personalizadas">
-            <img class="video-thumb" src="https://img.youtube.com/vi/REEMPLAZA_ID_1/hqdefault.jpg"
-              alt="Proceso de fabricación de cajas personalizadas" loading="lazy" decoding="async">
-            <div class="video-overlay"></div>
-            <div class="play-btn" aria-hidden="true"><i class="fas fa-play"></i></div>
-            <iframe title="Cómo hacemos cajas personalizadas"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              loading="lazy" allowfullscreen></iframe>
-          </div>
-          <div class="video-info">
-            <span class="video-tag"><i class="fas fa-box"></i> Packaging</span>
-            <h4>Proceso de fabricación de cajas</h4>
-            <p>Desde el diseño hasta el producto final, así creamos tus cajas personalizadas.</p>
-          </div>
-        </div>
-
-        <!-- ── Video 2 ── -->
-        <div class="video-card">
-          <div class="video-wrapper" data-id="REEMPLAZA_ID_2" role="button" tabindex="0"
-            aria-label="Reproducir video: Impresión de flyers profesionales">
-            <img class="video-thumb" src="https://img.youtube.com/vi/REEMPLAZA_ID_2/hqdefault.jpg"
-              alt="Impresión de flyers profesionales" loading="lazy" decoding="async">
-            <div class="video-overlay"></div>
-            <div class="play-btn" aria-hidden="true"><i class="fas fa-play"></i></div>
-            <iframe title="Impresión de flyers profesionales"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              loading="lazy" allowfullscreen></iframe>
-          </div>
-          <div class="video-info">
-            <span class="video-tag"><i class="fas fa-print"></i> Impresión</span>
-            <h4>Flyers y volantes a todo color</h4>
-            <p>Impresión digital de alta resolución para tus campañas publicitarias.</p>
-          </div>
-        </div>
-
-        <!-- ── Video 3 ── -->
-        <div class="video-card">
-          <div class="video-wrapper" data-id="REEMPLAZA_ID_3" role="button" tabindex="0"
-            aria-label="Reproducir video: Etiquetas adhesivas personalizadas">
-            <img class="video-thumb" src="https://img.youtube.com/vi/REEMPLAZA_ID_3/hqdefault.jpg"
-              alt="Etiquetas adhesivas personalizadas" loading="lazy" decoding="async">
-            <div class="video-overlay"></div>
-            <div class="play-btn" aria-hidden="true"><i class="fas fa-play"></i></div>
-            <iframe title="Etiquetas adhesivas personalizadas"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              loading="lazy" allowfullscreen></iframe>
-          </div>
-          <div class="video-info">
-            <span class="video-tag"><i class="fas fa-tags"></i> Etiquetas</span>
-            <h4>Etiquetas para tus productos</h4>
-            <p>Materiales premium, corte preciso y adhesivo de alta calidad.</p>
-          </div>
-        </div>
-
-        <!-- ── Video 4 ── -->
-        <div class="video-card">
-          <div class="video-wrapper" data-id="REEMPLAZA_ID_4" role="button" tabindex="0"
-            aria-label="Reproducir video: Material POP y merchandising">
-            <img class="video-thumb" src="https://img.youtube.com/vi/REEMPLAZA_ID_4/hqdefault.jpg"
-              alt="Material POP y merchandising" loading="lazy" decoding="async">
-            <div class="video-overlay"></div>
-            <div class="play-btn" aria-hidden="true"><i class="fas fa-play"></i></div>
-            <iframe title="Material POP y merchandising"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              loading="lazy" allowfullscreen></iframe>
-          </div>
-          <div class="video-info">
-            <span class="video-tag"><i class="fas fa-gift"></i> Material POP</span>
-            <h4>Gorras, tazas y más</h4>
-            <p>Todo tipo de artículos promocionales con tu marca.</p>
-          </div>
-        </div>
-
-        <!-- ── Video 5 ── -->
-        <div class="video-card">
-          <div class="video-wrapper" data-id="REEMPLAZA_ID_5" role="button" tabindex="0"
-            aria-label="Reproducir video: Banners y lonas de gran formato">
-            <img class="video-thumb" src="https://img.youtube.com/vi/REEMPLAZA_ID_5/hqdefault.jpg"
-              alt="Banners y lonas de gran formato" loading="lazy" decoding="async">
-            <div class="video-overlay"></div>
-            <div class="play-btn" aria-hidden="true"><i class="fas fa-play"></i></div>
-            <iframe title="Banners y lonas de gran formato"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              loading="lazy" allowfullscreen></iframe>
-          </div>
-          <div class="video-info">
-            <span class="video-tag"><i class="fas fa-ruler-combined"></i> Gran Formato</span>
-            <h4>Banners y lonas gigantes</h4>
-            <p>Impresión en gran formato para máximo impacto visual en cualquier espacio.</p>
-          </div>
-        </div>
-
-        <!-- ── Video 6 ── -->
-        <div class="video-card">
-          <div class="video-wrapper" data-id="REEMPLAZA_ID_6" role="button" tabindex="0"
-            aria-label="Reproducir video: Diseño gráfico y branding">
-            <img class="video-thumb" src="https://img.youtube.com/vi/REEMPLAZA_ID_6/hqdefault.jpg"
-              alt="Diseño gráfico y branding" loading="lazy" decoding="async">
-            <div class="video-overlay"></div>
-            <div class="play-btn" aria-hidden="true"><i class="fas fa-play"></i></div>
-            <iframe title="Diseño gráfico y branding"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              loading="lazy" allowfullscreen></iframe>
-          </div>
-          <div class="video-info">
-            <span class="video-tag"><i class="fas fa-palette"></i> Diseño</span>
-            <h4>Identidad corporativa completa</h4>
-            <p>Logos, paletas de color y manual de marca para tu empresa.</p>
-          </div>
-        </div>
-
-      </div><!-- /videos-grid -->
+      <!-- Grid de videos — se carga dinámicamente desde /api/settings -->
+      <div class="videos-grid" id="videos-grid-dynamic">
+        <!-- Placeholder de carga -->
+      </div>
 
       <!-- CTA final -->
       <div class="social-cta">
         <p>¿Quieres ver más? Síguenos en nuestras redes y entérate de todo lo que hacemos</p>
         <div class="social-cta-buttons">
           <a href="https://www.youtube.com/@markpublicidad" target="_blank" rel="noopener noreferrer"
-            class="btn btn-primary">
+            class="btn btn-primary" id="cta-youtube-btn">
             <i class="fab fa-youtube"></i> Ver canal completo
           </a>
           <button class="btn btn-secondary" data-nav="contacto">

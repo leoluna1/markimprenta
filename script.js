@@ -907,6 +907,88 @@ function initializeVideoCards() {
     });
 }
 
+// ===== SETTINGS: VIDEOS + REDES SOCIALES =====
+async function loadSettings() {
+  try {
+    const r = await fetch('/api/settings', { cache: 'no-store' });
+    if (!r.ok) return;
+    const settings = await r.json();
+
+    // ── Redes sociales ────────────────────────────
+    const social = settings.socialMedia || {};
+    const socialMap = {
+      youtube:   '#sl-youtube',
+      instagram: '#sl-instagram',
+      tiktok:    '#sl-tiktok',
+      facebook:  '#sl-facebook',
+      whatsapp:  '#sl-whatsapp',
+      twitter:   '#sl-twitter',
+      linkedin:  '#sl-linkedin',
+    };
+    Object.entries(socialMap).forEach(([key, selector]) => {
+      if (social[key]) {
+        const el = document.querySelector(selector);
+        if (el) el.href = social[key];
+      }
+    });
+    if (social.youtube) {
+      const ctaYt = document.getElementById('cta-youtube-btn');
+      if (ctaYt) ctaYt.href = social.youtube;
+    }
+
+    // ── Videos ────────────────────────────────────
+    const videos = (settings.videos || []).filter(v =>
+      v.active !== false &&
+      v.youtubeId &&
+      !v.youtubeId.startsWith('REEMPLAZA')
+    );
+    const grid = document.getElementById('videos-grid-dynamic');
+    if (!grid) return;
+
+    if (!videos.length) { grid.innerHTML = ''; return; }
+
+    grid.innerHTML = videos.map(v => {
+      const thumb      = `https://img.youtube.com/vi/${v.youtubeId}/maxresdefault.jpg`;
+      const thumbFall  = `https://img.youtube.com/vi/${v.youtubeId}/mqdefault.jpg`;
+      const iconClass  = v.tagIcon || 'fa-video';
+      return `
+        <div class="video-card">
+          <div class="video-wrapper" data-id="${v.youtubeId}">
+            <img class="video-thumb" src="${thumb}"
+              onerror="this.src='${thumbFall}'"
+              alt="${escHtmlFront(v.title || '')}">
+            <div class="video-overlay"></div>
+            <button class="play-btn" aria-label="Reproducir">
+              <i class="fab fa-youtube"></i>
+            </button>
+            <iframe title="${escHtmlFront(v.title || '')}"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen></iframe>
+          </div>
+          <div class="video-info">
+            ${v.tag ? `<span class="video-tag"><i class="fas ${iconClass}"></i> ${escHtmlFront(v.tag)}</span>` : ''}
+            <h4>${escHtmlFront(v.title || '')}</h4>
+            ${v.description ? `<p class="video-desc">${escHtmlFront(v.description)}</p>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+
+    initializeVideoCards();
+
+  } catch (e) {
+    console.warn('No se pudo cargar settings:', e);
+  }
+}
+
+function escHtmlFront(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Cargar settings al iniciar
+document.addEventListener('DOMContentLoaded', loadSettings);
+
 // Exponer funciones globalmente
 window.navigateToSection = navigateToSection;
 window.closeProductModal = closeProductModal;

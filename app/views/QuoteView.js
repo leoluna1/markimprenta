@@ -22,6 +22,7 @@ const QS = {
   tab:        'volantes',
   vol:        { model: 'a6-1c', tierIdx: 0, qty: 1000, material: 'couche115', acabado: 'brillante' },
   tarjeta:    'brillo-uv',
+  tarjetaQty: 1000,
   taza:       { tipo: 'Clásica Blanca', tierIdx: 0 },
   granformato:{ tipo: 'banner', sqm: 1, ancho: 1, alto: 1, qty: 1 },
   pop:        { tipo: 'gorras',   tierIdx: 0 },
@@ -89,6 +90,12 @@ export default class QuoteView extends BaseView {
     // ─ Tazas ─
     document.getElementById('taza-tipo')?.addEventListener('change', e => {
       QS.taza.tipo = e.target.value; this._updateResult();
+    });
+
+    // ─ Tarjetas qty ─
+    document.getElementById('tar-qty')?.addEventListener('change', e => {
+      QS.tarjetaQty = parseInt(e.target.value) || 1000;
+      this._updateResult();
     });
 
     // ─ Gran Formato ─
@@ -314,10 +321,9 @@ export default class QuoteView extends BaseView {
             detail: `${t.qty.toLocaleString()} unidades`,
             productName: `Volantes / Flyers`,
             specs: [
-              { label: 'Tamaño',    value: m.dims,              hi: false },
-              { label: 'Modelo',    value: m.label,             hi: false },
-              { label: 'Material',  value: mat,                 hi: false },
-              { label: 'Acabado',   value: aca,                 hi: false },
+              { label: 'Tamaño',    value: m.label.split('·')[0].trim(), hi: false },
+              { label: 'Papel',     value: mat,                 hi: false },
+              { label: 'Terminado', value: aca,                 hi: false },
               { label: 'Cantidad',  value: `${t.qty.toLocaleString()} unidades`, hi: true },
             ],
             stats: [
@@ -336,10 +342,9 @@ export default class QuoteView extends BaseView {
             detail: `$${m.unitPer1000.toFixed(2)} × 1 millar`,
             productName: `Volantes / Flyers`,
             specs: [
-              { label: 'Tamaño',    value: m.dims,                      hi: false },
-              { label: 'Modelo',    value: m.label,                     hi: false },
-              { label: 'Material',  value: mat,                         hi: false },
-              { label: 'Acabado',   value: aca,                         hi: false },
+              { label: 'Tamaño',    value: m.label.split('·')[0].trim(), hi: false },
+              { label: 'Papel',     value: mat,                         hi: false },
+              { label: 'Terminado', value: aca,                         hi: false },
               { label: 'Cantidad',  value: `${qty.toLocaleString()} unidades`, hi: true },
             ],
             stats: [
@@ -353,24 +358,27 @@ export default class QuoteView extends BaseView {
       }
 
       case 'tarjetas': {
-        const t   = PRICING.tarjetas.find(x => x.id === QS.tarjeta);
-        const ppu = t.price / 1000;
+        const t      = PRICING.tarjetas.find(x => x.id === QS.tarjeta);
+        const qty    = QS.tarjetaQty || 1000;
+        const factor = qty / 1000;
+        const total  = t.price * factor;
+        const ppu    = total / qty;
         return {
-          total: t.price,
-          detail: '1000 tarjetas',
+          total,
+          detail: `${qty.toLocaleString()} tarjetas`,
           productName: 'Tarjetas de Presentación',
           specs: [
-            { label: 'Tamaño',    value: '8.5 × 5.2 cm',    hi: false },
-            { label: 'Papel',     value: 'Cartulina Couché 300g', hi: false },
-            { label: 'Acabado',   value: t.label,            hi: false },
-            { label: 'Cantidad',  value: '1,000 tarjetas',   hi: true  },
+            { label: 'Tamaño',    value: '8.5 × 5.2 cm',         hi: false },
+            { label: 'Papel',     value: 'Cartulina Couché 300g',  hi: false },
+            { label: 'Acabado',   value: t.label,                  hi: false },
+            { label: 'Cantidad',  value: `${qty.toLocaleString()} tarjetas`, hi: true },
           ],
           stats: [
             { label: 'Por unidad', value: `$${ppu.toFixed(3)}`, cls: 'blue' },
-            { label: 'Paquete',    value: '1,000 uds.',         cls: '' },
+            { label: 'Cantidad',   value: `${qty.toLocaleString()} uds.`, cls: '' },
           ],
           delivery: DELIVERY.tarjetas,
-          desc: `Tarjetas ${t.label} · 8.5×5.2 cm · Couché 300g · 1000 unidades`,
+          desc: `Tarjetas ${t.label} · 8.5×5.2 cm · Couché 300g · ${qty.toLocaleString()} unidades`,
         };
       }
 
@@ -410,10 +418,9 @@ export default class QuoteView extends BaseView {
             detail: `$${gf.ppm2}/m² × ${sqm.toFixed(2)} m²`,
             productName: gf.label,
             specs: [
-              { label: 'Ancho',     value: `${QS.granformato.ancho.toFixed(2)} m`, hi: false },
-              { label: 'Alto',      value: `${QS.granformato.alto.toFixed(2)} m`,  hi: false },
-              { label: 'Superficie',value: `${sqm.toFixed(2)} m²`,                  hi: true  },
-              { label: 'Precio/m²', value: `$${gf.ppm2}`,                           hi: false },
+              { label: 'Ancho',     value: `${QS.granformato.ancho.toFixed(1)} m`, hi: false },
+              { label: 'Alto',      value: `${QS.granformato.alto.toFixed(1)} m`,  hi: false },
+              { label: 'Superficie',value: `${sqm.toFixed(2)} m²`,                 hi: true  },
             ],
             stats: [
               { label: 'Por m²', value: `$${gf.ppm2}`,           cls: 'blue' },
@@ -573,19 +580,23 @@ export default class QuoteView extends BaseView {
     this._animatePrice(priceVal, r.total);
     priceDetail.textContent = r.detail;
 
-    // ── Stats ──
-    const statsEl = document.getElementById('qrStats');
-    if (statsEl && r.stats?.length) {
-      statsEl.style.display = 'grid';
-      statsEl.innerHTML = r.stats.map(s =>
-        `<div class="qr-stat">
-           <div class="qr-stat-label">${s.label}</div>
-           <div class="qr-stat-value${s.cls ? ' ' + s.cls : ''}">${s.value}</div>
-         </div>`
-      ).join('');
-    } else if (statsEl) {
-      statsEl.style.display = 'none';
+    // ── IVA ──
+    const ivaWrap  = document.getElementById('qIvaWrap');
+    const ivaNote  = document.getElementById('qIvaNote');
+    const ivaAmtEl = document.getElementById('qIvaAmount');
+    const ivaTotal = document.getElementById('qTotalIva');
+    if (ivaWrap) {
+      const iva   = r.total * 0.15;
+      const total = r.total + iva;
+      ivaWrap.style.display  = 'block';
+      if (ivaNote) ivaNote.style.display = 'none';
+      if (ivaAmtEl) ivaAmtEl.textContent = `+$${iva.toFixed(2)}`;
+      if (ivaTotal) ivaTotal.textContent = `$${total.toFixed(2)}`;
     }
+
+    // Stats ocultos — demasiado técnicos para clientes
+    const statsEl = document.getElementById('qrStats');
+    if (statsEl) statsEl.style.display = 'none';
 
     // ── Tiempo de entrega ──
     const delivEl = document.getElementById('qrDelivery');

@@ -427,6 +427,7 @@
         <button type="button" class="pricing-tab" onclick="switchPricingTab('etiquetas',this)"><i class="fas fa-tags"></i> Etiquetas</button>
         <button type="button" class="pricing-tab" onclick="switchPricingTab('packaging',this)"><i class="fas fa-box"></i> Packaging</button>
         <button type="button" class="pricing-tab" onclick="switchPricingTab('diseno',this)"><i class="fas fa-palette"></i> Diseño</button>
+        <button type="button" class="pricing-tab" onclick="switchPricingTab('tiempos',this)"><i class="fas fa-clock"></i> Tiempos</button>
       </div>
 
       <div class="pricing-panel active" id="pp-volantes"></div>
@@ -437,6 +438,7 @@
       <div class="pricing-panel" id="pp-etiquetas"></div>
       <div class="pricing-panel" id="pp-packaging"></div>
       <div class="pricing-panel" id="pp-diseno"></div>
+      <div class="pricing-panel" id="pp-tiempos"></div>
 
       <div class="pricing-save-bar">
         <p><i class="fas fa-info-circle"></i> Al guardar, los cambios se reflejan en el cotizador del sitio inmediatamente.</p>
@@ -1300,11 +1302,16 @@ function renderPricingForms() {
     popCont.innerHTML = Object.entries(p.pop).map(([key, cat]) => `<div class="pricing-card">
       <div class="pricing-card-header"><i class="fas fa-gift"></i> ${escHtml(cat.label)}</div>
       <div class="tier-row header"><span>Cantidad</span><span>Precio c/u ($)</span><span></span></div>
+      <div id="pop-tiers-${key}">
       ${(cat.tiers || []).map((t, i) => `<div class="tier-row">
         <input type="number" class="price-input" step="1" min="1" data-key="pricing.pop.${key}.tiers.${i}.qty" value="${t.qty}">
         <input type="number" class="price-input" step="0.01" min="0" data-key="pricing.pop.${key}.tiers.${i}.ppu" value="${t.ppu}">
-        <span class="pricing-sub">${escHtml(t.label || '')}</span>
+        <button class="btn-icon del" onclick="removeTierRow(this)" title="Eliminar"><i class="fas fa-minus"></i></button>
       </div>`).join('')}
+      </div>
+      <div style="padding:.5rem 1.25rem;">
+        <button class="btn-add-feature" onclick="addTierRow('pricing.pop.${key}.tiers')"><i class="fas fa-plus"></i> Agregar nivel de precio</button>
+      </div>
     </div>`).join('');
   }
 
@@ -1314,11 +1321,16 @@ function renderPricingForms() {
     etqCont.innerHTML = Object.entries(p.etiquetas).map(([key, cat]) => `<div class="pricing-card">
       <div class="pricing-card-header"><i class="fas fa-tags"></i> ${escHtml(cat.label)}</div>
       <div class="tier-row header"><span>Cantidad</span><span>Precio c/u ($)</span><span></span></div>
+      <div id="etq-tiers-${key}">
       ${(cat.tiers || []).map((t, i) => `<div class="tier-row">
         <input type="number" class="price-input" step="1" min="1" data-key="pricing.etiquetas.${key}.tiers.${i}.qty" value="${t.qty}">
         <input type="number" class="price-input" step="0.001" min="0" data-key="pricing.etiquetas.${key}.tiers.${i}.ppu" value="${t.ppu}">
-        <span class="pricing-sub">${escHtml(t.label || '')}</span>
+        <button class="btn-icon del" onclick="removeTierRow(this)" title="Eliminar"><i class="fas fa-minus"></i></button>
       </div>`).join('')}
+      </div>
+      <div style="padding:.5rem 1.25rem;">
+        <button class="btn-add-feature" onclick="addTierRow('pricing.etiquetas.${key}.tiers')"><i class="fas fa-plus"></i> Agregar nivel de precio</button>
+      </div>
     </div>`).join('');
   }
 
@@ -1328,11 +1340,16 @@ function renderPricingForms() {
     pkgCont.innerHTML = Object.entries(p.packaging).map(([key, cat]) => `<div class="pricing-card">
       <div class="pricing-card-header"><i class="fas fa-box"></i> ${escHtml(cat.label)}</div>
       <div class="tier-row header"><span>Cantidad</span><span>Precio c/u ($)</span><span></span></div>
+      <div id="pkg-tiers-${key}">
       ${(cat.tiers || []).map((t, i) => `<div class="tier-row">
         <input type="number" class="price-input" step="1" min="1" data-key="pricing.packaging.${key}.tiers.${i}.qty" value="${t.qty}">
         <input type="number" class="price-input" step="0.01" min="0" data-key="pricing.packaging.${key}.tiers.${i}.ppu" value="${t.ppu}">
-        <span class="pricing-sub">${escHtml(t.label || '')}</span>
+        <button class="btn-icon del" onclick="removeTierRow(this)" title="Eliminar"><i class="fas fa-minus"></i></button>
       </div>`).join('')}
+      </div>
+      <div style="padding:.5rem 1.25rem;">
+        <button class="btn-add-feature" onclick="addTierRow('pricing.packaging.${key}.tiers')"><i class="fas fa-plus"></i> Agregar nivel de precio</button>
+      </div>
     </div>`).join('');
   }
 
@@ -1352,9 +1369,9 @@ function renderPricingForms() {
 
   // ── TIEMPOS DE ENTREGA ──
   const d = pricingData.delivery || {};
-  const delivCont = document.getElementById('pp-diseno');
+  const delivCont = document.getElementById('pp-tiempos');
   if (delivCont) {
-    delivCont.innerHTML += `<div class="pricing-card" style="margin-top:1rem;">
+    delivCont.innerHTML = `<div class="pricing-card">
       <div class="pricing-card-header"><i class="fas fa-clock"></i> Tiempos de entrega por categoría</div>
       <div style="padding:.75rem 1.25rem;display:grid;gap:.625rem;">
         ${[
@@ -1414,6 +1431,39 @@ async function savePricing() {
 
   btn.disabled = false;
   btn.innerHTML = '<i class="fas fa-save"></i> Guardar precios';
+}
+
+// ── Agregar/quitar tiers dinámicos ─────────────────────
+function addTierRow(basePath) {
+  // Encontrar el contenedor padre mirando el botón que llamó
+  // Se llama desde onclick con el basePath directamente
+  // Buscar el div container que tiene tiers con ese basePath
+  const allInputs = document.querySelectorAll(`[data-key^="${basePath}."]`);
+  let maxIdx = -1;
+  allInputs.forEach(el => {
+    const m = el.dataset.key.match(new RegExp(basePath.replace(/\./g, '\\.') + '\\.(\\d+)\\.'));
+    if (m) maxIdx = Math.max(maxIdx, parseInt(m[1]));
+  });
+  const newIdx = maxIdx + 1;
+
+  // Encontrar el div que contiene estos tiers
+  const existing = document.querySelector(`[data-key="${basePath}.0.qty"], [data-key="${basePath}.0.ppu"]`);
+  if (!existing) return;
+  const container = existing.closest('div[id]') || existing.parentElement.parentElement;
+
+  const row = document.createElement('div');
+  row.className = 'tier-row';
+  row.innerHTML = `
+    <input type="number" class="price-input" step="1" min="1" data-key="${basePath}.${newIdx}.qty" placeholder="Cantidad" value="1000">
+    <input type="number" class="price-input" step="0.01" min="0" data-key="${basePath}.${newIdx}.ppu" placeholder="Precio" value="0.00">
+    <button class="btn-icon del" onclick="removeTierRow(this)" title="Eliminar"><i class="fas fa-minus"></i></button>
+  `;
+  container.appendChild(row);
+}
+
+function removeTierRow(btn) {
+  const row = btn.closest('.tier-row');
+  if (row) row.remove();
 }
 
 // ════════════════════════════════════════════

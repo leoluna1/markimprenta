@@ -363,14 +363,14 @@
           <div id="form-volantes" class="qform active">
             <h3 class="qform-title"><i class="fas fa-file-alt"></i> Volantes / Flyers</h3>
             <div class="qfield">
-              <label class="qlabel">Tamaño y caras</label>
+              <label class="qlabel">Tamaño del volante</label>
               <select id="vol-model" class="qselect">
-                <option value="a6-1c">A6 · 1 cara (10.5×14.8 cm)</option>
-                <option value="a6-2c">A6 · 2 caras (10.5×14.8 cm)</option>
-                <option value="a5-1c">A5 · 1 cara (14.8×21 cm)</option>
-                <option value="a5-2c">A5 · 2 caras (14.8×21 cm)</option>
-                <option value="a4-1c">A4 · 1 cara (21×29.7 cm)</option>
-                <option value="a4-2c">A4 · 2 caras (21×29.7 cm)</option>
+                <option value="a6-1c">Pequeño (A6) — impreso por 1 lado</option>
+                <option value="a6-2c">Pequeño (A6) — impreso por 2 lados</option>
+                <option value="a5-1c">Mediano (A5) — impreso por 1 lado</option>
+                <option value="a5-2c">Mediano (A5) — impreso por 2 lados</option>
+                <option value="a4-1c">Grande (A4) — impreso por 1 lado</option>
+                <option value="a4-2c">Grande (A4) — impreso por 2 lados</option>
               </select>
             </div>
             <div id="vol-tiers-wrapper" class="qfield">
@@ -383,18 +383,18 @@
               <small class="qhint" id="vol-price-hint">Precio: $3.00 por cada 1000 unidades</small>
             </div>
             <div class="qfield">
-              <label class="qlabel">Material</label>
+              <label class="qlabel">Tipo de papel</label>
               <select id="vol-material" class="qselect">
-                <option value="couche115">Couché 115g</option>
-                <option value="couche150">Couché 150g</option>
-                <option value="bond90">Bond 90g</option>
+                <option value="couche115">Papel estándar (Couché 115g)</option>
+                <option value="couche150">Papel premium (Couché 150g)</option>
+                <option value="bond90">Papel básico (Bond 90g)</option>
               </select>
             </div>
             <div class="qfield">
-              <label class="qlabel">Acabado</label>
+              <label class="qlabel">Terminado</label>
               <select id="vol-acabado" class="qselect">
-                <option value="brillante">Brillante</option>
-                <option value="mate">Mate</option>
+                <option value="brillante">Brillante (más vivos los colores)</option>
+                <option value="mate">Mate (elegante, sin reflejos)</option>
               </select>
             </div>
           </div>
@@ -402,7 +402,16 @@
           <!-- ═══════════ TARJETAS ═══════════ -->
           <div id="form-tarjetas" class="qform">
             <h3 class="qform-title"><i class="fas fa-id-card"></i> Tarjetas de Presentación</h3>
-            <p class="qhint" style="margin-bottom:1rem;">Precio por paquete de 1000 tarjetas · 8.5×5.2 cm · Cartulina Couché 300g</p>
+            <p class="qhint" style="margin-bottom:1rem;">Tarjetas full color, doble cara, acabado profesional</p>
+            <div class="qfield">
+              <label class="qlabel">Cantidad</label>
+              <select id="tar-qty" class="qselect">
+                <option value="500">500 tarjetas</option>
+                <option value="1000" selected>1.000 tarjetas</option>
+                <option value="2000">2.000 tarjetas</option>
+                <option value="5000">5.000 tarjetas</option>
+              </select>
+            </div>
             <div class="qfield">
               <label class="qlabel">Acabado</label>
               <div id="tarjetas-options" class="qtarjetas-list"></div>
@@ -439,11 +448,11 @@
             <div class="qfield">
               <label class="qlabel">Tipo de producto</label>
               <select id="gf-tipo" class="qselect">
-                <option value="banner">Banners / Lonas (precio por m²)</option>
-                <option value="rollup-lona">Roll Up · Lona mate/brillante</option>
-                <option value="rollup-pet">Roll Up · Pet Banner premium</option>
-                <option value="vinilo">Vinilos Adhesivos (precio por m²)</option>
-                <option value="giganto">Gigantografías (precio por m²)</option>
+                <option value="banner">Banners y Lonas</option>
+                <option value="rollup-lona">Roll Up (lona)</option>
+                <option value="rollup-pet">Roll Up premium</option>
+                <option value="vinilo">Vinilos Adhesivos</option>
+                <option value="giganto">Gigantografías</option>
               </select>
             </div>
             <!-- Dimensiones (para productos por m²) -->
@@ -476,9 +485,9 @@
             <div class="qfield">
               <label class="qlabel">Producto</label>
               <select id="pop-tipo" class="qselect">
-                <option value="gorras">Gorras (bordado o estampado)</option>
-                <option value="agendas">Agendas / Cuadernos (tapa dura o blanda)</option>
-                <option value="esferos">Esferos (con logo impreso)</option>
+                <option value="gorras">Gorras personalizadas</option>
+                <option value="agendas">Agendas y Cuadernos</option>
+                <option value="esferos">Esferos con logo</option>
               </select>
             </div>
             <div class="qfield">
@@ -498,8 +507,8 @@
             <div class="qfield">
               <label class="qlabel">Tipo</label>
               <select id="etiq-tipo" class="qselect">
-                <option value="adhesiva">Etiquetas Adhesivas (papel / polipropileno)</option>
-                <option value="sticker">Stickers / Vinil troquelado</option>
+                <option value="adhesiva">Etiquetas Adhesivas</option>
+                <option value="sticker">Stickers y Vinil</option>
               </select>
             </div>
             <div class="qfield">
@@ -520,8 +529,8 @@
             <div class="qfield">
               <label class="qlabel">Tipo de empaque</label>
               <select id="pack-tipo" class="qselect">
-                <option value="cajas">Cajas Personalizadas (cartón impreso)</option>
-                <option value="bolsas">Bolsas de Papel Kraft</option>
+                <option value="cajas">Cajas Personalizadas</option>
+                <option value="bolsas">Bolsas de Papel</option>
               </select>
             </div>
             <div class="qfield">
@@ -573,7 +582,11 @@
               <div class="qprice-detail" id="qPriceDetail"></div>
               <div class="qprice-label">Precio estimado</div>
               <div class="qprice-value" id="qPriceValue">$0.00</div>
-              <div class="qprice-iva">+ IVA (15%)</div>
+              <div class="qprice-iva-wrap" id="qIvaWrap" style="display:none; margin-top:.5rem;">
+                <div class="qprice-iva-row"><span>IVA (15%)</span><span id="qIvaAmount">+$0.00</span></div>
+                <div class="qprice-iva-total"><span>Total con IVA</span><span id="qTotalIva">$0.00</span></div>
+              </div>
+              <div class="qprice-iva" id="qIvaNote">+ IVA (15%)</div>
             </div>
 
             <!-- Stats: precio/unidad + ahorro -->
@@ -582,7 +595,7 @@
             <!-- Tiempo de entrega -->
             <div class="qr-delivery" id="qrDelivery"></div>
 
-            <p class="qwarning">⚠️ Precio referencial · No incluye IVA · Diseño no incluido (excepto paquetes de diseño)</p>
+            <p class="qwarning">⚠️ Precio referencial · El diseño se cotiza por separado</p>
 
             <a id="qWhatsappBtn" href="#" target="_blank" class="qwa-btn">
               <i class="fab fa-whatsapp"></i> Solicitar por WhatsApp

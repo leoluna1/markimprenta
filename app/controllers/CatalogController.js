@@ -68,6 +68,7 @@ export default class CatalogController {
     });
 
     // Carga inicial desde la API
+    this._view.showSkeleton();
     await this._model.load();
     this._load();
   }
@@ -79,7 +80,8 @@ export default class CatalogController {
     let items = this._model.getByCategory(filter);
     items = this._model.getBySearch(items, search);
     items = this._model.getByPriceRange(items, priceMin, priceMax);
+    const total  = items.length;
     const result = this._model.paginate(items, page, perPage);
-    this._view.renderGrid(result);
+    this._view.renderGrid({ ...result, total });
   }
 }

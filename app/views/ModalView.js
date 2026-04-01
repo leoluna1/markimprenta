@@ -59,13 +59,22 @@ export default class ModalView extends BaseView {
     return `<span style="font-size:4rem;display:block;text-align:center;">${p.image ?? '📦'}</span>`;
   }
 
+  static CATEGORY_LABELS = {
+    'impresion':    { label: 'Impresión',    icon: 'fa-print' },
+    'pop':          { label: 'Material POP', icon: 'fa-gift' },
+    'packaging':    { label: 'Packaging',    icon: 'fa-box' },
+    'etiquetas':    { label: 'Etiquetas',    icon: 'fa-tags' },
+    'diseno':       { label: 'Diseño',       icon: 'fa-palette' },
+    'gran-formato': { label: 'Gran Formato', icon: 'fa-expand-arrows-alt' },
+  };
+
   show(p) {
     if (!this._body || !this.$el) return;
 
     const waUrl = `https://wa.me/593996884150?text=${encodeURIComponent('Hola! Me interesa: ' + p.name + '. ¿Pueden darme información y precio?')}`;
 
     const price = typeof p.price === 'number'
-      ? `Desde $${p.price.toFixed(2)} <small style="font-size:.85rem;font-weight:400;">${this.esc(p.priceUnit ?? '')}</small>`
+      ? `Desde $${p.price.toFixed(2)}<small> ${this.esc(p.priceUnit ?? '')}</small>`
       : this.esc(p.price ?? 'Consultar');
 
     const features = p.features?.length
@@ -75,24 +84,32 @@ export default class ModalView extends BaseView {
       : '';
 
     const minQty = p.minQuantity
-      ? `<p class="modal-min-qty"><i class="fas fa-info-circle"></i> Cantidad mínima: <strong>${p.minQuantity}</strong> ${this.esc(p.priceUnit ?? 'unidades')}</p>`
+      ? `<div class="modal-min-qty"><i class="fas fa-layer-group"></i> Cantidad mínima: <strong>${p.minQuantity}</strong> ${this.esc(p.priceUnit ?? 'unidades')}</div>`
+      : '';
+
+    const catInfo = ModalView.CATEGORY_LABELS[p.category];
+    const catChip = catInfo
+      ? `<span class="modal-cat-chip"><i class="fas ${catInfo.icon}"></i> ${catInfo.label}</span>`
       : '';
 
     this._body.innerHTML = `
       <div class="modal-product">
         <div class="modal-image">${this._imageHTML(p)}</div>
-        <h2>${this.esc(p.name)}</h2>
-        <p class="modal-desc">${this.esc(p.description)}</p>
-        <div class="modal-price-badge">${price}</div>
-        ${features}
-        ${minQty}
-        <div class="modal-actions">
-          <button class="btn btn-primary" data-action="quote">
-            <i class="fas fa-calculator"></i> Cotizar ahora
-          </button>
-          <a class="btn btn-wa-modal" href="${waUrl}" target="_blank" rel="noopener noreferrer">
-            <i class="fab fa-whatsapp"></i> WhatsApp
-          </a>
+        <div class="modal-product-info">
+          ${catChip}
+          <h2 class="modal-product-name">${this.esc(p.name)}</h2>
+          <p class="modal-product-desc">${this.esc(p.description)}</p>
+          <div class="modal-price-badge">${price}</div>
+          ${features}
+          ${minQty}
+          <div class="modal-actions">
+            <button class="btn btn-primary" data-action="quote">
+              <i class="fas fa-calculator"></i> Cotizar ahora
+            </button>
+            <a class="btn btn-wa-modal" href="${waUrl}" target="_blank" rel="noopener noreferrer">
+              <i class="fab fa-whatsapp"></i> WhatsApp
+            </a>
+          </div>
         </div>
       </div>
     `;

@@ -10,8 +10,19 @@ export default class CatalogView extends BaseView {
     super('#catalogo');
     this._grid    = document.getElementById('productsGrid');
     this._pag     = document.getElementById('catalogPagination');
-    this._cardObs = null; // referencia al observer actual para desconectarlo en cada recarga
+    this._count   = document.getElementById('catalogCount');
+    this._cardObs = null;
   }
+
+  // Mapa de categorías a etiquetas legibles
+  static CATEGORY_LABELS = {
+    'impresion':   { label: 'Impresión',    icon: 'fa-print' },
+    'pop':         { label: 'Material POP', icon: 'fa-gift' },
+    'packaging':   { label: 'Packaging',    icon: 'fa-box' },
+    'etiquetas':   { label: 'Etiquetas',    icon: 'fa-tags' },
+    'diseno':      { label: 'Diseño',       icon: 'fa-palette' },
+    'gran-formato':{ label: 'Gran Formato', icon: 'fa-expand-arrows-alt' },
+  };
 
   bind() {
     // Filtros por categoría
@@ -46,7 +57,23 @@ export default class CatalogView extends BaseView {
    * Renderiza el grid con animación de transición.
    * @param {{ items, page, totalPages }} data
    */
-  renderGrid({ items, page, totalPages }) {
+  showSkeleton() {
+    if (!this._grid) return;
+    this._grid.style.opacity   = '1';
+    this._grid.style.transform = 'none';
+    this._grid.innerHTML = Array(6).fill(0).map(() => `
+      <div class="product-card product-skeleton">
+        <div class="skeleton-img"></div>
+        <div class="skeleton-body">
+          <div class="skeleton-line w70"></div>
+          <div class="skeleton-line w90"></div>
+          <div class="skeleton-line w50"></div>
+        </div>
+      </div>`).join('');
+    if (this._count) this._count.textContent = '';
+  }
+
+  renderGrid({ items, page, totalPages, total }) {
     if (!this._grid) return;
 
     // Fade out
@@ -58,6 +85,12 @@ export default class CatalogView extends BaseView {
       this._grid.innerHTML = items.length
         ? items.map((p, i) => this._cardHTML(p, i)).join('')
         : this._emptyHTML();
+
+      // Contador de resultados
+      if (this._count) {
+        const t = total ?? items.length;
+        this._count.textContent = t > 0 ? `${t} producto${t !== 1 ? 's' : ''} encontrado${t !== 1 ? 's' : ''}` : '';
+      }
 
       // Fade in
       requestAnimationFrame(() => {
@@ -96,23 +129,32 @@ export default class CatalogView extends BaseView {
 
   _cardHTML(p, i) {
     const priceText = typeof p.price === 'number'
-      ? `Desde ${p.price.toFixed(2)}`
+      ? `Desde $${p.price.toFixed(2)}`
       : this.esc(p.price ?? 'Consultar');
     const priceUnit = typeof p.price === 'number' && p.priceUnit
-      ? `<span class="price-unit">${this.esc(p.priceUnit)}</span>` : '';
+      ? `<span class="price-unit"> ${this.esc(p.priceUnit)}</span>` : '';
     const badge = p.popular
-      ? `<span class="product-badge">⭐ Popular</span>`
+      ? `<span class="product-badge"><i class="fas fa-star"></i> Popular</span>`
+      : '';
+
+    const catInfo = CatalogView.CATEGORY_LABELS[p.category];
+    const catChip = catInfo
+      ? `<span class="product-cat-chip"><i class="fas ${catInfo.icon}"></i> ${catInfo.label}</span>`
       : '';
 
     return `
       <div class="product-card" data-id="${p.id}" style="animation-delay:${i * 0.07}s">
         ${badge}
-        <div class="product-image">${this._imageHTML(p)}</div>
+        <div class="product-image">
+          ${this._imageHTML(p)}
+          <div class="product-image-overlay"><i class="fas fa-search-plus"></i> Ver detalle</div>
+        </div>
         <div class="product-content">
+          ${catChip}
           <h3>${this.esc(p.name)}</h3>
           <p>${this.esc(p.description)}</p>
           <div class="product-price">
-            <span>${priceText}</span>${priceUnit}
+            <span>${priceText}${priceUnit}</span>
             <span class="view-btn"><i class="fas fa-arrow-right"></i></span>
           </div>
         </div>

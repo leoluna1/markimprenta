@@ -34,13 +34,8 @@ export default class ContactController {
         throw new Error(result.error || 'Error desconocido');
       }
 
-      // Construir mensaje de éxito según qué canales respondieron
-      const channels = [];
-      if (result.results?.email)    channels.push('correo electrónico');
-      if (result.results?.whatsapp) channels.push('WhatsApp');
-
-      const via = channels.length > 0
-        ? `Te contactaremos pronto vía ${channels.join(' y ')}.`
+      const via = result.results?.email
+        ? 'Te responderemos pronto por correo electrónico.'
         : 'Tu mensaje fue recibido. Te contactaremos pronto.';
 
       EventBus.emit('contact:success', {

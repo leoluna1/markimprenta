@@ -3774,3 +3774,21 @@ button:focus-visible {
         border-top: none;
     }
 }
+
+/* ── Fixes móvil adicionales ── */
+@media (max-width: 768px) {
+    /* Filtro de precio: ancho completo en móvil */
+    .catalog-price-filter {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    /* Evitar zoom automático en iOS en los inputs del filtro */
+    .catalog-price-filter input {
+        font-size: 1rem;
+        min-height: 44px;
+        width: 90px;
+    }
+    /* Ocultar flechas del paso a paso del cotizador al envolver */
+    .qstep-arrow { display: none; }
+    .qstep-guide { gap: 0.5rem; }
+}

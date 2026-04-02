@@ -214,15 +214,12 @@ app.post('/api/contact', async (req, res) => {
   }
 
   // ── 3. Responder al cliente inmediatamente ────
-  // No esperamos WhatsApp ni el email de confirmación para responder
-  if (emailOk) {
-    res.json({ success: true, message: '¡Mensaje enviado correctamente!' });
-  } else {
-    res.status(500).json({
-      success: false,
-      error: 'No se pudo enviar el mensaje. Por favor contáctanos directamente por WhatsApp.',
-    });
-  }
+  // El contacto ya fue guardado — respondemos éxito independientemente del email
+  res.json({
+    success: true,
+    message: '¡Mensaje enviado correctamente!',
+    results: { email: emailOk },
+  });
 
   // ── 4. WhatsApp en background (no bloquea) ────
   const waNumber = process.env.WHATSAPP_NUMBER;

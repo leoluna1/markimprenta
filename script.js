@@ -756,18 +756,35 @@ function initializeContact() {
             return;
         }
 
+        e.preventDefault();
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
         submitBtn.disabled = true;
 
-        // Abrir WhatsApp con los datos del formulario
         const phone = document.getElementById('contactPhone') ? document.getElementById('contactPhone').value : '';
-        const msgWA = 'Hola Mark Publicidad!\n\nNombre: ' + name + '\nEmail: ' + email + (phone ? '\nTeléfono: ' + phone : '') + '\n\nMensaje:\n' + document.getElementById('contactMessage').value;
-        setTimeout(() => {
-            window.open('https://wa.me/593996884150?text=' + encodeURIComponent(msgWA), '_blank');
-            submitBtn.innerHTML = '<i class="fas fa-check"></i> Mensaje enviado';
+
+        fetch('/api/contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, phone, message }),
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showContactMessage('¡Mensaje enviado! Te responderemos a la brevedad.', 'success');
+                document.getElementById('contactForm').reset();
+                submitBtn.innerHTML = '<i class="fas fa-check"></i> Enviado';
+            } else {
+                showContactMessage(data.error || 'Error al enviar. Intenta de nuevo.', 'error');
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar mensaje';
+            }
+        })
+        .catch(() => {
+            showContactMessage('Error de conexión. Intenta de nuevo.', 'error');
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar mensaje';
+        })
+        .finally(() => {
             submitBtn.disabled = false;
-            document.getElementById('contactForm').reset();
-        }, 800);
+        });
     });
 }
 

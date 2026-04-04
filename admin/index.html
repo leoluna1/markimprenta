@@ -42,6 +42,9 @@
   .login-error { color:var(--red); font-size:.85rem; margin-bottom:.75rem; display:none; }
   .btn-login { width:100%; padding:.875rem; background:var(--blue); color:white; border:none; border-radius:var(--radius-sm); font-size:1rem; font-weight:500; cursor:pointer; transition:background .2s; }
   .btn-login:hover { background:#005ecb; }
+  .btn-forgot { background:none; border:none; color:var(--muted); font-size:.85rem; cursor:pointer; margin-top:.5rem; text-decoration:underline; }
+  .btn-forgot:hover { color:var(--blue); }
+  .login-success { color:var(--green); font-size:.85rem; margin-bottom:.75rem; display:none; }
 
   /* ── LAYOUT ── */
   #app { display:none; min-height:100vh; }
@@ -324,8 +327,10 @@
     <h1>Mark Publicidad</h1>
     <p>Panel de administración</p>
     <div class="login-error" id="login-error">Contraseña incorrecta</div>
+    <div class="login-success" id="login-success">¡Contraseña enviada al email del admin!</div>
     <input type="password" id="login-pass" placeholder="Contraseña">
     <button class="btn-login" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> Ingresar</button>
+    <button class="btn-forgot" onclick="forgotPassword()">¿Olvidaste la contraseña?</button>
   </div>
 </div>
 
@@ -356,6 +361,9 @@
       </div>
       <div class="nav-item" id="nav-contacts" onclick="showSection('contacts')">
         <i class="fas fa-envelope"></i> Contactos <span id="contacts-badge" style="display:none;background:#E30613;color:#fff;font-size:.65rem;font-weight:700;border-radius:99px;padding:1px 6px;margin-left:auto;"></span>
+      </div>
+      <div class="nav-item" id="nav-security" onclick="showSection('security')">
+        <i class="fas fa-lock"></i> Seguridad
       </div>
       <div class="nav-item" onclick="window.open('/','_blank')">
         <i class="fas fa-external-link-alt"></i> Ver sitio web
@@ -532,6 +540,30 @@
         <button class="btn-save-pricing" onclick="loadContacts()" style="min-width:auto;padding:.5rem 1rem;"><i class="fas fa-sync-alt"></i> Actualizar</button>
       </div>
       <div id="contacts-list" style="display:flex;flex-direction:column;gap:.75rem;margin-top:1rem;"></div>
+    </div>
+
+    <!-- ── SECCIÓN SEGURIDAD ── -->
+    <div class="section-panel" id="section-security">
+      <div class="topbar">
+        <div><h2>Seguridad</h2><div class="sub">Administra la contraseña del panel</div></div>
+      </div>
+      <div style="max-width:480px;margin-top:1.5rem;">
+        <div class="stat-card" style="flex-direction:column;align-items:flex-start;gap:1.25rem;">
+          <div style="display:flex;align-items:center;gap:.75rem;">
+            <div class="stat-icon blue"><i class="fas fa-key"></i></div>
+            <div><div style="font-weight:600;">Cambiar contraseña</div><div style="font-size:.85rem;color:var(--muted);">Mínimo 6 caracteres</div></div>
+          </div>
+          <div style="width:100%;display:flex;flex-direction:column;gap:.75rem;">
+            <input type="password" id="sec-current" placeholder="Contraseña actual" style="width:100%;padding:.75rem 1rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.95rem;font-family:inherit;outline:none;">
+            <input type="password" id="sec-new" placeholder="Nueva contraseña" style="width:100%;padding:.75rem 1rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.95rem;font-family:inherit;outline:none;">
+            <input type="password" id="sec-confirm" placeholder="Confirmar nueva contraseña" style="width:100%;padding:.75rem 1rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.95rem;font-family:inherit;outline:none;">
+            <div id="sec-msg" style="font-size:.85rem;display:none;padding:.5rem .75rem;border-radius:6px;"></div>
+            <button onclick="changePassword()" style="padding:.75rem 1.5rem;background:var(--blue);color:white;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:500;cursor:pointer;align-self:flex-start;">
+              <i class="fas fa-save"></i> Guardar nueva contraseña
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
   </main>
@@ -1946,6 +1978,74 @@ async function persistSettings() {
     if (!r.ok) throw new Error();
   } catch {
     toast('Error guardando en el servidor', 'error');
+  }
+}
+
+// ── Seguridad ─────────────────────────────────
+async function forgotPassword() {
+  const btn = document.querySelector('.btn-forgot');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  const successDiv = document.getElementById('login-success');
+  const errorDiv   = document.getElementById('login-error');
+  successDiv.style.display = 'none';
+  errorDiv.style.display   = 'none';
+  try {
+    const r = await fetch(API + '/api/auth/forgot', { method: 'POST' });
+    const d = await r.json();
+    if (d.success) {
+      successDiv.style.display = 'block';
+      setTimeout(() => { successDiv.style.display = 'none'; }, 5000);
+    } else {
+      errorDiv.textContent   = d.error || 'Error al enviar.';
+      errorDiv.style.display = 'block';
+      setTimeout(() => { errorDiv.style.display = 'none'; errorDiv.textContent = 'Contraseña incorrecta'; }, 5000);
+    }
+  } catch {
+    errorDiv.textContent   = 'Error de conexión.';
+    errorDiv.style.display = 'block';
+    setTimeout(() => { errorDiv.style.display = 'none'; errorDiv.textContent = 'Contraseña incorrecta'; }, 5000);
+  }
+  btn.disabled    = false;
+  btn.textContent = '¿Olvidaste la contraseña?';
+}
+
+async function changePassword() {
+  const current  = document.getElementById('sec-current').value;
+  const newPass  = document.getElementById('sec-new').value;
+  const confirm  = document.getElementById('sec-confirm').value;
+  const msgEl    = document.getElementById('sec-msg');
+
+  const show = (msg, ok) => {
+    msgEl.textContent = msg;
+    msgEl.style.display = 'block';
+    msgEl.style.background = ok ? 'var(--green-light)' : 'var(--red-light)';
+    msgEl.style.color      = ok ? 'var(--green)'       : 'var(--red)';
+  };
+
+  if (!current || !newPass || !confirm) return show('Completa todos los campos.', false);
+  if (newPass !== confirm)              return show('Las contraseñas no coinciden.', false);
+  if (newPass.length < 6)              return show('Mínimo 6 caracteres.', false);
+
+  try {
+    const r = await fetch(API + '/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+      body: JSON.stringify({ currentPassword: current, newPassword: newPass }),
+    });
+    const d = await r.json();
+    if (d.success) {
+      token = newPass;
+      sessionStorage.setItem('adminToken', newPass);
+      show('¡Contraseña actualizada correctamente!', true);
+      document.getElementById('sec-current').value = '';
+      document.getElementById('sec-new').value     = '';
+      document.getElementById('sec-confirm').value = '';
+    } else {
+      show(d.error || 'Error al cambiar la contraseña.', false);
+    }
+  } catch {
+    show('Error de conexión.', false);
   }
 }
 </script>

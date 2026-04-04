@@ -20,9 +20,20 @@ const DATA_FILE      = path.join(__dirname, 'data', 'products.json');
 const PRICING_FILE   = path.join(__dirname, 'data', 'pricing.json');
 const SETTINGS_FILE  = path.join(__dirname, 'data', 'settings.json');
 const CONTACTS_FILE  = path.join(__dirname, 'data', 'contacts.json');
+const AUTH_FILE      = path.join(__dirname, 'data', 'auth.json');
 const UPLOADS_DIR    = path.join(__dirname, 'uploads');
 const VIDEOS_DIR     = path.join(__dirname, 'uploads', 'videos');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'mark2024';
+
+function getAdminPassword() {
+  try {
+    if (fs.existsSync(AUTH_FILE)) {
+      const { password } = JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8'));
+      if (password) return password;
+    }
+  } catch {}
+  return ADMIN_PASSWORD;
+}
 
 // ── Crear carpeta uploads si no existe ────────
 // En Railway el sistema de archivos es efímero, pero la carpeta debe existir
@@ -118,7 +129,7 @@ function writeContacts(data) {
   fs.writeFileSync(CONTACTS_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
 function authenticate(req, res, next) {
-  if (req.headers['x-admin-token'] !== ADMIN_PASSWORD)
+  if (req.headers['x-admin-token'] !== getAdminPassword())
     return res.status(401).json({ error: 'No autorizado' });
   next();
 }
@@ -129,9 +140,53 @@ function authenticate(req, res, next) {
 
 // ── Auth ──────────────────────────────────────
 app.post('/api/auth', (req, res) => {
-  req.body.password === ADMIN_PASSWORD
-    ? res.json({ token: ADMIN_PASSWORD, success: true })
+  const pwd = getAdminPassword();
+  req.body.password === pwd
+    ? res.json({ token: pwd, success: true })
     : res.status(401).json({ error: 'Contraseña incorrecta' });
+});
+
+app.post('/api/auth/forgot', async (req, res) => {
+  const transport = createMailTransport();
+  if (!transport) return res.status(503).json({ error: 'Email no configurado en el servidor.' });
+  const pwd = getAdminPassword();
+  try {
+    await transport.sendMail({
+      from:    `"Mark Publicidad Admin" <${process.env.GMAIL_USER}>`,
+      to:      process.env.GMAIL_USER,
+      subject: '🔑 Contraseña del panel admin — Mark Publicidad',
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
+          <div style="background:#E30613;padding:24px 32px;border-radius:12px 12px 0 0;">
+            <h2 style="color:white;margin:0;">🔑 Recuperación de contraseña</h2>
+          </div>
+          <div style="background:#fff;padding:32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
+            <p>La contraseña actual del panel admin es:</p>
+            <div style="background:#f3f4f6;padding:16px;border-radius:8px;font-size:1.4rem;font-weight:700;letter-spacing:2px;text-align:center;margin:1rem 0;">${pwd}</div>
+            <p style="color:#6b7280;font-size:.85rem;">Si no solicitaste esto, ignora este mensaje.</p>
+          </div>
+        </div>
+      `,
+    });
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[Auth] Error enviando email de recuperación:', e.message);
+    res.status(500).json({ error: 'Error enviando el email.' });
+  }
+});
+
+app.post('/api/auth/change-password', authenticate, (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (currentPassword !== getAdminPassword())
+    return res.status(401).json({ error: 'La contraseña actual es incorrecta.' });
+  if (!newPassword || newPassword.length < 6)
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
+  try {
+    fs.writeFileSync(AUTH_FILE, JSON.stringify({ password: newPassword }, null, 2), 'utf8');
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Error guardando la contraseña.' });
+  }
 });
 
 // ── Contacto ──────────────────────────────────

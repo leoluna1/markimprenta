@@ -600,7 +600,6 @@
 <script>
 // ── Contactos ──────────────────────────────────
 async function loadContacts() {
-  const token = localStorage.getItem('adminToken');
   const list  = document.getElementById('contacts-list');
   const badge = document.getElementById('contacts-badge');
   try {
@@ -642,14 +641,12 @@ async function loadContacts() {
 }
 
 async function markRead(id) {
-  const token = localStorage.getItem('adminToken');
   await fetch(`/api/contacts/${id}/read`, { method: 'PATCH', headers: { 'x-admin-token': token } });
   loadContacts();
 }
 
 async function deleteContact(id) {
   if (!confirm('¿Eliminar este mensaje?')) return;
-  const token = localStorage.getItem('adminToken');
   await fetch(`/api/contacts/${id}`, { method: 'DELETE', headers: { 'x-admin-token': token } });
   document.getElementById(`contact-${id}`)?.remove();
 }

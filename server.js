@@ -5,13 +5,16 @@
 
 require('dotenv').config();
 
-const express    = require('express');
-const fs         = require('fs');
-const path       = require('path');
-const cors       = require('cors');
-const multer     = require('multer');
-const nodemailer = require('nodemailer');
-const https      = require('https');
+const express      = require('express');
+const fs           = require('fs');
+const path         = require('path');
+const cors         = require('cors');
+const multer       = require('multer');
+const nodemailer   = require('nodemailer');
+const https        = require('https');
+const helmet       = require('helmet');
+const rateLimit    = require('express-rate-limit');
+const crypto       = require('crypto');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -93,9 +96,59 @@ async function sendWhatsApp(number, apikey, message) {
   });
 }
 
+// ── Sesiones activas (token → expiry) ─────────
+const activeSessions = new Map();
+const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 horas
+
+function createSession() {
+  const token = crypto.randomBytes(32).toString('hex');
+  activeSessions.set(token, Date.now() + SESSION_TTL_MS);
+  return token;
+}
+function isValidSession(token) {
+  if (!token || !activeSessions.has(token)) return false;
+  if (Date.now() > activeSessions.get(token)) { activeSessions.delete(token); return false; }
+  return true;
+}
+// Limpiar sesiones expiradas cada hora
+setInterval(() => {
+  const now = Date.now();
+  for (const [t, exp] of activeSessions) if (now > exp) activeSessions.delete(t);
+}, 60 * 60 * 1000);
+
+// ── Rate limiters ─────────────────────────────
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 10,                   // máx 10 intentos de login
+  message: { error: 'Demasiados intentos. Espera 15 minutos.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const contactLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 10,                   // máx 10 mensajes por IP por hora
+  message: { error: 'Demasiados mensajes enviados. Intenta más tarde.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // ── Middleware ────────────────────────────────
-app.use(express.json());
-app.use(cors());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc:  ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "cdn.jsdelivr.net"],
+      styleSrc:   ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "fonts.googleapis.com", "cdn.jsdelivr.net"],
+      fontSrc:    ["'self'", "fonts.gstatic.com", "cdnjs.cloudflare.com"],
+      imgSrc:     ["'self'", "data:", "blob:", "*.ytimg.com", "i.ytimg.com"],
+      frameSrc:   ["'self'", "www.youtube.com", "youtube.com"],
+      connectSrc: ["'self'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+app.use(express.json({ limit: '2mb' }));
+app.use(cors({ origin: false })); // solo mismo origen
 app.use(express.static(__dirname));
 app.use('/uploads', express.static(UPLOADS_DIR));
 app.use('/uploads/videos', express.static(VIDEOS_DIR));
@@ -129,7 +182,7 @@ function writeContacts(data) {
   fs.writeFileSync(CONTACTS_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
 function authenticate(req, res, next) {
-  if (req.headers['x-admin-token'] !== getAdminPassword())
+  if (!isValidSession(req.headers['x-admin-token']))
     return res.status(401).json({ error: 'No autorizado' });
   next();
 }
@@ -139,11 +192,11 @@ function authenticate(req, res, next) {
 // ════════════════════════════════════════════
 
 // ── Auth ──────────────────────────────────────
-app.post('/api/auth', (req, res) => {
+app.post('/api/auth', authLimiter, (req, res) => {
   const pwd = getAdminPassword();
-  req.body.password === pwd
-    ? res.json({ token: pwd, success: true })
-    : res.status(401).json({ error: 'Contraseña incorrecta' });
+  if (req.body.password !== pwd)
+    return res.status(401).json({ error: 'Contraseña incorrecta' });
+  res.json({ token: createSession(), success: true });
 });
 
 app.post('/api/auth/forgot', async (req, res) => {
@@ -183,14 +236,17 @@ app.post('/api/auth/change-password', authenticate, (req, res) => {
     return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
   try {
     fs.writeFileSync(AUTH_FILE, JSON.stringify({ password: newPassword }, null, 2), 'utf8');
-    res.json({ success: true });
+    // Invalidar todas las sesiones antiguas y crear una nueva
+    activeSessions.clear();
+    const newToken = createSession();
+    res.json({ success: true, token: newToken });
   } catch (e) {
     res.status(500).json({ error: 'Error guardando la contraseña.' });
   }
 });
 
 // ── Contacto ──────────────────────────────────
-app.post('/api/contact', async (req, res) => {
+app.post('/api/contact', contactLimiter, async (req, res) => {
   const { name, email, phone, message } = req.body;
 
   // Validación básica
@@ -489,7 +545,6 @@ app.listen(PORT, () => {
   console.log('  ✅  Servidor Mark Publicidad corriendo');
   console.log(`  🌐  Sitio web:    http://localhost:${PORT}`);
   console.log(`  🔧  Panel admin:  http://localhost:${PORT}/admin`);
-  console.log(`  🔑  Contraseña:   ${ADMIN_PASSWORD}`);
   console.log('');
   console.log(`  📧  Email:        ${emailOk ? '✅ Configurado (' + process.env.GMAIL_USER + ')' : '⚠️  Pendiente — configura GMAIL_USER y GMAIL_PASS en .env'}`);
   console.log(`  💬  WhatsApp:     ${waOk    ? '✅ Configurado (+' + process.env.WHATSAPP_NUMBER + ')' : '⚠️  Pendiente — configura WHATSAPP_NUMBER y WHATSAPP_APIKEY en .env'}`);

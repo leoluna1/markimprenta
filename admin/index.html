@@ -598,6 +598,11 @@
 </div>
 
 <script>
+// ── Utilidad: escapar HTML para prevenir XSS ───
+function esc(str) {
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 // ── Contactos ──────────────────────────────────
 async function loadContacts() {
   const list  = document.getElementById('contacts-list');
@@ -616,23 +621,23 @@ async function loadContacts() {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
           <div style="flex:1;min-width:0;">
             <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
-              <strong style="font-size:.95rem;">${c.name}</strong>
+              <strong style="font-size:.95rem;">${esc(c.name)}</strong>
               ${!c.read ? '<span style="background:#E30613;color:#fff;font-size:.62rem;font-weight:700;border-radius:99px;padding:1px 7px;letter-spacing:.3px;">NUEVO</span>' : '<span style="font-size:.72rem;color:var(--muted);">Leído</span>'}
             </div>
             <div style="font-size:.82rem;color:var(--muted);margin-top:3px;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;">
-              <a href="mailto:${c.email}" style="color:var(--blue);">${c.email}</a>
-              ${c.phone ? `<span>·</span><a href="tel:${c.phone}" style="color:var(--muted);">${c.phone}</a>` : ''}
+              <a href="mailto:${esc(c.email)}" style="color:var(--blue);">${esc(c.email)}</a>
+              ${c.phone ? `<span>·</span><a href="tel:${esc(c.phone)}" style="color:var(--muted);">${esc(c.phone)}</a>` : ''}
               <span>·</span><span>${new Date(c.date).toLocaleString('es-EC')}</span>
             </div>
           </div>
           <div style="display:flex;gap:.5rem;flex-shrink:0;flex-wrap:wrap;align-items:center;">
-            ${c.phone ? `<a href="https://wa.me/${c.phone.replace(/\D/g,'')}" target="_blank" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid #25d366;border-radius:6px;background:transparent;cursor:pointer;color:#25d366;text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : ''}
-            <a href="mailto:${c.email}" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid var(--blue);border-radius:6px;background:transparent;color:var(--blue);text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;"><i class="fas fa-reply"></i> Email</a>
+            ${c.phone ? `<a href="https://wa.me/${esc(c.phone.replace(/\D/g,''))}" target="_blank" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid #25d366;border-radius:6px;background:transparent;cursor:pointer;color:#25d366;text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : ''}
+            <a href="mailto:${esc(c.email)}" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid var(--blue);border-radius:6px;background:transparent;color:var(--blue);text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;"><i class="fas fa-reply"></i> Email</a>
             ${!c.read ? `<button onclick="markRead(${c.id})" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid var(--border);border-radius:6px;background:transparent;cursor:pointer;color:var(--text);font-family:inherit;"><i class="fas fa-check"></i> Leído</button>` : ''}
             <button onclick="deleteContact(${c.id})" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid #fca5a5;border-radius:6px;background:transparent;cursor:pointer;color:#dc2626;font-family:inherit;"><i class="fas fa-trash"></i></button>
           </div>
         </div>
-        <div style="margin:1rem 0 0;padding:1rem;background:var(--bg);border-radius:8px;font-size:.9rem;line-height:1.65;white-space:pre-wrap;color:var(--text);">${c.message}</div>
+        <div style="margin:1rem 0 0;padding:1rem;background:var(--bg);border-radius:8px;font-size:.9rem;line-height:1.65;white-space:pre-wrap;color:var(--text);">${esc(c.message)}</div>
       </div>
     `).join('');
   } catch {
@@ -2094,8 +2099,8 @@ async function changePassword() {
     });
     const d = await r.json();
     if (d.success) {
-      token = newPass;
-      sessionStorage.setItem('adminToken', newPass);
+      token = d.token;
+      sessionStorage.setItem('adminToken', d.token);
       show('¡Contraseña actualizada correctamente!', true);
       document.getElementById('sec-current').value = '';
       document.getElementById('sec-new').value     = '';

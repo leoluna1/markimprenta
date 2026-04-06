@@ -134,8 +134,11 @@ const contactLimiter = rateLimit({
 
 // ── Middleware ────────────────────────────────
 app.use(helmet({
-  contentSecurityPolicy: false,   // inline scripts en el frontend lo hacen incompatible
+  contentSecurityPolicy: false,        // inline scripts en el frontend lo hacen incompatible
   crossOriginEmbedderPolicy: false,
+  strictTransportSecurity: false,      // no forzar HTTPS en red local
+  crossOriginResourcePolicy: false,    // permitir carga de fuentes/CDN externos
+  crossOriginOpenerPolicy: false,
 }));
 app.use(express.json({ limit: '2mb' }));
 app.use(cors({ origin: false })); // solo mismo origen

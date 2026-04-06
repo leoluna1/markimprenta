@@ -134,17 +134,7 @@ const contactLimiter = rateLimit({
 
 // ── Middleware ────────────────────────────────
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc:  ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "cdn.jsdelivr.net"],
-      styleSrc:   ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "fonts.googleapis.com", "cdn.jsdelivr.net"],
-      fontSrc:    ["'self'", "fonts.gstatic.com", "cdnjs.cloudflare.com"],
-      imgSrc:     ["'self'", "data:", "blob:", "*.ytimg.com", "i.ytimg.com"],
-      frameSrc:   ["'self'", "www.youtube.com", "youtube.com"],
-      connectSrc: ["'self'"],
-    },
-  },
+  contentSecurityPolicy: false,   // inline scripts en el frontend lo hacen incompatible
   crossOriginEmbedderPolicy: false,
 }));
 app.use(express.json({ limit: '2mb' }));

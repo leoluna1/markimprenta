@@ -75,7 +75,7 @@
   .topbar .sub { font-size:.875rem; color:var(--muted); margin-top:.15rem; }
 
   /* ── STATS ── */
-  .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:2rem; }
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1rem; margin-bottom:2rem; }
   .stat-card { background:var(--surface); border-radius:var(--radius); padding:1.25rem; display:flex; align-items:center; gap:1rem; }
   .stat-icon { width:44px; height:44px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
   .stat-icon.blue   { background:var(--blue-light);   color:var(--blue); }
@@ -264,8 +264,28 @@
   .btn-confirm-cancel { flex:1; padding:.625rem; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; font-size:.9rem; font-family:inherit; }
   .btn-confirm-delete { flex:1; padding:.625rem; background:var(--red); color:white; border:none; border-radius:var(--radius-sm); cursor:pointer; font-size:.9rem; font-weight:500; font-family:inherit; }
 
-  @media (max-width:900px) { .sidebar { width:200px; } .main-content { margin-left:200px; } .stats-grid { grid-template-columns:repeat(2,1fr); } }
-  @media (max-width:640px) { .sidebar { display:none; } .main-content { margin-left:0; } .form-grid { grid-template-columns:1fr; } }
+  @media (max-width:900px) { .sidebar { width:200px; } .main-content { margin-left:200px; } }
+
+  /* ── Mobile sidebar ── */
+  .sidebar-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:99; opacity:0; pointer-events:none; transition:opacity .25s; }
+  .sidebar-overlay.open { opacity:1; pointer-events:all; }
+  .mob-header { display:none; align-items:center; gap:.75rem; padding:.875rem 1.25rem; background:var(--surface); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:98; }
+  .mob-header .mob-title { font-size:.9rem; font-weight:600; flex:1; }
+  .mob-ham { display:flex; align-items:center; justify-content:center; width:36px; height:36px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg); cursor:pointer; color:var(--text); font-size:.95rem; flex-shrink:0; }
+  .mob-ham:hover { background:var(--blue-light); color:var(--blue); border-color:var(--blue); }
+  @media (max-width:640px) {
+    .mob-header { display:flex; }
+    .sidebar { transform:translateX(-100%); transition:transform .25s ease; z-index:100; }
+    .sidebar.open { transform:translateX(0); box-shadow:8px 0 28px rgba(0,0,0,.18); }
+    .main-content { margin-left:0; padding:0; }
+    .main-content > .section-panel { padding:1.25rem; }
+    .form-grid { grid-template-columns:1fr; }
+    .topbar { flex-wrap:wrap; }
+    .topbar h2 { font-size:1.2rem; }
+    .pricing-tabs { overflow-x:auto; flex-wrap:nowrap; padding-bottom:.35rem; scrollbar-width:none; }
+    .pricing-tabs::-webkit-scrollbar { display:none; }
+    .pricing-tab { white-space:nowrap; flex-shrink:0; }
+  }
 
   /* ── VIDEOS SECTION ── */
   .videos-admin-grid { display:grid; gap:1rem; margin-top:1rem; }
@@ -336,7 +356,8 @@
 
 <!-- ══════════ APP ══════════ -->
 <div id="app">
-  <aside class="sidebar">
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="logo">
         <div class="logo-icon"><i class="fas fa-print"></i></div>
@@ -376,6 +397,12 @@
 
   <main class="main-content">
 
+    <!-- Mobile header -->
+    <div class="mob-header">
+      <button class="mob-ham" onclick="toggleSidebar()" aria-label="Menú"><i class="fas fa-bars"></i></button>
+      <span class="mob-title">Mark Publicidad · Admin</span>
+    </div>
+
     <!-- ── SECCIÓN PRODUCTOS ── -->
     <div class="section-panel active" id="section-products">
       <div class="topbar">
@@ -386,6 +413,7 @@
         <div class="stat-card"><div class="stat-icon green"><i class="fas fa-star"></i></div><div><div class="stat-value" id="st-popular">—</div><div class="stat-label">Populares</div></div></div>
         <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-tags"></i></div><div><div class="stat-value" id="st-cats">—</div><div class="stat-label">Categorías</div></div></div>
         <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-dollar-sign"></i></div><div><div class="stat-value" id="st-avg">—</div><div class="stat-label">Precio promedio</div></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#fff0ef;color:#ff3b30;"><i class="fas fa-envelope"></i></div><div><div class="stat-value" id="st-messages">—</div><div class="stat-label">Mensajes nuevos</div></div></div>
       </div>
       <div class="toolbar">
         <div class="search-box"><i class="fas fa-search"></i><input type="text" id="search-input" placeholder="Buscar producto..." oninput="renderTable()"></div>
@@ -585,22 +613,27 @@ async function loadContacts() {
     if (badge) { badge.textContent = unread || ''; badge.style.display = unread ? 'inline' : 'none'; }
 
     list.innerHTML = data.map(c => `
-      <div id="contact-${c.id}" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.25rem 1.5rem;${!c.read ? 'border-left:3px solid #E30613;' : ''}">
+      <div id="contact-${c.id}" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;${!c.read ? 'border-left:3px solid #E30613;' : ''}transition:box-shadow .15s;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
-          <div>
-            <strong>${c.name}</strong>${!c.read ? ' <span style="background:#E30613;color:#fff;font-size:.65rem;font-weight:700;border-radius:99px;padding:1px 6px;">Nuevo</span>' : ''}
-            <div style="font-size:.82rem;color:var(--muted);margin-top:2px;">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+              <strong style="font-size:.95rem;">${c.name}</strong>
+              ${!c.read ? '<span style="background:#E30613;color:#fff;font-size:.62rem;font-weight:700;border-radius:99px;padding:1px 7px;letter-spacing:.3px;">NUEVO</span>' : '<span style="font-size:.72rem;color:var(--muted);">Leído</span>'}
+            </div>
+            <div style="font-size:.82rem;color:var(--muted);margin-top:3px;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;">
               <a href="mailto:${c.email}" style="color:var(--blue);">${c.email}</a>
-              ${c.phone ? ` · ${c.phone}` : ''}
-              · ${new Date(c.date).toLocaleString('es-EC')}
+              ${c.phone ? `<span>·</span><a href="tel:${c.phone}" style="color:var(--muted);">${c.phone}</a>` : ''}
+              <span>·</span><span>${new Date(c.date).toLocaleString('es-EC')}</span>
             </div>
           </div>
-          <div style="display:flex;gap:.5rem;flex-shrink:0;">
-            ${!c.read ? `<button onclick="markRead(${c.id})" style="font-size:.75rem;padding:.3rem .7rem;border:1px solid var(--border);border-radius:6px;background:transparent;cursor:pointer;color:var(--text);">Marcar leído</button>` : ''}
-            <button onclick="deleteContact(${c.id})" style="font-size:.75rem;padding:.3rem .7rem;border:1px solid #fca5a5;border-radius:6px;background:transparent;cursor:pointer;color:#dc2626;">Eliminar</button>
+          <div style="display:flex;gap:.5rem;flex-shrink:0;flex-wrap:wrap;align-items:center;">
+            ${c.phone ? `<a href="https://wa.me/${c.phone.replace(/\D/g,'')}" target="_blank" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid #25d366;border-radius:6px;background:transparent;cursor:pointer;color:#25d366;text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : ''}
+            <a href="mailto:${c.email}" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid var(--blue);border-radius:6px;background:transparent;color:var(--blue);text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;"><i class="fas fa-reply"></i> Email</a>
+            ${!c.read ? `<button onclick="markRead(${c.id})" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid var(--border);border-radius:6px;background:transparent;cursor:pointer;color:var(--text);font-family:inherit;"><i class="fas fa-check"></i> Leído</button>` : ''}
+            <button onclick="deleteContact(${c.id})" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid #fca5a5;border-radius:6px;background:transparent;cursor:pointer;color:#dc2626;font-family:inherit;"><i class="fas fa-trash"></i></button>
           </div>
         </div>
-        <p style="margin:1rem 0 0;font-size:.9rem;line-height:1.6;white-space:pre-wrap;">${c.message}</p>
+        <div style="margin:1rem 0 0;padding:1rem;background:var(--bg);border-radius:8px;font-size:.9rem;line-height:1.65;white-space:pre-wrap;color:var(--text);">${c.message}</div>
       </div>
     `).join('');
   } catch {
@@ -904,6 +937,33 @@ async function showApp() {
   document.getElementById('app').style.display = 'block';
   await loadProducts();
   await loadGallery();
+  loadContactsStats();
+}
+
+// ── Hamburger sidebar (mobile) ──────────────────
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+// ── Stats de mensajes en dashboard ─────────────
+async function loadContactsStats() {
+  try {
+    const r = await fetch('/api/contacts', { headers: { 'x-admin-token': token } });
+    const data = await r.json();
+    if (!Array.isArray(data)) return;
+    const unread = data.filter(c => !c.read).length;
+    const el = document.getElementById('st-messages');
+    if (el) el.textContent = unread;
+    const badge = document.getElementById('contacts-badge');
+    if (badge) { badge.textContent = unread || ''; badge.style.display = unread ? 'inline' : 'none'; }
+  } catch {}
 }
 
 // ── Navegación secciones ──────────────────────
@@ -918,6 +978,8 @@ function showSection(name) {
   if (name === 'pricing') loadPricing();
   if (name === 'videos') loadVideos();
   if (name === 'social') loadSocialMedia();
+  // Cerrar sidebar en móvil al navegar
+  closeSidebar();
 }
 
 // ── Productos ─────────────────────────────────

@@ -380,6 +380,9 @@
       <div class="nav-item" id="nav-social" onclick="showSection('social')">
         <i class="fas fa-share-alt"></i> Redes Sociales
       </div>
+      <div class="nav-item" id="nav-reviews" onclick="showSection('reviews')">
+        <i class="fas fa-star"></i> Reseñas <span id="reviews-badge" style="display:none;margin-left:auto;background:var(--orange);color:white;border-radius:99px;font-size:.7rem;padding:2px 7px;font-weight:600;"></span>
+      </div>
       <div class="nav-item" id="nav-contacts" onclick="showSection('contacts')">
         <i class="fas fa-envelope"></i> Contactos <span id="contacts-badge" style="display:none;background:#E30613;color:#fff;font-size:.65rem;font-weight:700;border-radius:99px;padding:1px 6px;margin-left:auto;"></span>
       </div>
@@ -570,6 +573,15 @@
       <div id="contacts-list" style="display:flex;flex-direction:column;gap:.75rem;margin-top:1rem;"></div>
     </div>
 
+    <!-- ── SECCIÓN RESEÑAS ── -->
+    <div class="section-panel" id="section-reviews">
+      <div class="topbar">
+        <div><h2>Reseñas de clientes</h2><div class="sub">Aprueba o elimina las reseñas enviadas desde el sitio web</div></div>
+        <button class="btn-save-pricing" onclick="loadReviewsAdmin()" style="min-width:auto;padding:.5rem 1rem;"><i class="fas fa-sync-alt"></i> Actualizar</button>
+      </div>
+      <div id="reviews-admin-list" style="display:flex;flex-direction:column;gap:.75rem;margin-top:1rem;"></div>
+    </div>
+
     <!-- ── SECCIÓN SEGURIDAD ── -->
     <div class="section-panel" id="section-security">
       <div class="topbar">
@@ -656,12 +668,6 @@ async function deleteContact(id) {
   document.getElementById(`contact-${id}`)?.remove();
 }
 
-// Cargar contactos cuando se abre la sección
-const _origShowSection = window.showSection;
-window.showSection = function(sec) {
-  _origShowSection(sec);
-  if (sec === 'contacts') loadContacts();
-};
 </script>
 
 <!-- ══════════ MODAL PRODUCTO ══════════ -->
@@ -940,6 +946,7 @@ async function showApp() {
   await loadProducts();
   await loadGallery();
   loadContactsStats();
+  loadReviewsBadge();
 }
 
 // ── Hamburger sidebar (mobile) ──────────────────
@@ -968,6 +975,68 @@ async function loadContactsStats() {
   } catch {}
 }
 
+async function loadReviewsBadge() {
+  try {
+    const r = await fetch('/api/reviews/all', { headers: { 'x-admin-token': token } });
+    const data = await r.json();
+    if (!Array.isArray(data)) return;
+    const pending = data.filter(x => !x.approved).length;
+    const badge = document.getElementById('reviews-badge');
+    if (badge) { badge.textContent = pending || ''; badge.style.display = pending ? 'inline' : 'none'; }
+  } catch(e) {}
+}
+
+async function loadReviewsAdmin() {
+  const list  = document.getElementById('reviews-admin-list');
+  const badge = document.getElementById('reviews-badge');
+  if (!list) return;
+  try {
+    const res  = await fetch('/api/reviews/all', { headers: { 'x-admin-token': token } });
+    const data = await res.json();
+    if (!Array.isArray(data)) { list.innerHTML = '<p style="color:var(--muted)">Error al cargar reseñas.</p>'; return; }
+    if (data.length === 0) { list.innerHTML = '<p style="color:var(--muted);padding:2rem;text-align:center;">No hay reseñas aún.</p>'; return; }
+
+    const pending = data.filter(r => !r.approved).length;
+    if (badge) { badge.textContent = pending || ''; badge.style.display = pending ? 'inline' : 'none'; }
+
+    const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+    list.innerHTML = data.map(r => `
+      <div id="review-${r.id}" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;${!r.approved ? 'border-left:3px solid var(--orange);' : 'border-left:3px solid var(--green);'}transition:box-shadow .15s;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+              <strong style="font-size:.95rem;">${esc(r.name)}</strong>
+              <span style="color:#f9a825;letter-spacing:1px;">${stars(r.rating)}</span>
+              ${!r.approved
+                ? '<span style="background:var(--orange);color:#fff;font-size:.62rem;font-weight:700;border-radius:99px;padding:1px 7px;">PENDIENTE</span>'
+                : '<span style="background:var(--green);color:#fff;font-size:.62rem;font-weight:700;border-radius:99px;padding:1px 7px;">APROBADA</span>'}
+            </div>
+            <div style="font-size:.8rem;color:var(--muted);margin-top:3px;">${new Date(r.date).toLocaleString('es-EC')}</div>
+          </div>
+          <div style="display:flex;gap:.5rem;flex-shrink:0;">
+            ${!r.approved ? '<button onclick="approveReview(' + r.id + ')" style="font-size:.75rem;padding:.35rem .85rem;border:1px solid var(--green);border-radius:6px;background:transparent;cursor:pointer;color:var(--green);font-family:inherit;"><i class=\'fas fa-check\'></i> Aprobar</button>' : ''}
+            <button onclick="deleteReview(${r.id})" style="font-size:.75rem;padding:.35rem .85rem;border:1px solid #fca5a5;border-radius:6px;background:transparent;cursor:pointer;color:#dc2626;font-family:inherit;"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+        <div style="margin:.75rem 0 0;padding:1rem;background:var(--bg);border-radius:8px;font-size:.9rem;line-height:1.65;white-space:pre-wrap;font-style:italic;color:var(--text);">"${esc(r.comment)}"</div>
+      </div>
+    `).join('');
+  } catch(e) {
+    list.innerHTML = '<p style="color:var(--muted)">Error: ' + e.message + '</p>';
+  }
+}
+
+async function approveReview(id) {
+  await fetch('/api/reviews/' + id + '/approve', { method: 'PATCH', headers: { 'x-admin-token': token } });
+  loadReviewsAdmin();
+}
+
+async function deleteReview(id) {
+  if (!confirm('¿Eliminar esta reseña?')) return;
+  await fetch('/api/reviews/' + id, { method: 'DELETE', headers: { 'x-admin-token': token } });
+  loadReviewsAdmin();
+}
+
 // ── Navegación secciones ──────────────────────
 function showSection(name) {
   document.querySelectorAll('.section-panel').forEach(s => s.classList.remove('active'));
@@ -980,6 +1049,8 @@ function showSection(name) {
   if (name === 'pricing') loadPricing();
   if (name === 'videos') loadVideos();
   if (name === 'social') loadSocialMedia();
+  if (name === 'reviews') loadReviewsAdmin();
+  if (name === 'contacts') loadContacts();
   // Cerrar sidebar en móvil al navegar
   closeSidebar();
 }

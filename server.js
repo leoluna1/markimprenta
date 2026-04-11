@@ -24,6 +24,7 @@ const PRICING_FILE   = path.join(__dirname, 'data', 'pricing.json');
 const SETTINGS_FILE  = path.join(__dirname, 'data', 'settings.json');
 const CONTACTS_FILE  = path.join(__dirname, 'data', 'contacts.json');
 const AUTH_FILE      = path.join(__dirname, 'data', 'auth.json');
+const REVIEWS_FILE   = path.join(__dirname, 'data', 'reviews.json');
 const UPLOADS_DIR    = path.join(__dirname, 'uploads');
 const VIDEOS_DIR     = path.join(__dirname, 'uploads', 'videos');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'mark2024';
@@ -131,6 +132,32 @@ const contactLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+const reviewLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 horas
+  max: 10,                         // máx 10 reseñas por IP por día
+  message: { error: 'Ya enviaste el máximo de reseñas por hoy. Intenta mañana.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// ── Helper: escapar HTML para emails ─────────
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// ── Rate limiter: recuperar contraseña ────────
+const forgotLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 3,
+  message: { error: 'Demasiados intentos. Espera 1 hora.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // ── Middleware ────────────────────────────────
 app.use(helmet({
@@ -142,6 +169,11 @@ app.use(helmet({
 }));
 app.use(express.json({ limit: '2mb' }));
 app.use(cors({ origin: false })); // solo mismo origen
+
+// ── BLOQUEAR acceso directo a /data/ ──────────
+// Crítico: data/ contiene auth.json (contraseña) y contacts.json (datos de clientes)
+app.use('/data', (req, res) => res.status(403).end());
+
 app.use(express.static(__dirname));
 app.use('/uploads', express.static(UPLOADS_DIR));
 app.use('/uploads/videos', express.static(VIDEOS_DIR));
@@ -192,7 +224,7 @@ app.post('/api/auth', authLimiter, (req, res) => {
   res.json({ token: createSession(), success: true });
 });
 
-app.post('/api/auth/forgot', async (req, res) => {
+app.post('/api/auth/forgot', forgotLimiter, async (req, res) => {
   const transport = createMailTransport();
   if (!transport) return res.status(503).json({ error: 'Email no configurado en el servidor.' });
   const pwd = getAdminPassword();
@@ -246,6 +278,9 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
   if (!name || !email || !message) {
     return res.status(400).json({ error: 'Nombre, email y mensaje son requeridos.' });
   }
+  if (name.length > 100 || email.length > 200 || (phone && phone.length > 30) || message.length > 5000) {
+    return res.status(400).json({ error: 'Uno o más campos superan la longitud máxima permitida.' });
+  }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: 'Email inválido.' });
   }
@@ -286,19 +321,19 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
               <table style="width:100%;border-collapse:collapse;">
                 <tr>
                   <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;width:120px;color:#6b7280;font-size:0.9rem;">Nombre</td>
-                  <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-weight:600;">${name}</td>
+                  <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-weight:600;">${escapeHtml(name)}</td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:0.9rem;">Email</td>
-                  <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;"><a href="mailto:${email}" style="color:#0071e3;">${email}</a></td>
+                  <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;"><a href="mailto:${escapeHtml(email)}" style="color:#0071e3;">${escapeHtml(email)}</a></td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:0.9rem;">Teléfono</td>
-                  <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;">${phone || '—'}</td>
+                  <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;">${escapeHtml(phone) || '—'}</td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0;color:#6b7280;font-size:0.9rem;vertical-align:top;">Mensaje</td>
-                  <td style="padding:10px 0;line-height:1.6;">${message.replace(/\n/g, '<br>')}</td>
+                  <td style="padding:10px 0;line-height:1.6;">${escapeHtml(message).replace(/\n/g, '<br>')}</td>
                 </tr>
               </table>
             </div>
@@ -352,11 +387,11 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
       html: `
         <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
           <div style="background:#E30613;padding:24px 32px;border-radius:12px 12px 0 0;">
-            <h2 style="color:white;margin:0;font-size:1.4rem;">¡Gracias por contactarnos, ${name}!</h2>
+            <h2 style="color:white;margin:0;font-size:1.4rem;">¡Gracias por contactarnos, ${escapeHtml(name)}!</h2>
           </div>
           <div style="background:#ffffff;padding:32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
             <p>Recibimos tu mensaje y te responderemos a la brevedad posible.</p>
-            <p style="color:#6b7280;font-size:0.9rem;border-left:3px solid #e5e7eb;padding-left:1rem;margin:1.5rem 0;">${message.replace(/\n/g, '<br>')}</p>
+            <p style="color:#6b7280;font-size:0.9rem;border-left:3px solid #e5e7eb;padding-left:1rem;margin:1.5rem 0;">${escapeHtml(message).replace(/\n/g, '<br>')}</p>
             <p>Si tienes urgencia puedes contactarnos directamente por WhatsApp.</p>
             <p style="color:#9ca3af;font-size:0.8rem;margin-top:2rem;">— Equipo Mark Publicidad Impresa · Ibarra, Ecuador</p>
           </div>
@@ -451,6 +486,68 @@ app.get('/api/uploads', authenticate, (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'Error listando archivos' });
   }
+});
+
+// ── Reseñas ───────────────────────────────────
+function readReviews() {
+  if (!fs.existsSync(REVIEWS_FILE)) return [];
+  try { return JSON.parse(fs.readFileSync(REVIEWS_FILE, 'utf8')); } catch { return []; }
+}
+function writeReviews(data) {
+  fs.writeFileSync(REVIEWS_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
+
+// Reseñas aprobadas (público)
+app.get('/api/reviews', (req, res) => {
+  const approved = readReviews().filter(r => r.approved);
+  res.json(approved);
+});
+
+// Todas las reseñas (admin)
+app.get('/api/reviews/all', authenticate, (req, res) => {
+  res.json(readReviews());
+});
+
+// Enviar nueva reseña (público, con rate limit)
+app.post('/api/reviews', reviewLimiter, (req, res) => {
+  const { name, rating, comment } = req.body;
+  if (!name || !rating || !comment)
+    return res.status(400).json({ error: 'Nombre, calificación y comentario son requeridos.' });
+  const stars = parseInt(rating);
+  if (isNaN(stars) || stars < 1 || stars > 5)
+    return res.status(400).json({ error: 'Calificación inválida (1–5 estrellas).' });
+  if (name.length > 80 || comment.length > 1000)
+    return res.status(400).json({ error: 'Nombre o comentario demasiado largos.' });
+
+  const reviews = readReviews();
+  const review = {
+    id:       Date.now(),
+    name:     name.trim(),
+    rating:   stars,
+    comment:  comment.trim(),
+    date:     new Date().toISOString(),
+    approved: false,
+  };
+  reviews.unshift(review);
+  writeReviews(reviews);
+  res.status(201).json({ success: true, message: '¡Gracias! Tu reseña está pendiente de aprobación.' });
+});
+
+// Aprobar reseña (admin)
+app.patch('/api/reviews/:id/approve', authenticate, (req, res) => {
+  const reviews = readReviews();
+  const r = reviews.find(x => x.id === +req.params.id);
+  if (!r) return res.status(404).json({ error: 'No encontrada' });
+  r.approved = true;
+  writeReviews(reviews);
+  res.json({ success: true });
+});
+
+// Eliminar reseña (admin)
+app.delete('/api/reviews/:id', authenticate, (req, res) => {
+  const filtered = readReviews().filter(x => x.id !== +req.params.id);
+  writeReviews(filtered);
+  res.json({ success: true });
 });
 
 // ── Productos ─────────────────────────────────

@@ -9,6 +9,7 @@ import ContactController    from './controllers/ContactController.js';
 import HeroView             from './views/HeroView.js';
 import FaqView              from './views/FaqView.js';
 import SettingsController   from './controllers/SettingsController.js';
+import ReviewsController    from './controllers/ReviewsController.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   new NavigationController().init();
@@ -18,6 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   new ContactController().init();
   new FaqView().bind();
   new SettingsController().init();
+  new ReviewsController().init();
 
   console.info('✨ Mark Publicidad — App iniciada');
 });

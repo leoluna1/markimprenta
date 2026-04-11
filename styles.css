@@ -3814,3 +3814,168 @@ button:focus-visible {
     .footer-content { grid-template-columns: 1fr; }
     .footer-links { margin-top: 0.5rem; }
 }
+
+/* ══════════════════════════════════════════════
+   RESEÑAS (integradas en sección testimonios)
+   ══════════════════════════════════════════════ */
+.resenas-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 3rem 0 2rem;
+    color: var(--text-light, #6e6e73);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.resenas-divider::before,
+.resenas-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border, rgba(0,0,0,0.1));
+}
+[data-theme="dark"] .resenas-divider::before,
+[data-theme="dark"] .resenas-divider::after {
+    background: rgba(255,255,255,0.1);
+}
+
+/* Formulario nueva reseña */
+.resena-form-wrap {
+    margin-top: 3rem;
+    background: white;
+    border-radius: var(--radius-lg, 20px);
+    padding: 2rem 2.5rem;
+    border: 1px solid var(--border, rgba(0,0,0,0.08));
+    box-shadow: var(--shadow-sm, 0 4px 12px rgba(0,0,0,0.08));
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+[data-theme="dark"] .resena-form-wrap {
+    background: #2c2c2e;
+    border-color: rgba(255,255,255,0.08);
+}
+.resena-form-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    color: var(--text-dark, #1d1d1f);
+}
+[data-theme="dark"] .resena-form-title {
+    color: var(--text-white, #f5f5f7);
+}
+.resena-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.resena-stars-input {
+    display: flex;
+    gap: 0.4rem;
+}
+.star-btn {
+    font-size: 2rem;
+    color: #d1d5db;
+    cursor: pointer;
+    transition: color 0.15s, transform 0.1s;
+    line-height: 1;
+    user-select: none;
+}
+.star-btn:hover,
+.star-btn.active {
+    color: #f9a825;
+}
+.star-btn:hover {
+    transform: scale(1.15);
+}
+.resena-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.resena-fields input,
+.resena-fields textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1.5px solid var(--border, rgba(0,0,0,0.12));
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    background: var(--bg, #fff);
+    color: var(--text-dark, #1d1d1f);
+    outline: none;
+    resize: vertical;
+    transition: border-color 0.2s;
+}
+[data-theme="dark"] .resena-fields input,
+[data-theme="dark"] .resena-fields textarea {
+    background: #1c1c1e;
+    color: #f5f5f7;
+    border-color: rgba(255,255,255,0.12);
+}
+.resena-fields input:focus,
+.resena-fields textarea:focus {
+    border-color: var(--primary, #E30613);
+}
+/* Tarjeta de reseña dinámica */
+.resena-card {
+    background: white;
+    border-radius: var(--radius-lg, 20px);
+    padding: 2rem;
+    border: 1px solid var(--border, rgba(0,0,0,0.08));
+    box-shadow: var(--shadow-sm, 0 4px 12px rgba(0,0,0,0.08));
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+[data-theme="dark"] .resena-card {
+    background: #2c2c2e;
+    border-color: rgba(255,255,255,0.08);
+}
+.resena-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg, 0 16px 40px rgba(0,0,0,0.12));
+}
+.resena-stars {
+    color: #f9a825;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+}
+.resena-texto {
+    color: var(--text-medium, #424245);
+    font-size: 0.95rem;
+    line-height: 1.75;
+    font-style: italic;
+    flex: 1;
+}
+[data-theme="dark"] .resena-texto {
+    color: #a1a1a6;
+}
+.resena-autor {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border, rgba(0,0,0,0.07));
+}
+[data-theme="dark"] .resena-autor {
+    border-top-color: rgba(255,255,255,0.07);
+}
+.resena-autor strong {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-dark, #1d1d1f);
+}
+[data-theme="dark"] .resena-autor strong {
+    color: #f5f5f7;
+}
+.resena-autor span {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-light, #6e6e73);
+    margin-top: 1px;
+}

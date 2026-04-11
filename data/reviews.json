@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1775929921737,
+    "name": "Anahi",
+    "rating": 5,
+    "comment": "excelente atención",
+    "date": "2026-04-11T17:52:01.737Z",
+    "approved": true
+  },
+  {
+    "id": 1775929444549,
+    "name": "leito lu",
+    "rating": 4,
+    "comment": "pero q diablos es esto",
+    "date": "2026-04-11T17:44:04.549Z",
+    "approved": true
+  },
+  {
+    "id": 1775928931313,
+    "name": "Juan",
+    "rating": 4,
+    "comment": "Muy bueno",
+    "date": "2026-04-11T17:35:31.313Z",
+    "approved": true
+  }
+]

@@ -207,6 +207,7 @@ const forgotLimiter = rateLimit({
 // ── Middleware ────────────────────────────────
 app.use(helmet({
   contentSecurityPolicy: {
+    useDefaults: false,
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc:  ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:"],

@@ -206,7 +206,18 @@ const forgotLimiter = rateLimit({
 
 // ── Middleware ────────────────────────────────
 app.use(helmet({
-  contentSecurityPolicy: false,        // inline scripts en el frontend lo hacen incompatible
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc:  ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:"],
+      styleSrc:   ["'self'", "'unsafe-inline'", "https:"],
+      imgSrc:     ["'self'", "data:", "https:", "blob:"],
+      connectSrc: ["'self'", "https:"],
+      fontSrc:    ["'self'", "https:", "data:"],
+      objectSrc:  ["'none'"],
+      frameSrc:   ["'self'", "https:"],
+    },
+  },
   crossOriginEmbedderPolicy: false,
   strictTransportSecurity: false,      // no forzar HTTPS en red local
   crossOriginResourcePolicy: false,    // permitir carga de fuentes/CDN externos
@@ -745,6 +756,8 @@ app.get('/api/pricing', (req, res) => {
 
 app.put('/api/pricing', authenticate, (req, res) => {
   try {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))
+      return res.status(400).json({ error: 'Formato de precios inválido.' });
     writePricing(req.body);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Error guardando precios' }); }
@@ -760,11 +773,11 @@ app.put('/api/settings', authenticate, (req, res) => {
   try {
     // Whitelist de campos permitidos en settings
     const body = req.body;
-    const allowed = {};
+    const allowed = { ...readSettings() }; // preservar campos existentes
     if (Array.isArray(body.videos))     allowed.videos     = body.videos.slice(0, 20);
     if (body.socialMedia && typeof body.socialMedia === 'object' && !Array.isArray(body.socialMedia)) {
       const SM_KEYS = ['facebook','instagram','twitter','tiktok','youtube','whatsapp'];
-      allowed.socialMedia = {};
+      allowed.socialMedia = { ...(allowed.socialMedia || {}) };
       for (const k of SM_KEYS) {
         if (body.socialMedia[k] !== undefined)
           allowed.socialMedia[k] = String(body.socialMedia[k]).substring(0, 200);

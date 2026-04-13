@@ -15,6 +15,7 @@ const https        = require('https');
 const helmet       = require('helmet');
 const rateLimit    = require('express-rate-limit');
 const crypto       = require('crypto');
+const bcrypt       = require('bcryptjs');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -25,18 +26,48 @@ const SETTINGS_FILE  = path.join(__dirname, 'data', 'settings.json');
 const CONTACTS_FILE  = path.join(__dirname, 'data', 'contacts.json');
 const AUTH_FILE      = path.join(__dirname, 'data', 'auth.json');
 const REVIEWS_FILE   = path.join(__dirname, 'data', 'reviews.json');
+const PORTFOLIO_FILE = path.join(__dirname, 'data', 'portfolio.json');
 const UPLOADS_DIR    = path.join(__dirname, 'uploads');
 const VIDEOS_DIR     = path.join(__dirname, 'uploads', 'videos');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'mark2024';
 
-function getAdminPassword() {
+function getAuthData() {
   try {
     if (fs.existsSync(AUTH_FILE)) {
-      const { password } = JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8'));
-      if (password) return password;
+      const data = JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8'));
+      if (data.password) return data;
     }
   } catch {}
-  return ADMIN_PASSWORD;
+  return { password: ADMIN_PASSWORD };
+}
+
+// Verifica la contraseña, soporta bcrypt y texto plano (migración automática)
+async function verifyPassword(input) {
+  const auth = getAuthData();
+  if (auth.password.startsWith('$2')) {
+    return bcrypt.compare(input, auth.password);
+  }
+  // Texto plano: verificar y migrar a bcrypt automáticamente
+  if (input !== auth.password) return false;
+  const hash = await bcrypt.hash(input, 12);
+  fs.writeFileSync(AUTH_FILE, JSON.stringify({ password: hash }, null, 2), 'utf8');
+  console.log('[Auth] ✅ Contraseña migrada a bcrypt');
+  return true;
+}
+
+// Reset tokens (contraseña olvidada)
+const resetTokens = new Map(); // token → expiry
+const RESET_TTL_MS = 15 * 60 * 1000; // 15 minutos
+
+function createResetToken() {
+  const token = crypto.randomBytes(32).toString('hex');
+  resetTokens.set(token, Date.now() + RESET_TTL_MS);
+  return token;
+}
+function isValidResetToken(token) {
+  if (!token || !resetTokens.has(token)) return false;
+  if (Date.now() > resetTokens.get(token)) { resetTokens.delete(token); return false; }
+  return true;
 }
 
 // ── Crear carpeta uploads si no existe ────────
@@ -56,13 +87,21 @@ const storage = multer.diskStorage({
     cb(null, `${Date.now()}-${base}${ext}`);
   },
 });
+const ALLOWED_MIME_TYPES = [
+  // Imágenes
+  'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
+  'image/gif',  'image/svg+xml', 'image/bmp', 'image/tiff',
+  // Documentos
+  'application/pdf',
+];
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    const ok = ['image/jpeg','image/jpg','image/png','image/webp','image/gif'];
-    ok.includes(file.mimetype) ? cb(null, true) : cb(new Error('Solo imágenes JPG/PNG/WEBP/GIF'));
+    ALLOWED_MIME_TYPES.includes(file.mimetype)
+      ? cb(null, true)
+      : cb(new Error('Tipo no permitido. Acepta: JPG, PNG, WEBP, GIF, SVG, BMP, TIFF, PDF'));
   },
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
 });
 
 // ── Nodemailer — Transporte Gmail ─────────────
@@ -150,6 +189,12 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+// ── Audit log ─────────────────────────────────
+function auditLog(action, details, req) {
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '?';
+  console.log(`[AUDIT] ${new Date().toISOString()} | ${action} | IP:${ip} | ${JSON.stringify(details)}`);
+}
+
 // ── Rate limiter: recuperar contraseña ────────
 const forgotLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
@@ -217,35 +262,45 @@ function authenticate(req, res, next) {
 // ════════════════════════════════════════════
 
 // ── Auth ──────────────────────────────────────
-app.post('/api/auth', authLimiter, (req, res) => {
-  const pwd = getAdminPassword();
-  if (req.body.password !== pwd)
+app.post('/api/auth', authLimiter, async (req, res) => {
+  const ok = await verifyPassword(req.body.password);
+  if (!ok) {
+    auditLog('LOGIN_FAILED', {}, req);
     return res.status(401).json({ error: 'Contraseña incorrecta' });
+  }
+  auditLog('LOGIN_OK', {}, req);
   res.json({ token: createSession(), success: true });
 });
 
 app.post('/api/auth/forgot', forgotLimiter, async (req, res) => {
   const transport = createMailTransport();
   if (!transport) return res.status(503).json({ error: 'Email no configurado en el servidor.' });
-  const pwd = getAdminPassword();
+
+  const token = createResetToken();
+  const siteUrl = process.env.SITE_URL || `http://localhost:${PORT}`;
+  const resetLink = `${siteUrl}/admin?reset_token=${token}`;
+
   try {
     await transport.sendMail({
       from:    `"Mark Publicidad Admin" <${process.env.GMAIL_USER}>`,
       to:      process.env.GMAIL_USER,
-      subject: '🔑 Contraseña del panel admin — Mark Publicidad',
+      subject: '🔑 Recuperación de contraseña — Mark Publicidad',
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
           <div style="background:#E30613;padding:24px 32px;border-radius:12px 12px 0 0;">
             <h2 style="color:white;margin:0;">🔑 Recuperación de contraseña</h2>
           </div>
           <div style="background:#fff;padding:32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
-            <p>La contraseña actual del panel admin es:</p>
-            <div style="background:#f3f4f6;padding:16px;border-radius:8px;font-size:1.4rem;font-weight:700;letter-spacing:2px;text-align:center;margin:1rem 0;">${pwd}</div>
-            <p style="color:#6b7280;font-size:.85rem;">Si no solicitaste esto, ignora este mensaje.</p>
+            <p>Haz clic en el siguiente botón para establecer una nueva contraseña. El enlace expira en <strong>15 minutos</strong>.</p>
+            <div style="text-align:center;margin:2rem 0;">
+              <a href="${resetLink}" style="background:#E30613;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;">Restablecer contraseña</a>
+            </div>
+            <p style="color:#6b7280;font-size:.85rem;">Si no solicitaste esto, ignora este mensaje. El enlace es de un solo uso.</p>
           </div>
         </div>
       `,
     });
+    auditLog('PASSWORD_RESET_REQUESTED', {}, req);
     res.json({ success: true });
   } catch (e) {
     console.error('[Auth] Error enviando email de recuperación:', e.message);
@@ -253,17 +308,44 @@ app.post('/api/auth/forgot', forgotLimiter, async (req, res) => {
   }
 });
 
-app.post('/api/auth/change-password', authenticate, (req, res) => {
+// Validar reset token (GET — lo usa el frontend al cargar /admin?reset_token=...)
+app.get('/api/auth/reset-token', (req, res) => {
+  const { token } = req.query;
+  res.json({ valid: isValidResetToken(token) });
+});
+
+// Establecer nueva contraseña con reset token
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { token, newPassword } = req.body;
+  if (!isValidResetToken(token))
+    return res.status(400).json({ error: 'Enlace inválido o expirado. Solicita uno nuevo.' });
+  if (!newPassword || newPassword.length < 6)
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
+  try {
+    const hash = await bcrypt.hash(newPassword, 12);
+    fs.writeFileSync(AUTH_FILE, JSON.stringify({ password: hash }, null, 2), 'utf8');
+    resetTokens.delete(token);
+    activeSessions.clear();
+    auditLog('PASSWORD_RESET_OK', {}, req);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Error guardando la contraseña.' });
+  }
+});
+
+app.post('/api/auth/change-password', authenticate, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
-  if (currentPassword !== getAdminPassword())
+  const ok = await verifyPassword(currentPassword);
+  if (!ok)
     return res.status(401).json({ error: 'La contraseña actual es incorrecta.' });
   if (!newPassword || newPassword.length < 6)
     return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
   try {
-    fs.writeFileSync(AUTH_FILE, JSON.stringify({ password: newPassword }, null, 2), 'utf8');
-    // Invalidar todas las sesiones antiguas y crear una nueva
+    const hash = await bcrypt.hash(newPassword, 12);
+    fs.writeFileSync(AUTH_FILE, JSON.stringify({ password: hash }, null, 2), 'utf8');
     activeSessions.clear();
     const newToken = createSession();
+    auditLog('PASSWORD_CHANGED', {}, req);
     res.json({ success: true, token: newToken });
   } catch (e) {
     res.status(500).json({ error: 'Error guardando la contraseña.' });
@@ -550,21 +632,78 @@ app.delete('/api/reviews/:id', authenticate, (req, res) => {
   res.json({ success: true });
 });
 
+// ── Portfolio ─────────────────────────────────
+function readPortfolio() {
+  if (!fs.existsSync(PORTFOLIO_FILE)) return [];
+  try { return JSON.parse(fs.readFileSync(PORTFOLIO_FILE, 'utf8')); } catch { return []; }
+}
+function writePortfolio(data) {
+  fs.writeFileSync(PORTFOLIO_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
+
+app.get('/api/portfolio', (req, res) => {
+  res.json(readPortfolio());
+});
+
+app.post('/api/portfolio', authenticate, (req, res) => {
+  const { title, category, image } = req.body;
+  if (!title || !image) return res.status(400).json({ error: 'Título e imagen son requeridos.' });
+  // Solo se permiten rutas relativas del servidor (previene URLs javascript: o externas)
+  if (typeof image !== 'string' || !image.startsWith('/uploads/') || image.includes('..'))
+    return res.status(400).json({ error: 'La imagen debe provenir de /uploads/.' });
+  const item = {
+    id:       Date.now(),
+    title:    title.trim().substring(0, 120),
+    category: (category || 'general').trim().substring(0, 60),
+    image,
+    date:     new Date().toISOString(),
+  };
+  const items = readPortfolio();
+  items.unshift(item);
+  writePortfolio(items);
+  auditLog('PORTFOLIO_CREATE', { id: item.id, title: item.title }, req);
+  res.status(201).json(item);
+});
+
+app.delete('/api/portfolio/:id', authenticate, (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
+  const filtered = readPortfolio().filter(x => x.id !== id);
+  writePortfolio(filtered);
+  auditLog('PORTFOLIO_DELETE', { id }, req);
+  res.json({ success: true });
+});
+
 // ── Productos ─────────────────────────────────
 app.get('/api/products', (req, res) => {
   try { res.json(readProducts()); }
   catch (e) { res.status(500).json({ error: 'Error leyendo productos' }); }
 });
 
+// Campos permitidos en un producto (whitelist RLS)
+const PRODUCT_FIELDS = ['name','category','description','image','features','price','priceNote','deliveryTime','materials','active'];
+
+function sanitizeProduct(body) {
+  const p = {};
+  for (const key of PRODUCT_FIELDS) {
+    if (key in body) p[key] = body[key];
+  }
+  if (typeof p.features === 'string')
+    p.features = p.features.split('\n').map(f => f.trim()).filter(Boolean);
+  if (p.name    && typeof p.name    === 'string') p.name    = p.name.trim().substring(0, 120);
+  if (p.category&& typeof p.category=== 'string') p.category= p.category.trim().substring(0, 60);
+  if (p.description && typeof p.description === 'string') p.description = p.description.substring(0, 2000);
+  return p;
+}
+
 app.post('/api/products', authenticate, (req, res) => {
   try {
     const data    = readProducts();
     const maxId   = data.reduce((m, p) => Math.max(m, p.id), 0);
-    const product = { ...req.body, id: maxId + 1 };
-    if (typeof product.features === 'string')
-      product.features = product.features.split('\n').map(f => f.trim()).filter(Boolean);
+    const product = { ...sanitizeProduct(req.body), id: maxId + 1 };
     data.push(product);
     writeProducts(data);
+    auditLog('PRODUCT_CREATE', { id: product.id, name: product.name }, req);
     res.status(201).json(product);
   } catch (e) { res.status(500).json({ error: 'Error creando producto' }); }
 });
@@ -573,13 +712,13 @@ app.put('/api/products/:id', authenticate, (req, res) => {
   try {
     const data  = readProducts();
     const id    = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
     const index = data.findIndex(p => p.id === id);
     if (index === -1) return res.status(404).json({ error: 'No encontrado' });
-    const updated = { ...data[index], ...req.body, id };
-    if (typeof updated.features === 'string')
-      updated.features = updated.features.split('\n').map(f => f.trim()).filter(Boolean);
+    const updated = { ...data[index], ...sanitizeProduct(req.body), id };
     data[index] = updated;
     writeProducts(data);
+    auditLog('PRODUCT_UPDATE', { id }, req);
     res.json(updated);
   } catch (e) { res.status(500).json({ error: 'Error actualizando' }); }
 });
@@ -588,10 +727,12 @@ app.delete('/api/products/:id', authenticate, (req, res) => {
   try {
     const data     = readProducts();
     const id       = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
     const filtered = data.filter(p => p.id !== id);
     if (filtered.length === data.length)
       return res.status(404).json({ error: 'No encontrado' });
     writeProducts(filtered);
+    auditLog('PRODUCT_DELETE', { id }, req);
     res.json({ success: true, deleted: id });
   } catch (e) { res.status(500).json({ error: 'Error eliminando' }); }
 });
@@ -617,7 +758,20 @@ app.get('/api/settings', (req, res) => {
 
 app.put('/api/settings', authenticate, (req, res) => {
   try {
-    writeSettings(req.body);
+    // Whitelist de campos permitidos en settings
+    const body = req.body;
+    const allowed = {};
+    if (Array.isArray(body.videos))     allowed.videos     = body.videos.slice(0, 20);
+    if (body.socialMedia && typeof body.socialMedia === 'object' && !Array.isArray(body.socialMedia)) {
+      const SM_KEYS = ['facebook','instagram','twitter','tiktok','youtube','whatsapp'];
+      allowed.socialMedia = {};
+      for (const k of SM_KEYS) {
+        if (body.socialMedia[k] !== undefined)
+          allowed.socialMedia[k] = String(body.socialMedia[k]).substring(0, 200);
+      }
+    }
+    writeSettings(allowed);
+    auditLog('SETTINGS_UPDATE', {}, req);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Error guardando configuración' }); }
 });

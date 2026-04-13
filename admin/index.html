@@ -336,21 +336,64 @@
   .social-icon-li { color:#0077b5; }
   .save-social-bar { display:flex; align-items:center; justify-content:space-between; margin-top:1.5rem; padding:1.25rem 1.5rem; background:var(--surface); border-radius:var(--radius); border:1px solid var(--border); }
   .save-social-bar p { font-size:.875rem; color:var(--muted); }
+
+  /* ── Toast notificaciones ── */
+  .admin-toast-item { display:flex; align-items:flex-start; gap:.75rem; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:.875rem 1.125rem; min-width:280px; max-width:340px; box-shadow:0 8px 24px rgba(0,0,0,0.12); pointer-events:auto; animation:toastIn .25s ease; }
+  .admin-toast-item.toast-success { border-left:3px solid var(--green); }
+  .admin-toast-item.toast-info    { border-left:3px solid var(--blue);  }
+  .admin-toast-item .t-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:.9rem; flex-shrink:0; }
+  .admin-toast-item .t-icon.green { background:var(--green-light); color:var(--green); }
+  .admin-toast-item .t-icon.blue  { background:var(--blue-light);  color:var(--blue);  }
+  .admin-toast-item .t-icon.orange{ background:var(--orange-light); color:var(--orange); }
+  .admin-toast-item .t-body strong { display:block; font-size:.875rem; font-weight:600; }
+  .admin-toast-item .t-body span   { font-size:.8rem; color:var(--muted); }
+  @keyframes toastIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:none; } }
+
+  /* ── Portfolio admin ── */
+  .portfolio-admin-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:1rem; margin-top:1.5rem; }
+  .portfolio-admin-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; position:relative; }
+  .portfolio-admin-card img { width:100%; height:140px; object-fit:cover; display:block; }
+  .portfolio-admin-card .pa-info { padding:.75rem; }
+  .portfolio-admin-card .pa-title { font-size:.85rem; font-weight:600; margin-bottom:.25rem; }
+  .portfolio-admin-card .pa-cat   { font-size:.75rem; color:var(--muted); }
+  .portfolio-admin-card .pa-del   { position:absolute; top:.5rem; right:.5rem; background:rgba(255,59,48,.9); color:white; border:none; border-radius:6px; width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:.75rem; }
+  .portfolio-admin-card .pa-del:hover { background:var(--red); }
+  .portfolio-add-form { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; margin-top:1.5rem; display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  @media(max-width:600px){ .portfolio-add-form { grid-template-columns:1fr; } }
+  .portfolio-add-form .paf-full { grid-column:1/-1; }
 </style>
 </head>
 <body>
 
+<!-- ══ TOAST NOTIFICACIONES ══ -->
+<div id="admin-toast" style="
+  position:fixed;top:1.25rem;right:1.25rem;z-index:9999;
+  display:flex;flex-direction:column;gap:.5rem;pointer-events:none;
+"></div>
+
 <!-- ══════════ LOGIN ══════════ -->
 <div id="login-screen">
-  <div class="login-card">
+  <!-- Formulario normal de login -->
+  <div class="login-card" id="login-form">
     <div class="brand-icon"><i class="fas fa-print"></i></div>
     <h1>Mark Publicidad</h1>
     <p>Panel de administración</p>
     <div class="login-error" id="login-error">Contraseña incorrecta</div>
-    <div class="login-success" id="login-success">¡Contraseña enviada al email del admin!</div>
-    <input type="password" id="login-pass" placeholder="Contraseña">
+    <div class="login-success" id="login-success">¡Enlace de recuperación enviado al email del admin!</div>
+    <input type="password" id="login-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="btn-login" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> Ingresar</button>
     <button class="btn-forgot" onclick="forgotPassword()">¿Olvidaste la contraseña?</button>
+  </div>
+  <!-- Formulario de reset de contraseña (aparece con ?reset_token=...) -->
+  <div class="login-card" id="reset-form" style="display:none;">
+    <div class="brand-icon" style="background:var(--red);"><i class="fas fa-key"></i></div>
+    <h1>Nueva contraseña</h1>
+    <p>Establece tu nueva contraseña de acceso</p>
+    <div class="login-error" id="reset-error"></div>
+    <div class="login-success" id="reset-success"></div>
+    <input type="password" id="reset-new" placeholder="Nueva contraseña (mín. 6 caracteres)">
+    <input type="password" id="reset-confirm" placeholder="Confirmar contraseña" style="margin-top:0;" onkeydown="if(event.key==='Enter')doResetPassword()">
+    <button class="btn-login" onclick="doResetPassword()"><i class="fas fa-lock"></i> Guardar contraseña</button>
   </div>
 </div>
 
@@ -379,6 +422,9 @@
       </div>
       <div class="nav-item" id="nav-social" onclick="showSection('social')">
         <i class="fas fa-share-alt"></i> Redes Sociales
+      </div>
+      <div class="nav-item" id="nav-portfolio" onclick="showSection('portfolio')">
+        <i class="fas fa-images"></i> Portfolio
       </div>
       <div class="nav-item" id="nav-reviews" onclick="showSection('reviews')">
         <i class="fas fa-star"></i> Reseñas <span id="reviews-badge" style="display:none;margin-left:auto;background:var(--orange);color:white;border-radius:99px;font-size:.7rem;padding:2px 7px;font-weight:600;"></span>
@@ -443,7 +489,7 @@
         <div><h2>Galería de Imágenes</h2><div class="sub">Todas las imágenes subidas al servidor</div></div>
         <label style="display:flex;align-items:center;gap:.5rem;padding:.5rem 1.25rem;background:var(--blue);color:white;border-radius:var(--radius-sm);cursor:pointer;font-size:.9rem;font-weight:500;">
           <i class="fas fa-upload"></i> Subir imagen
-          <input type="file" accept="image/*" style="display:none" onchange="uploadFromGallery(this)">
+          <input type="file" accept="image/*,.pdf,.svg" style="display:none" onchange="uploadFromGallery(this)">
         </label>
       </div>
       <div class="gallery-grid" id="gallery-grid">
@@ -571,6 +617,49 @@
         <button class="btn-save-pricing" onclick="loadContacts()" style="min-width:auto;padding:.5rem 1rem;"><i class="fas fa-sync-alt"></i> Actualizar</button>
       </div>
       <div id="contacts-list" style="display:flex;flex-direction:column;gap:.75rem;margin-top:1rem;"></div>
+    </div>
+
+    <!-- ── SECCIÓN PORTFOLIO ── -->
+    <div class="section-panel" id="section-portfolio">
+      <div class="topbar">
+        <div><h2>Portfolio de Trabajos</h2><div class="sub">Fotos de trabajos reales que se muestran en el sitio web</div></div>
+      </div>
+
+      <!-- Formulario agregar -->
+      <div class="portfolio-add-form">
+        <div>
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Título del trabajo</label>
+          <input type="text" id="pf-title" placeholder="Ej: Flyers para Farmacia Del Sol" style="width:100%;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;font-family:inherit;outline:none;">
+        </div>
+        <div>
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Categoría</label>
+          <select id="pf-category" style="width:100%;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;font-family:inherit;outline:none;background:var(--surface);">
+            <option value="impresion">Impresión</option>
+            <option value="gran-formato">Gran formato</option>
+            <option value="packaging">Packaging</option>
+            <option value="pop">Material POP</option>
+            <option value="personalizado">Personalizado</option>
+          </select>
+        </div>
+        <div class="paf-full">
+          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Imagen <span style="font-weight:400;color:var(--muted);font-size:.8rem;">— sube primero en Imágenes, luego pega la URL</span></label>
+          <div style="display:flex;gap:.75rem;align-items:center;">
+            <input type="text" id="pf-image" placeholder="/uploads/nombre-archivo.jpg" style="flex:1;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;font-family:inherit;outline:none;">
+            <label style="display:flex;align-items:center;gap:.4rem;padding:.65rem 1rem;background:var(--blue);color:white;border-radius:var(--radius-sm);cursor:pointer;font-size:.85rem;font-weight:500;white-space:nowrap;">
+              <i class="fas fa-upload"></i> Subir
+              <input type="file" accept="image/*,.pdf,.svg" style="display:none" onchange="uploadPortfolioImage(this)">
+            </label>
+          </div>
+          <div id="pf-preview" style="margin-top:.75rem;display:none;"><img id="pf-preview-img" style="height:80px;border-radius:8px;object-fit:cover;border:1px solid var(--border);"></div>
+        </div>
+        <div class="paf-full" style="display:flex;justify-content:flex-end;">
+          <button onclick="addPortfolioItem()" style="padding:.65rem 1.5rem;background:var(--blue);color:white;border:none;border-radius:var(--radius-sm);font-size:.9rem;font-weight:500;cursor:pointer;"><i class="fas fa-plus"></i> Agregar al portfolio</button>
+        </div>
+      </div>
+
+      <div class="portfolio-admin-grid" id="portfolio-admin-grid">
+        <div style="grid-column:1/-1;color:var(--muted);text-align:center;padding:2rem;" id="portfolio-admin-empty">No hay trabajos aún. Agrega el primero.</div>
+      </div>
     </div>
 
     <!-- ── SECCIÓN RESEÑAS ── -->
@@ -722,6 +811,16 @@ async function deleteContact(id) {
           <textarea id="f-description" placeholder="Describe el producto..."></textarea>
         </div>
 
+        <div class="form-group">
+          <label>Materiales <span style="font-weight:400;color:var(--muted);font-size:.8rem;">(opcional)</span></label>
+          <input type="text" id="f-materials" placeholder="Ej: Papel couché 150gr, plastificado mate">
+        </div>
+
+        <div class="form-group">
+          <label>Tiempo de entrega <span style="font-weight:400;color:var(--muted);font-size:.8rem;">(opcional)</span></label>
+          <input type="text" id="f-deliveryTime" placeholder="Ej: 48-72 horas">
+        </div>
+
         <!-- ── IMAGEN ── -->
         <div class="form-group form-full img-section">
           <label>Imagen del producto</label>
@@ -734,7 +833,7 @@ async function deleteContact(id) {
           <!-- Tab: subir -->
           <div id="img-tab-upload">
             <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
-              <input type="file" id="file-input" accept="image/*" onchange="onFileSelected(this)">
+              <input type="file" id="file-input" accept="image/*,.pdf,.svg" onchange="onFileSelected(this)">
               <div class="dz-prompt" id="dz-prompt">
                 <div class="dz-icon"><i class="fas fa-cloud-upload-alt"></i></div>
                 <div class="dz-text">Arrastra una imagen aquí o haz clic para seleccionar</div>
@@ -945,8 +1044,8 @@ async function showApp() {
   document.getElementById('app').style.display = 'block';
   await loadProducts();
   await loadGallery();
-  loadContactsStats();
-  loadReviewsBadge();
+  pollNotifications(); // primera pasada inmediata
+  setInterval(pollNotifications, 60000); // luego cada 60 segundos
 }
 
 // ── Hamburger sidebar (mobile) ──────────────────
@@ -972,6 +1071,144 @@ async function loadContactsStats() {
     if (el) el.textContent = unread;
     const badge = document.getElementById('contacts-badge');
     if (badge) { badge.textContent = unread || ''; badge.style.display = unread ? 'inline' : 'none'; }
+  } catch {}
+}
+
+// ── Portfolio ─────────────────────────────────
+async function loadPortfolioAdmin() {
+  const grid  = document.getElementById('portfolio-admin-grid');
+  const empty = document.getElementById('portfolio-admin-empty');
+  if (!grid) return;
+  try {
+    const res  = await fetch('/api/portfolio', { headers: { 'x-admin-token': token } });
+    const items = await res.json();
+    if (!Array.isArray(items) || !items.length) {
+      if (empty) empty.style.display = 'block';
+      grid.querySelectorAll('.portfolio-admin-card').forEach(c => c.remove());
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    grid.querySelectorAll('.portfolio-admin-card').forEach(c => c.remove());
+    const catLabels = { impresion:'Impresión', 'gran-formato':'Gran formato', packaging:'Packaging', pop:'Material POP', personalizado:'Personalizado' };
+    items.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'portfolio-admin-card';
+      card.innerHTML = `
+        <img src="${esc(item.image)}" alt="${esc(item.title)}" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'180\' height=\'140\'><rect fill=\'%23f3f4f6\' width=\'180\' height=\'140\'/></svg>'">
+        <button class="pa-del" onclick="deletePortfolioItem(${item.id})" title="Eliminar"><i class="fas fa-trash"></i></button>
+        <div class="pa-info">
+          <div class="pa-title">${esc(item.title)}</div>
+          <div class="pa-cat">${catLabels[item.category] || item.category}</div>
+        </div>`;
+      grid.appendChild(card);
+    });
+  } catch(e) {
+    if (grid) grid.innerHTML = '<div style="color:var(--muted);padding:2rem;text-align:center;">Error al cargar.</div>';
+  }
+}
+
+async function addPortfolioItem() {
+  const title    = document.getElementById('pf-title').value.trim();
+  const category = document.getElementById('pf-category').value;
+  const image    = document.getElementById('pf-image').value.trim();
+  if (!title || !image) return showToast('Completa título e imagen.', 'orange');
+  try {
+    const res = await fetch('/api/portfolio', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'x-admin-token': token },
+      body: JSON.stringify({ title, category, image }),
+    });
+    if (!res.ok) throw new Error();
+    document.getElementById('pf-title').value = '';
+    document.getElementById('pf-image').value = '';
+    document.getElementById('pf-preview').style.display = 'none';
+    showToast('Trabajo agregado al portfolio.', 'green');
+    loadPortfolioAdmin();
+  } catch { showToast('Error al agregar.', 'orange'); }
+}
+
+async function deletePortfolioItem(id) {
+  if (!confirm('¿Eliminar este trabajo del portfolio?')) return;
+  await fetch('/api/portfolio/' + id, { method: 'DELETE', headers: { 'x-admin-token': token } });
+  loadPortfolioAdmin();
+}
+
+async function uploadPortfolioImage(input) {
+  if (!input.files[0]) return;
+  const fd = new FormData();
+  fd.append('image', input.files[0]);
+  try {
+    const res  = await fetch('/api/upload', { method:'POST', headers:{'x-admin-token':token}, body:fd });
+    const data = await res.json();
+    if (data.url) {
+      document.getElementById('pf-image').value = data.url;
+      const prev = document.getElementById('pf-preview');
+      document.getElementById('pf-preview-img').src = data.url;
+      prev.style.display = 'block';
+    }
+  } catch { showToast('Error al subir imagen.', 'orange'); }
+}
+
+// Escuchar campo imagen para preview
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('pf-image')?.addEventListener('input', function() {
+    const prev = document.getElementById('pf-preview');
+    if (this.value) {
+      document.getElementById('pf-preview-img').src = this.value;
+      prev.style.display = 'block';
+    } else { prev.style.display = 'none'; }
+  });
+});
+
+// ── Toast notifications ────────────────────────
+function showToast(msg, type = 'blue', icon = null) {
+  const container = document.getElementById('admin-toast');
+  if (!container) return;
+  const icons = { green:'fa-check-circle', blue:'fa-bell', orange:'fa-exclamation-circle' };
+  const el = document.createElement('div');
+  el.className = `admin-toast-item toast-${type === 'green' ? 'success' : 'info'}`;
+  el.innerHTML = `
+    <div class="t-icon ${type}"><i class="fas ${icon || icons[type] || 'fa-bell'}"></i></div>
+    <div class="t-body"><strong>${msg}</strong></div>`;
+  container.appendChild(el);
+  setTimeout(() => { el.style.transition='opacity .4s'; el.style.opacity='0'; setTimeout(()=>el.remove(), 400); }, 4000);
+}
+
+// ── Auto-polling notificaciones ────────────────
+let _lastUnreadContacts = -1;
+let _lastPendingReviews = -1;
+
+async function pollNotifications() {
+  if (!token) return;
+  try {
+    const [rC, rR] = await Promise.all([
+      fetch('/api/contacts',     { headers: { 'x-admin-token': token } }),
+      fetch('/api/reviews/all',  { headers: { 'x-admin-token': token } }),
+    ]);
+    const contacts = await rC.json();
+    const reviews  = await rR.json();
+
+    if (Array.isArray(contacts)) {
+      const unread = contacts.filter(c => !c.read).length;
+      const badge  = document.getElementById('contacts-badge');
+      const stEl   = document.getElementById('st-messages');
+      if (badge) { badge.textContent = unread || ''; badge.style.display = unread ? 'inline' : 'none'; }
+      if (stEl) stEl.textContent = unread;
+      if (_lastUnreadContacts >= 0 && unread > _lastUnreadContacts) {
+        showToast(`${unread - _lastUnreadContacts} nuevo${unread - _lastUnreadContacts > 1 ? 's' : ''} mensaje${unread - _lastUnreadContacts > 1 ? 's' : ''} de contacto`, 'blue', 'fa-envelope');
+      }
+      _lastUnreadContacts = unread;
+    }
+
+    if (Array.isArray(reviews)) {
+      const pending = reviews.filter(r => !r.approved).length;
+      const badge   = document.getElementById('reviews-badge');
+      if (badge) { badge.textContent = pending || ''; badge.style.display = pending ? 'inline' : 'none'; }
+      if (_lastPendingReviews >= 0 && pending > _lastPendingReviews) {
+        showToast(`${pending - _lastPendingReviews} nueva${pending - _lastPendingReviews > 1 ? 's' : ''} reseña${pending - _lastPendingReviews > 1 ? 's' : ''} pendiente${pending - _lastPendingReviews > 1 ? 's' : ''}`, 'orange', 'fa-star');
+      }
+      _lastPendingReviews = pending;
+    }
   } catch {}
 }
 
@@ -1049,8 +1286,9 @@ function showSection(name) {
   if (name === 'pricing') loadPricing();
   if (name === 'videos') loadVideos();
   if (name === 'social') loadSocialMedia();
-  if (name === 'reviews') loadReviewsAdmin();
-  if (name === 'contacts') loadContacts();
+  if (name === 'reviews')   loadReviewsAdmin();
+  if (name === 'contacts')  loadContacts();
+  if (name === 'portfolio') loadPortfolioAdmin();
   // Cerrar sidebar en móvil al navegar
   closeSidebar();
 }
@@ -1130,9 +1368,11 @@ function openModal(product = null) {
   document.getElementById('f-category').value    = product?.category    || 'impresion';
   document.getElementById('f-price').value       = product?.price       || '';
   document.getElementById('f-priceUnit').value   = product?.priceUnit   || 'por unidad';
-  document.getElementById('f-description').value = product?.description || '';
-  document.getElementById('f-minQuantity').value = product?.minQuantity || 100;
-  document.getElementById('f-popular').checked   = product?.popular     || false;
+  document.getElementById('f-description').value  = product?.description  || '';
+  document.getElementById('f-minQuantity').value  = product?.minQuantity  || 100;
+  document.getElementById('f-popular').checked    = product?.popular      || false;
+  document.getElementById('f-materials').value    = product?.materials    || '';
+  document.getElementById('f-deliveryTime').value = product?.deliveryTime || '';
   document.getElementById('f-emoji').value       = isImg(product?.image) ? '' : (product?.image || '');
   updateEmojiPreview();
 
@@ -1208,7 +1448,7 @@ function showDropPreview(src) {
   const dz = document.getElementById('drop-zone');
   dz.classList.add('has-image');
   dz.innerHTML = `
-    <input type="file" id="file-input" accept="image/*" onchange="onFileSelected(this)" style="display:none">
+    <input type="file" id="file-input" accept="image/*,.pdf,.svg" onchange="onFileSelected(this)" style="display:none">
     <div class="dz-preview">
       <img src="${src}" alt="preview">
       <button class="dz-remove" onclick="clearDropZone(event)" title="Quitar"><i class="fas fa-times"></i></button>
@@ -1220,7 +1460,7 @@ function clearDropZone(e) {
   const dz = document.getElementById('drop-zone');
   dz.classList.remove('has-image');
   dz.innerHTML = `
-    <input type="file" id="file-input" accept="image/*" onchange="onFileSelected(this)" style="display:none">
+    <input type="file" id="file-input" accept="image/*,.pdf,.svg" onchange="onFileSelected(this)" style="display:none">
     <div class="dz-prompt" id="dz-prompt">
       <div class="dz-icon"><i class="fas fa-cloud-upload-alt"></i></div>
       <div class="dz-text">Arrastra una imagen aquí o haz clic para seleccionar</div>
@@ -1406,9 +1646,11 @@ async function saveProduct() {
     image:       finalImage,
     price:       parseFloat(document.getElementById('f-price').value) || 0,
     priceUnit:   document.getElementById('f-priceUnit').value.trim() || 'por unidad',
-    description: document.getElementById('f-description').value.trim(),
-    minQuantity: parseInt(document.getElementById('f-minQuantity').value) || 1,
-    popular:     document.getElementById('f-popular').checked,
+    description:  document.getElementById('f-description').value.trim(),
+    minQuantity:  parseInt(document.getElementById('f-minQuantity').value) || 1,
+    popular:      document.getElementById('f-popular').checked,
+    materials:    document.getElementById('f-materials').value.trim()    || undefined,
+    deliveryTime: document.getElementById('f-deliveryTime').value.trim() || undefined,
     features
   };
 
@@ -2116,6 +2358,60 @@ async function persistSettings() {
   }
 }
 
+// ── Reset de contraseña via token ─────────────
+(async function checkResetToken() {
+  const params = new URLSearchParams(window.location.search);
+  const resetToken = params.get('reset_token');
+  if (!resetToken) return;
+  try {
+    const r = await fetch(`${API}/api/auth/reset-token?token=${encodeURIComponent(resetToken)}`);
+    const d = await r.json();
+    if (d.valid) {
+      document.getElementById('login-form').style.display  = 'none';
+      document.getElementById('reset-form').style.display  = 'block';
+    } else {
+      const err = document.getElementById('login-error');
+      err.textContent    = 'El enlace de recuperación expiró o ya fue usado. Solicita uno nuevo.';
+      err.style.display  = 'block';
+    }
+  } catch {}
+})();
+
+async function doResetPassword() {
+  const params     = new URLSearchParams(window.location.search);
+  const resetToken = params.get('reset_token');
+  const newPass    = document.getElementById('reset-new').value;
+  const confirm    = document.getElementById('reset-confirm').value;
+  const errEl      = document.getElementById('reset-error');
+  const okEl       = document.getElementById('reset-success');
+  errEl.style.display = 'none';
+  okEl.style.display  = 'none';
+
+  if (!newPass || !confirm) { errEl.textContent = 'Completa ambos campos.'; errEl.style.display = 'block'; return; }
+  if (newPass !== confirm)  { errEl.textContent = 'Las contraseñas no coinciden.'; errEl.style.display = 'block'; return; }
+  if (newPass.length < 6)  { errEl.textContent = 'Mínimo 6 caracteres.'; errEl.style.display = 'block'; return; }
+
+  try {
+    const r = await fetch(`${API}/api/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: resetToken, newPassword: newPass }),
+    });
+    const d = await r.json();
+    if (d.success) {
+      okEl.textContent   = '¡Contraseña actualizada! Redirigiendo al login...';
+      okEl.style.display = 'block';
+      setTimeout(() => { window.location.href = '/admin'; }, 2000);
+    } else {
+      errEl.textContent   = d.error || 'Error al guardar la contraseña.';
+      errEl.style.display = 'block';
+    }
+  } catch {
+    errEl.textContent   = 'Error de conexión.';
+    errEl.style.display = 'block';
+  }
+}
+
 // ── Seguridad ─────────────────────────────────
 async function forgotPassword() {
   const btn = document.querySelector('.btn-forgot');
@@ -2130,7 +2426,7 @@ async function forgotPassword() {
     const d = await r.json();
     if (d.success) {
       successDiv.style.display = 'block';
-      setTimeout(() => { successDiv.style.display = 'none'; }, 5000);
+      setTimeout(() => { successDiv.style.display = 'none'; }, 8000);
     } else {
       errorDiv.textContent   = d.error || 'Error al enviar.';
       errorDiv.style.display = 'block';

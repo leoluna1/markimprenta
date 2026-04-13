@@ -10,6 +10,7 @@ import HeroView             from './views/HeroView.js';
 import FaqView              from './views/FaqView.js';
 import SettingsController   from './controllers/SettingsController.js';
 import ReviewsController    from './controllers/ReviewsController.js';
+import PortfolioController  from './controllers/PortfolioController.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   new NavigationController().init();
@@ -20,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   new FaqView().bind();
   new SettingsController().init();
   new ReviewsController().init();
+  new PortfolioController().init();
 
   console.info('✨ Mark Publicidad — App iniciada');
 });

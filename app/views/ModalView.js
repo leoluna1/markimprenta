@@ -84,7 +84,15 @@ export default class ModalView extends BaseView {
       : '';
 
     const minQty = p.minQuantity
-      ? `<div class="modal-min-qty"><i class="fas fa-layer-group"></i> Cantidad mínima: <strong>${p.minQuantity}</strong> ${this.esc(p.priceUnit ?? 'unidades')}</div>`
+      ? `<div class="modal-meta-item"><i class="fas fa-layer-group"></i> Cantidad mínima: <strong>${p.minQuantity}</strong> ${this.esc(p.priceUnit ?? 'unidades')}</div>`
+      : '';
+
+    const materials = p.materials
+      ? `<div class="modal-meta-item"><i class="fas fa-layer-group" style="color:#8b5cf6;"></i> Materiales: <strong>${this.esc(p.materials)}</strong></div>`
+      : '';
+
+    const delivery = p.deliveryTime
+      ? `<div class="modal-meta-item"><i class="fas fa-clock" style="color:#f97316;"></i> Entrega: <strong>${this.esc(p.deliveryTime)}</strong></div>`
       : '';
 
     const catInfo = ModalView.CATEGORY_LABELS[p.category];
@@ -101,7 +109,11 @@ export default class ModalView extends BaseView {
           <p class="modal-product-desc">${this.esc(p.description)}</p>
           <div class="modal-price-badge">${price}</div>
           ${features}
-          ${minQty}
+          <div class="modal-meta">
+            ${minQty}
+            ${materials}
+            ${delivery}
+          </div>
           <div class="modal-actions">
             <button class="btn btn-primary" data-action="quote">
               <i class="fas fa-calculator"></i> Cotizar ahora

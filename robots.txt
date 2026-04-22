@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Bloquear panel admin y datos privados
+Disallow: /admin/
+Disallow: /data/
+Disallow: /uploads/
+
+# Sitemap
+Sitemap: https://markpublicidad.com/sitemap.xml

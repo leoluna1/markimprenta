@@ -11,7 +11,6 @@ const path         = require('path');
 const cors         = require('cors');
 const multer       = require('multer');
 const nodemailer   = require('nodemailer');
-const https        = require('https');
 const helmet       = require('helmet');
 const rateLimit    = require('express-rate-limit');
 const crypto       = require('crypto');
@@ -29,7 +28,7 @@ const REVIEWS_FILE   = path.join(__dirname, 'data', 'reviews.json');
 const PORTFOLIO_FILE = path.join(__dirname, 'data', 'portfolio.json');
 const UPLOADS_DIR    = path.join(__dirname, 'uploads');
 const VIDEOS_DIR     = path.join(__dirname, 'uploads', 'videos');
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'mark2024';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 function getAuthData() {
   try {
@@ -38,12 +37,17 @@ function getAuthData() {
       if (data.password) return data;
     }
   } catch {}
+  if (!ADMIN_PASSWORD) {
+    console.error('[Auth] ❌ ADMIN_PASSWORD no está configurado en .env y no existe auth.json. El login estará bloqueado.');
+    return null;
+  }
   return { password: ADMIN_PASSWORD };
 }
 
 // Verifica la contraseña, soporta bcrypt y texto plano (migración automática)
 async function verifyPassword(input) {
   const auth = getAuthData();
+  if (!auth) return false;
   if (auth.password.startsWith('$2')) {
     return bcrypt.compare(input, auth.password);
   }
@@ -81,10 +85,8 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => {
     const ext  = path.extname(file.originalname).toLowerCase();
-    const base = path.basename(file.originalname, ext)
-                     .replace(/[^a-zA-Z0-9_-]/g, '-')
-                     .substring(0, 40);
-    cb(null, `${Date.now()}-${base}${ext}`);
+    const rand = crypto.randomBytes(12).toString('hex');
+    cb(null, `${rand}${ext}`);
   },
 });
 const ALLOWED_MIME_TYPES = [
@@ -119,22 +121,6 @@ function createMailTransport() {
   });
 }
 
-// ── WhatsApp via CallMeBot ─────────────────────
-async function sendWhatsApp(number, apikey, message) {
-  return new Promise((resolve, reject) => {
-    const encoded = encodeURIComponent(message);
-    const url = `https://api.callmebot.com/whatsapp.php?phone=${number}&text=${encoded}&apikey=${apikey}`;
-    https.get(url, (res) => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => {
-        // CallMeBot devuelve "Message queued." si fue exitoso
-        if (res.statusCode === 200) resolve(body);
-        else reject(new Error(`CallMeBot HTTP ${res.statusCode}: ${body}`));
-      });
-    }).on('error', reject);
-  });
-}
 
 // ── Sesiones activas (token → expiry) ─────────
 const activeSessions = new Map();
@@ -210,20 +196,23 @@ app.use(helmet({
     useDefaults: false,
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc:  ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:"],
+      scriptSrc:  ["'self'", "'unsafe-inline'"],
       styleSrc:   ["'self'", "'unsafe-inline'", "https:"],
       imgSrc:     ["'self'", "data:", "https:", "blob:"],
       connectSrc: ["'self'", "https:"],
       fontSrc:    ["'self'", "https:", "data:"],
       objectSrc:  ["'none'"],
-      frameSrc:   ["'self'", "https:"],
+      frameSrc:   ["'self'", "https://maps.google.com"],
     },
   },
   crossOriginEmbedderPolicy: false,
-  strictTransportSecurity: false,      // no forzar HTTPS en red local
+  strictTransportSecurity: process.env.NODE_ENV === 'production'
+    ? { maxAge: 31536000, includeSubDomains: true }
+    : false,
   crossOriginResourcePolicy: false,    // permitir carga de fuentes/CDN externos
   crossOriginOpenerPolicy: false,
 }));
+app.set('trust proxy', 1); // confiar en proxy del NAS/Railway para IP real
 app.use(express.json({ limit: '2mb' }));
 app.use(cors({ origin: false })); // solo mismo origen
 
@@ -454,25 +443,7 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
     results: { email: emailOk },
   });
 
-  // ── 4. WhatsApp en background (no bloquea) ────
-  const waNumber = process.env.WHATSAPP_NUMBER;
-  const waApiKey = process.env.WHATSAPP_APIKEY;
-  const waValida = waNumber && waApiKey && /^\d{4,10}$/.test(waApiKey);
-
-  if (waValida) {
-    const waMsg =
-      `📩 *Nuevo mensaje - Mark Publicidad*\n\n` +
-      `👤 *Nombre:* ${name}\n` +
-      `📧 *Email:* ${email}\n` +
-      `📞 *Teléfono:* ${phone || 'No indicado'}\n\n` +
-      `💬 *Mensaje:*\n${message}`;
-
-    sendWhatsApp(waNumber, waApiKey, waMsg)
-      .then(() => console.log(`[Contacto] ✅ WhatsApp enviado al ${waNumber}`))
-      .catch(err => console.warn('[Contacto] ⚠️  WhatsApp falló:', err.message));
-  }
-
-  // ── 5. Email de confirmación al usuario (background) ──
+  // ── 4. Email de confirmación al usuario (background) ──
   if (transport && emailOk) {
     transport.sendMail({
       from:    `"Mark Publicidad Impresa" <${process.env.GMAIL_USER}>`,
@@ -521,8 +492,8 @@ const videoUpload = multer({
     destination: (req, file, cb) => cb(null, VIDEOS_DIR),
     filename: (req, file, cb) => {
       const ext  = path.extname(file.originalname).toLowerCase();
-      const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '-').substring(0, 40);
-      cb(null, `${Date.now()}-${base}${ext}`);
+      const rand = crypto.randomBytes(12).toString('hex');
+      cb(null, `${rand}${ext}`);
     },
   }),
   fileFilter: (req, file, cb) => {
@@ -663,6 +634,9 @@ app.post('/api/portfolio', authenticate, (req, res) => {
   // Solo se permiten rutas relativas del servidor (previene URLs javascript: o externas)
   if (typeof image !== 'string' || !image.startsWith('/uploads/') || image.includes('..'))
     return res.status(400).json({ error: 'La imagen debe provenir de /uploads/.' });
+  const imagePath = path.join(__dirname, image);
+  if (!fs.existsSync(imagePath))
+    return res.status(400).json({ error: 'El archivo de imagen no existe en el servidor.' });
   const item = {
     id:       Date.now(),
     title:    title.trim().substring(0, 120),
@@ -796,15 +770,20 @@ app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin', 'inde
 
 // ── Inicio ────────────────────────────────────
 app.listen(PORT, () => {
-  const emailOk = process.env.GMAIL_USER && process.env.GMAIL_PASS && !process.env.GMAIL_PASS.includes('xxxx');
-  const waOk    = process.env.WHATSAPP_NUMBER && process.env.WHATSAPP_APIKEY && !process.env.WHATSAPP_APIKEY.includes('PEGA_');
+  const emailOk   = process.env.GMAIL_USER && process.env.GMAIL_PASS && !process.env.GMAIL_PASS.includes('xxxx');
+  const passwordOk = process.env.ADMIN_PASSWORD || fs.existsSync(AUTH_FILE);
+
+  // Enmascarar datos sensibles en logs
+  const emailDisplay = emailOk
+    ? '✅ Configurado (' + process.env.GMAIL_USER.replace(/^(.{3}).*(@.*)$/, '$1***$2') + ')'
+    : '⚠️  Pendiente — configura GMAIL_USER y GMAIL_PASS en .env';
 
   console.log('');
   console.log('  ✅  Servidor Mark Publicidad corriendo');
   console.log(`  🌐  Sitio web:    http://localhost:${PORT}`);
   console.log(`  🔧  Panel admin:  http://localhost:${PORT}/admin`);
   console.log('');
-  console.log(`  📧  Email:        ${emailOk ? '✅ Configurado (' + process.env.GMAIL_USER + ')' : '⚠️  Pendiente — configura GMAIL_USER y GMAIL_PASS en .env'}`);
-  console.log(`  💬  WhatsApp:     ${waOk    ? '✅ Configurado (+' + process.env.WHATSAPP_NUMBER + ')' : '⚠️  Pendiente — configura WHATSAPP_NUMBER y WHATSAPP_APIKEY en .env'}`);
+  console.log(`  📧  Email:        ${emailDisplay}`);
+  console.log(`  🔑  Admin pass:   ${passwordOk ? '✅ Configurada' : '❌ Falta ADMIN_PASSWORD en .env'}`);
   console.log('');
 });

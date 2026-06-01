@@ -1,5 +1,6 @@
 import EventBus    from '../core/EventBus.js';
 import ContactView from '../views/ContactView.js';
+import { csrfHeaders } from '../core/csrf.js';
 
 /**
  * ContactController
@@ -24,7 +25,7 @@ export default class ContactController {
     try {
       const res = await fetch('/api/contact', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body:    JSON.stringify(data),
       });
 

@@ -1,8 +1,17 @@
 # Credenciales — NUNCA subir
 .env
 
+# Datos sensibles — NUNCA subir a git
+data/auth.json
+data/contacts.json
+data/reviews.json
+
 # Dependencias
 node_modules/
+
+# Logs (el directorio se crea automáticamente al iniciar el servidor)
+logs/*.log
+logs/*.gz
 
 # Imágenes subidas por el admin (Railway usa almacenamiento efímero)
 # Las imágenes se guardan en Cloudinary en producción

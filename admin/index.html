@@ -46,6 +46,18 @@
   .btn-forgot:hover { color:var(--blue); }
   .login-success { color:var(--green); font-size:.85rem; margin-bottom:.75rem; display:none; }
 
+  /* ── PASSWORD TOGGLE & STRENGTH ── */
+  .pw-wrap { position:relative; margin-bottom:1rem; }
+  .pw-wrap input { width:100%; padding:.875rem 2.75rem .875rem 1rem; margin-bottom:0; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:1rem; font-family:inherit; outline:none; transition:border-color .2s; }
+  .pw-wrap input:focus { border-color:var(--blue); }
+  .pw-eye { position:absolute; right:.75rem; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--muted); cursor:pointer; font-size:.9rem; padding:.25rem; line-height:1; }
+  .pw-eye:hover { color:var(--blue); }
+  .strength-track { height:4px; border-radius:2px; background:var(--border); margin-top:.4rem; overflow:hidden; }
+  .strength-fill { height:100%; width:0; border-radius:2px; transition:width .35s,background .35s; }
+  .strength-label { font-size:.75rem; color:var(--muted); margin-top:.3rem; text-align:left; min-height:1rem; }
+  /* Forgot card success state */
+  .forgot-sent-icon { font-size:2.5rem; color:var(--green); margin-bottom:.75rem; }
+
   /* ── LAYOUT ── */
   #app { display:none; min-height:100vh; }
   .sidebar { position:fixed; top:0; left:0; width:240px; height:100vh; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; z-index:100; }
@@ -373,17 +385,51 @@
 
 <!-- ══════════ LOGIN ══════════ -->
 <div id="login-screen">
+
   <!-- Formulario normal de login -->
   <div class="login-card" id="login-form">
     <div class="brand-icon"><i class="fas fa-print"></i></div>
     <h1>Mark Publicidad</h1>
     <p>Panel de administración</p>
     <div class="login-error" id="login-error">Contraseña incorrecta</div>
-    <div class="login-success" id="login-success">¡Enlace de recuperación enviado al email del admin!</div>
-    <input type="password" id="login-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="pw-wrap">
+      <input type="password" id="login-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="pw-eye" type="button" onclick="togglePw('login-pass',this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+    </div>
     <button class="btn-login" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> Ingresar</button>
-    <button class="btn-forgot" onclick="forgotPassword()">¿Olvidaste la contraseña?</button>
+    <button class="btn-forgot" onclick="showLoginCard('forgot-form')">¿Olvidaste la contraseña?</button>
   </div>
+
+  <!-- Tarjeta: recuperar contraseña -->
+  <div class="login-card" id="forgot-form" style="display:none;">
+    <div class="brand-icon" style="background:var(--blue);"><i class="fas fa-envelope"></i></div>
+    <h1>Recuperar acceso</h1>
+    <p id="forgot-desc">Se enviará un enlace de recuperación al email del administrador registrado.</p>
+    <div class="login-error" id="forgot-error"></div>
+    <!-- Estado éxito (oculto por defecto) -->
+    <div id="forgot-sent" style="display:none;margin-bottom:1.5rem;">
+      <div class="forgot-sent-icon"><i class="fas fa-check-circle"></i></div>
+      <p style="font-weight:600;color:var(--green);margin-bottom:.4rem;">¡Enlace enviado!</p>
+      <p style="font-size:.85rem;color:var(--muted);">Revisa tu email y sigue el enlace para restablecer tu contraseña. El enlace expira en 1 hora.</p>
+    </div>
+    <!-- Acciones principales -->
+    <div id="forgot-actions">
+      <button class="btn-login" id="btn-send-link" onclick="sendResetLink()"><i class="fas fa-paper-plane"></i> Enviar enlace</button>
+    </div>
+    <button class="btn-forgot" onclick="showLoginCard('login-form')">← Volver al login</button>
+  </div>
+
+  <!-- Paso 2: verificación 2FA -->
+  <div class="login-card" id="totp-form" style="display:none;">
+    <div class="brand-icon" style="background:var(--purple);"><i class="fas fa-shield-alt"></i></div>
+    <h1>Verificación en 2 pasos</h1>
+    <p>Ingresa el código de 6 dígitos de tu aplicación autenticadora</p>
+    <div class="login-error" id="totp-error">Código incorrecto o expirado</div>
+    <input type="text" id="totp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000 000" style="text-align:center;font-size:1.5rem;letter-spacing:.25em;" onkeydown="if(event.key==='Enter')doTotpVerify()">
+    <button class="btn-login" onclick="doTotpVerify()"><i class="fas fa-check-circle"></i> Verificar</button>
+    <button class="btn-forgot" onclick="showLoginCard('login-form')">← Cancelar y volver</button>
+  </div>
+
   <!-- Formulario de reset de contraseña (aparece con ?reset_token=...) -->
   <div class="login-card" id="reset-form" style="display:none;">
     <div class="brand-icon" style="background:var(--red);"><i class="fas fa-key"></i></div>
@@ -391,10 +437,19 @@
     <p>Establece tu nueva contraseña de acceso</p>
     <div class="login-error" id="reset-error"></div>
     <div class="login-success" id="reset-success"></div>
-    <input type="password" id="reset-new" placeholder="Nueva contraseña (mín. 6 caracteres)">
-    <input type="password" id="reset-confirm" placeholder="Confirmar contraseña" style="margin-top:0;" onkeydown="if(event.key==='Enter')doResetPassword()">
+    <div class="pw-wrap">
+      <input type="password" id="reset-new" placeholder="Nueva contraseña (mín. 8 caracteres)" oninput="checkStrength(this.value,'reset-strength-fill','reset-strength-label')">
+      <button class="pw-eye" type="button" onclick="togglePw('reset-new',this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+    </div>
+    <div class="strength-track"><div class="strength-fill" id="reset-strength-fill"></div></div>
+    <div class="strength-label" id="reset-strength-label"></div>
+    <div class="pw-wrap" style="margin-top:.75rem;">
+      <input type="password" id="reset-confirm" placeholder="Confirmar contraseña" onkeydown="if(event.key==='Enter')doResetPassword()">
+      <button class="pw-eye" type="button" onclick="togglePw('reset-confirm',this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+    </div>
     <button class="btn-login" onclick="doResetPassword()"><i class="fas fa-lock"></i> Guardar contraseña</button>
   </div>
+
 </div>
 
 <!-- ══════════ APP ══════════ -->
@@ -674,24 +729,81 @@
     <!-- ── SECCIÓN SEGURIDAD ── -->
     <div class="section-panel" id="section-security">
       <div class="topbar">
-        <div><h2>Seguridad</h2><div class="sub">Administra la contraseña del panel</div></div>
+        <div><h2>Seguridad</h2><div class="sub">Administra la contraseña y verificación en 2 pasos</div></div>
       </div>
-      <div style="max-width:480px;margin-top:1.5rem;">
+      <div style="max-width:480px;margin-top:1.5rem;display:flex;flex-direction:column;gap:1.5rem;">
+
+        <!-- Cambiar contraseña -->
         <div class="stat-card" style="flex-direction:column;align-items:flex-start;gap:1.25rem;">
           <div style="display:flex;align-items:center;gap:.75rem;">
             <div class="stat-icon blue"><i class="fas fa-key"></i></div>
-            <div><div style="font-weight:600;">Cambiar contraseña</div><div style="font-size:.85rem;color:var(--muted);">Mínimo 6 caracteres</div></div>
+            <div><div style="font-weight:600;">Cambiar contraseña</div><div style="font-size:.85rem;color:var(--muted);">Mínimo 8 caracteres con letras y números</div></div>
           </div>
           <div style="width:100%;display:flex;flex-direction:column;gap:.75rem;">
-            <input type="password" id="sec-current" placeholder="Contraseña actual" style="width:100%;padding:.75rem 1rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.95rem;font-family:inherit;outline:none;">
-            <input type="password" id="sec-new" placeholder="Nueva contraseña" style="width:100%;padding:.75rem 1rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.95rem;font-family:inherit;outline:none;">
-            <input type="password" id="sec-confirm" placeholder="Confirmar nueva contraseña" style="width:100%;padding:.75rem 1rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.95rem;font-family:inherit;outline:none;">
+            <div class="pw-wrap" style="margin-bottom:0;">
+              <input type="password" id="sec-current" placeholder="Contraseña actual" style="font-size:.95rem;">
+              <button class="pw-eye" type="button" onclick="togglePw('sec-current',this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+            </div>
+            <div class="pw-wrap" style="margin-bottom:0;">
+              <input type="password" id="sec-new" placeholder="Nueva contraseña (mín. 8 caracteres)" style="font-size:.95rem;" oninput="checkStrength(this.value,'sec-strength-fill','sec-strength-label')">
+              <button class="pw-eye" type="button" onclick="togglePw('sec-new',this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+            </div>
+            <div class="strength-track" style="margin-top:-.5rem;"><div class="strength-fill" id="sec-strength-fill"></div></div>
+            <div class="strength-label" id="sec-strength-label" style="margin-top:-.25rem;"></div>
+            <div class="pw-wrap" style="margin-bottom:0;">
+              <input type="password" id="sec-confirm" placeholder="Confirmar nueva contraseña" style="font-size:.95rem;">
+              <button class="pw-eye" type="button" onclick="togglePw('sec-confirm',this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+            </div>
             <div id="sec-msg" style="font-size:.85rem;display:none;padding:.5rem .75rem;border-radius:6px;"></div>
             <button onclick="changePassword()" style="padding:.75rem 1.5rem;background:var(--blue);color:white;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:500;cursor:pointer;align-self:flex-start;">
               <i class="fas fa-save"></i> Guardar nueva contraseña
             </button>
           </div>
         </div>
+
+        <!-- 2FA / TOTP -->
+        <div class="stat-card" style="flex-direction:column;align-items:flex-start;gap:1.25rem;" id="twofa-card">
+          <div style="display:flex;align-items:center;gap:.75rem;">
+            <div class="stat-icon purple"><i class="fas fa-shield-alt"></i></div>
+            <div>
+              <div style="font-weight:600;">Verificación en 2 pasos (2FA)</div>
+              <div style="font-size:.85rem;color:var(--muted);" id="twofa-status-text">Cargando estado...</div>
+            </div>
+          </div>
+          <!-- Estado: deshabilitado -->
+          <div id="twofa-setup-section" style="width:100%;display:none;flex-direction:column;gap:1rem;">
+            <p style="font-size:.9rem;color:var(--muted);">Usa Google Authenticator, Authy o cualquier app TOTP para proteger tu cuenta.</p>
+            <button onclick="initTwoFaSetup()" style="padding:.75rem 1.5rem;background:var(--purple);color:white;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:500;cursor:pointer;align-self:flex-start;">
+              <i class="fas fa-qrcode"></i> Activar verificación en 2 pasos
+            </button>
+          </div>
+          <!-- QR code para escanear -->
+          <div id="twofa-qr-section" style="width:100%;display:none;flex-direction:column;gap:1rem;align-items:center;">
+            <p style="font-size:.9rem;color:var(--muted);text-align:center;">Escanea este código con tu app autenticadora, luego ingresa el código de 6 dígitos para confirmar.</p>
+            <img id="twofa-qr-img" src="" alt="QR 2FA" style="width:200px;height:200px;border:1px solid var(--border);border-radius:12px;">
+            <div style="font-size:.75rem;color:var(--muted);word-break:break-all;background:var(--bg);padding:.5rem .75rem;border-radius:6px;width:100%;text-align:center;" id="twofa-secret-text"></div>
+            <input type="text" id="twofa-verify-code" inputmode="numeric" maxlength="6" placeholder="Código de 6 dígitos" style="width:100%;padding:.75rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:1.2rem;text-align:center;letter-spacing:.2em;outline:none;" onkeydown="if(event.key==='Enter')confirmTwoFa()">
+            <div id="twofa-verify-msg" style="font-size:.85rem;display:none;padding:.5rem .75rem;border-radius:6px;width:100%;"></div>
+            <button onclick="confirmTwoFa()" style="padding:.75rem 1.5rem;background:var(--green);color:white;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:500;cursor:pointer;">
+              <i class="fas fa-check-circle"></i> Confirmar y activar
+            </button>
+            <button onclick="cancelTwoFaSetup()" style="background:none;border:none;color:var(--muted);font-size:.85rem;cursor:pointer;text-decoration:underline;">Cancelar</button>
+          </div>
+          <!-- Estado: habilitado -->
+          <div id="twofa-enabled-section" style="width:100%;display:none;flex-direction:column;gap:1rem;">
+            <div style="display:flex;align-items:center;gap:.5rem;color:var(--green);font-weight:500;font-size:.95rem;"><i class="fas fa-check-circle"></i> 2FA activado</div>
+            <p style="font-size:.85rem;color:var(--muted);">Tu cuenta está protegida con verificación en 2 pasos.</p>
+            <div class="pw-wrap" style="margin-bottom:0;">
+              <input type="password" id="twofa-disable-pass" placeholder="Contraseña actual para desactivar" style="font-size:.95rem;">
+              <button class="pw-eye" type="button" onclick="togglePw('twofa-disable-pass',this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+            </div>
+            <div id="twofa-disable-msg" style="font-size:.85rem;display:none;padding:.5rem .75rem;border-radius:6px;"></div>
+            <button onclick="disableTwoFa()" style="padding:.75rem 1.5rem;background:var(--red-light);color:var(--red);border:1px solid var(--red);border-radius:var(--radius-sm);font-size:.95rem;font-weight:500;cursor:pointer;align-self:flex-start;">
+              <i class="fas fa-times-circle"></i> Desactivar 2FA
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -1012,16 +1124,34 @@ let selectedImageUrl = '';   // URL final que se guardará en el producto
 let uploadedImages = [];     // cache de galería
 
 // ── Auth ──────────────────────────────────────
+let _challengeToken = null; // token temporal para verificación 2FA
+
+function getCsrfToken() {
+  const m = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+function csrfH() {
+  const t = getCsrfToken();
+  return t ? { 'x-csrf-token': t } : {};
+}
+
 async function doLogin() {
   const pass = document.getElementById('login-pass').value;
+  document.getElementById('login-error').style.display = 'none';
   try {
     const r = await fetch(API + '/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass })
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', ...csrfH() },
+      body:    JSON.stringify({ password: pass }),
     });
-    if (!r.ok) throw new Error();
     const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Error');
+    if (data.twoFaRequired) {
+      _challengeToken = data.challengeToken;
+      showLoginCard('totp-form');
+      setTimeout(() => document.getElementById('totp-code').focus(), 100);
+      return;
+    }
     token = data.token;
     sessionStorage.setItem('adminToken', token);
     showApp();
@@ -1031,12 +1161,40 @@ async function doLogin() {
 }
 document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
-function logout() {
+async function doTotpVerify() {
+  const code = document.getElementById('totp-code').value.replace(/\s/g, '');
+  document.getElementById('totp-error').style.display = 'none';
+  try {
+    const r = await fetch(API + '/api/auth/2fa/challenge', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', ...csrfH() },
+      body:    JSON.stringify({ challengeToken: _challengeToken, totpCode: code }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Error');
+    _challengeToken = null;
+    token = data.token;
+    sessionStorage.setItem('adminToken', token);
+    showApp();
+  } catch (e) {
+    document.getElementById('totp-error').textContent = e.message || 'Código incorrecto o expirado';
+    document.getElementById('totp-error').style.display = 'block';
+  }
+}
+
+async function logout() {
+  try {
+    await fetch(API + '/api/auth/logout', {
+      method:  'POST',
+      headers: { 'x-admin-token': token, ...csrfH() },
+    });
+  } catch {}
   sessionStorage.removeItem('adminToken');
   token = '';
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-pass').value = '';
+  showLoginCard('login-form');
 }
 
 async function showApp() {
@@ -1289,6 +1447,7 @@ function showSection(name) {
   if (name === 'reviews')   loadReviewsAdmin();
   if (name === 'contacts')  loadContacts();
   if (name === 'portfolio') loadPortfolioAdmin();
+  if (name === 'security')  loadTwoFaStatus();
   // Cerrar sidebar en móvil al navegar
   closeSidebar();
 }
@@ -2389,7 +2548,7 @@ async function doResetPassword() {
 
   if (!newPass || !confirm) { errEl.textContent = 'Completa ambos campos.'; errEl.style.display = 'block'; return; }
   if (newPass !== confirm)  { errEl.textContent = 'Las contraseñas no coinciden.'; errEl.style.display = 'block'; return; }
-  if (newPass.length < 6)  { errEl.textContent = 'Mínimo 6 caracteres.'; errEl.style.display = 'block'; return; }
+  if (newPass.length < 8)  { errEl.textContent = 'Mínimo 8 caracteres.'; errEl.style.display = 'block'; return; }
 
   try {
     const r = await fetch(`${API}/api/auth/reset-password`, {
@@ -2412,33 +2571,74 @@ async function doResetPassword() {
   }
 }
 
-// ── Seguridad ─────────────────────────────────
-async function forgotPassword() {
-  const btn = document.querySelector('.btn-forgot');
+// ── Utilidades de login ───────────────────────
+function showLoginCard(id) {
+  ['login-form','forgot-form','reset-form'].forEach(c => {
+    document.getElementById(c).style.display = c === id ? 'block' : 'none';
+  });
+}
+
+function togglePw(inputId, btn) {
+  const el = document.getElementById(inputId);
+  const showing = el.type === 'text';
+  el.type = showing ? 'password' : 'text';
+  btn.querySelector('i').className = showing ? 'fas fa-eye' : 'fas fa-eye-slash';
+}
+
+function checkStrength(val, fillId, labelId) {
+  const fill  = document.getElementById(fillId);
+  const label = document.getElementById(labelId);
+  if (!fill || !label) return;
+  let score = 0;
+  if (val.length >= 8)  score++;
+  if (val.length >= 12) score++;
+  if (/[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  const levels = [
+    { w:'0%',   bg:'var(--border)',  txt:'' },
+    { w:'25%',  bg:'var(--red)',     txt:'Muy débil' },
+    { w:'50%',  bg:'var(--orange)',  txt:'Débil' },
+    { w:'65%',  bg:'var(--orange)',  txt:'Aceptable' },
+    { w:'85%',  bg:'var(--blue)',    txt:'Buena' },
+    { w:'100%', bg:'var(--green)',   txt:'Excelente' },
+  ];
+  const lvl = val.length === 0 ? levels[0] : levels[Math.min(score, 5)];
+  fill.style.width      = lvl.w;
+  fill.style.background = lvl.bg;
+  label.textContent     = lvl.txt;
+  label.style.color     = lvl.bg;
+}
+
+// ── Recuperar contraseña ──────────────────────
+async function sendResetLink() {
+  const btn      = document.getElementById('btn-send-link');
+  const errEl    = document.getElementById('forgot-error');
+  const sentEl   = document.getElementById('forgot-sent');
+  const actionsEl = document.getElementById('forgot-actions');
+  const descEl   = document.getElementById('forgot-desc');
+  errEl.style.display = 'none';
   btn.disabled = true;
-  btn.textContent = 'Enviando...';
-  const successDiv = document.getElementById('login-success');
-  const errorDiv   = document.getElementById('login-error');
-  successDiv.style.display = 'none';
-  errorDiv.style.display   = 'none';
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
   try {
     const r = await fetch(API + '/api/auth/forgot', { method: 'POST' });
     const d = await r.json();
     if (d.success) {
-      successDiv.style.display = 'block';
-      setTimeout(() => { successDiv.style.display = 'none'; }, 8000);
+      actionsEl.style.display = 'none';
+      descEl.style.display    = 'none';
+      sentEl.style.display    = 'block';
     } else {
-      errorDiv.textContent   = d.error || 'Error al enviar.';
-      errorDiv.style.display = 'block';
-      setTimeout(() => { errorDiv.style.display = 'none'; errorDiv.textContent = 'Contraseña incorrecta'; }, 5000);
+      errEl.textContent   = d.error || 'Error al enviar el enlace.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar enlace';
     }
   } catch {
-    errorDiv.textContent   = 'Error de conexión.';
-    errorDiv.style.display = 'block';
-    setTimeout(() => { errorDiv.style.display = 'none'; errorDiv.textContent = 'Contraseña incorrecta'; }, 5000);
+    errEl.textContent   = 'Error de conexión. Intenta de nuevo.';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar enlace';
   }
-  btn.disabled    = false;
-  btn.textContent = '¿Olvidaste la contraseña?';
 }
 
 async function changePassword() {
@@ -2456,12 +2656,12 @@ async function changePassword() {
 
   if (!current || !newPass || !confirm) return show('Completa todos los campos.', false);
   if (newPass !== confirm)              return show('Las contraseñas no coinciden.', false);
-  if (newPass.length < 6)              return show('Mínimo 6 caracteres.', false);
+  if (newPass.length < 8)              return show('Mínimo 8 caracteres.', false);
 
   try {
     const r = await fetch(API + '/api/auth/change-password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
       body: JSON.stringify({ currentPassword: current, newPassword: newPass }),
     });
     const d = await r.json();
@@ -2477,6 +2677,95 @@ async function changePassword() {
     }
   } catch {
     show('Error de conexión.', false);
+  }
+}
+
+// ── 2FA / TOTP ────────────────────────────────
+async function loadTwoFaStatus() {
+  try {
+    const r = await fetch(API + '/api/auth/2fa/status', { headers: { 'x-admin-token': token } });
+    const d = await r.json();
+    renderTwoFaState(d.enabled);
+  } catch {
+    document.getElementById('twofa-status-text').textContent = 'Error al obtener estado';
+  }
+}
+
+function renderTwoFaState(enabled) {
+  document.getElementById('twofa-status-text').textContent = enabled ? 'Activo — tu cuenta está protegida' : 'Desactivado — te recomendamos activarlo';
+  document.getElementById('twofa-status-text').style.color = enabled ? 'var(--green)' : 'var(--muted)';
+  document.getElementById('twofa-setup-section').style.display   = enabled ? 'none' : 'flex';
+  document.getElementById('twofa-qr-section').style.display      = 'none';
+  document.getElementById('twofa-enabled-section').style.display = enabled ? 'flex' : 'none';
+}
+
+async function initTwoFaSetup() {
+  try {
+    const r = await fetch(API + '/api/auth/2fa/setup', { headers: { 'x-admin-token': token } });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    document.getElementById('twofa-qr-img').src = d.qrCode;
+    document.getElementById('twofa-secret-text').textContent = 'Clave manual: ' + d.secret;
+    document.getElementById('twofa-setup-section').style.display = 'none';
+    document.getElementById('twofa-qr-section').style.display    = 'flex';
+    document.getElementById('twofa-verify-code').value           = '';
+    document.getElementById('twofa-verify-msg').style.display    = 'none';
+    setTimeout(() => document.getElementById('twofa-verify-code').focus(), 100);
+  } catch (e) {
+    alert('Error al generar el QR: ' + e.message);
+  }
+}
+
+function cancelTwoFaSetup() {
+  document.getElementById('twofa-qr-section').style.display    = 'none';
+  document.getElementById('twofa-setup-section').style.display = 'flex';
+}
+
+async function confirmTwoFa() {
+  const code   = document.getElementById('twofa-verify-code').value.replace(/\s/g, '');
+  const msgEl  = document.getElementById('twofa-verify-msg');
+  const showMsg = (msg, ok) => {
+    msgEl.textContent = msg;
+    msgEl.style.display = 'block';
+    msgEl.style.background = ok ? 'var(--green-light)' : 'var(--red-light)';
+    msgEl.style.color      = ok ? 'var(--green)'       : 'var(--red)';
+  };
+  try {
+    const r = await fetch(API + '/api/auth/2fa/enable', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
+      body:    JSON.stringify({ code }),
+    });
+    const d = await r.json();
+    if (!r.ok) return showMsg(d.error || 'Código incorrecto', false);
+    renderTwoFaState(true);
+  } catch {
+    showMsg('Error de conexión', false);
+  }
+}
+
+async function disableTwoFa() {
+  const password = document.getElementById('twofa-disable-pass').value;
+  const msgEl    = document.getElementById('twofa-disable-msg');
+  const showMsg  = (msg, ok) => {
+    msgEl.textContent = msg;
+    msgEl.style.display = 'block';
+    msgEl.style.background = ok ? 'var(--green-light)' : 'var(--red-light)';
+    msgEl.style.color      = ok ? 'var(--green)'       : 'var(--red)';
+  };
+  if (!password) return showMsg('Ingresa tu contraseña actual para confirmar', false);
+  try {
+    const r = await fetch(API + '/api/auth/2fa/disable', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
+      body:    JSON.stringify({ password }),
+    });
+    const d = await r.json();
+    if (!r.ok) return showMsg(d.error || 'Error', false);
+    document.getElementById('twofa-disable-pass').value = '';
+    renderTwoFaState(false);
+  } catch {
+    showMsg('Error de conexión', false);
   }
 }
 </script>

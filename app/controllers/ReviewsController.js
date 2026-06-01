@@ -1,5 +1,6 @@
 import EventBus    from '../core/EventBus.js';
 import ReviewsView from '../views/ReviewsView.js';
+import { csrfHeaders } from '../core/csrf.js';
 
 /**
  * ReviewsController
@@ -33,7 +34,7 @@ export default class ReviewsController {
     try {
       const res    = await fetch('/api/reviews', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body:    JSON.stringify(data),
       });
       const result = await res.json();

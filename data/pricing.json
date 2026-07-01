@@ -96,39 +96,39 @@
       {
         "id": "relieve",
         "label": "Alto Relieve",
-        "price": 130,
+        "price": 124,
         "desc": "Textura repujada en 3D"
       }
     ],
     "tazas": [
       {
         "qty": 1,
-        "label": "1 unidad",
+        "label": 1,
         "ppu": 4.94
       },
       {
         "qty": 6,
-        "label": "6 unidades",
+        "label": 6,
         "ppu": 3.5
       },
       {
         "qty": 12,
-        "label": "12 unidades",
+        "label": 12,
         "ppu": 3
       },
       {
         "qty": 24,
-        "label": "24 unidades",
+        "label": 24,
         "ppu": 2.5
       },
       {
         "qty": 36,
-        "label": "36 unidades",
+        "label": 36,
         "ppu": 1.8
       },
       {
         "qty": 100,
-        "label": "100 uds.",
+        "label": 100,
         "ppu": 1.6
       }
     ],
@@ -351,42 +351,42 @@
         "label": "Diseño de Logotipo",
         "price": 80,
         "desc": "3 propuestas · Revisiones · Archivos vectoriales · Manual marca",
-        "delivery": "5–7 días hábiles"
+        "delivery": 5
       },
       {
         "id": "publicidad",
         "label": "Diseño Publicitario",
         "price": 50,
         "desc": "Flyer · Banner · Post RRSS · Entrega 48h",
-        "delivery": "1–2 días hábiles"
+        "delivery": 1
       },
       {
         "id": "identidad",
         "label": "Identidad Corporativa",
         "price": 180,
         "desc": "Logo + papelería + manual de marca completo",
-        "delivery": "10–15 días hábiles"
+        "delivery": 10
       },
       {
         "id": "membretadas",
         "label": "Hojas Membretadas (1000)",
         "price": 50,
         "desc": "Bond 75g · Full color · Diseño corporativo · 1000 unidades",
-        "delivery": "3–5 días hábiles"
+        "delivery": 3
       },
       {
         "id": "catalogos",
         "label": "Catálogos (100 uds.)",
         "price": 250,
         "desc": "Couché · Encuadernado · Varios formatos · 100 unidades",
-        "delivery": "5–7 días hábiles"
+        "delivery": 5
       }
     ]
   },
   "delivery": {
-    "volantes": "2–3 días hábiles",
-    "tarjetas": "3–5 días hábiles",
-    "tazas": "2–3 días hábiles",
+    "volantes": 2,
+    "tarjetas": 3,
+    "tazas": 2,
     "granformato": {
       "banner": "1–2 días hábiles",
       "rollup-lona": "2–3 días hábiles",
@@ -399,7 +399,7 @@
       "agendas": "5–7 días hábiles",
       "esferos": "5–7 días hábiles"
     },
-    "etiquetas": "3–5 días hábiles",
-    "packaging": "5–7 días hábiles"
+    "etiquetas": 3,
+    "packaging": 5
   }
 }

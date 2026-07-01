@@ -31,12 +31,23 @@ export default class SettingsController {
     Object.entries(map).forEach(([key, selector]) => {
       if (!social[key]) return;
       const el = document.querySelector(selector);
-      if (el) el.href = social[key];
+      const url = this._safeExternalUrl(social[key]);
+      if (el && url) el.href = url;
     });
     // Botón CTA "Ver canal completo"
     if (social.youtube) {
       const cta = document.getElementById('cta-youtube-btn');
-      if (cta) cta.href = social.youtube;
+      const url = this._safeExternalUrl(social.youtube);
+      if (cta && url) cta.href = url;
+    }
+  }
+
+  _safeExternalUrl(value) {
+    try {
+      const url = new URL(String(value || ''), window.location.origin);
+      return url.protocol === 'https:' ? url.href : '';
+    } catch {
+      return '';
     }
   }
 
@@ -54,6 +65,7 @@ export default class SettingsController {
     if (!activos.length) { grid.innerHTML = ''; return; }
 
     grid.innerHTML = activos.map(v => this._videoCard(v)).join('');
+    this._bindThumbFallbacks();
     this._bindPlayButtons();
   }
 
@@ -89,7 +101,7 @@ export default class SettingsController {
         <div class="video-wrapper" data-id="${this._esc(v.youtubeId)}">
           <img class="video-thumb"
             src="${thumb}"
-            onerror="this.src='${thumbFall}'"
+            data-fallback-src="${this._esc(thumbFall)}"
             alt="${this._esc(v.title || '')}">
           <div class="video-overlay"></div>
           <button class="play-btn" aria-label="Reproducir">
@@ -102,6 +114,15 @@ export default class SettingsController {
         </div>
         ${info}
       </div>`;
+  }
+
+  _bindThumbFallbacks() {
+    document.querySelectorAll('#videos-grid-dynamic img[data-fallback-src]').forEach(img => {
+      img.addEventListener('error', () => {
+        const fallback = img.dataset.fallbackSrc;
+        if (fallback && img.src !== fallback) img.src = fallback;
+      }, { once: true });
+    });
   }
 
   _bindPlayButtons() {

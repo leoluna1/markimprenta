@@ -37,10 +37,29 @@ export default class PortfolioView extends BaseView {
 
   _render(items) {
     if (!this._grid) return;
-    this._grid.querySelectorAll('.portfolio-card').forEach(c => c.remove());
 
-    const filtered = this._active === 'all' ? items : items.filter(i => i.category === this._active);
+    const existing = [...this._grid.querySelectorAll('.portfolio-card')];
+    const filtered  = this._active === 'all' ? items : items.filter(i => i.category === this._active);
 
+    if (!existing.length) {
+      this._addCards(filtered);
+      return;
+    }
+
+    // Fade-out antes de quitar las cards actuales
+    existing.forEach(c => {
+      c.style.transition = 'opacity 0.18s ease, transform 0.18s ease';
+      c.style.opacity    = '0';
+      c.style.transform  = 'scale(0.92)';
+    });
+    setTimeout(() => {
+      existing.forEach(c => c.remove());
+      this._addCards(filtered);
+    }, 200);
+  }
+
+  _addCards(filtered) {
+    if (!this._grid) return;
     if (!filtered.length) {
       if (this._empty) this._empty.style.display = 'flex';
       return;
@@ -53,8 +72,7 @@ export default class PortfolioView extends BaseView {
       card.style.animationDelay = `${idx * 0.05}s`;
       card.innerHTML = `
         <div class="portfolio-img-wrap">
-          <img src="${this.esc(item.image)}" alt="${this.esc(item.title)}" loading="lazy"
-               onerror="this.parentElement.innerHTML='<div class=\'portfolio-img-placeholder\'><i class=\'fas fa-image\'></i></div>'">
+          <img src="${this.esc(item.image)}" alt="${this.esc(item.title)}" loading="lazy" data-portfolio-image>
           <div class="portfolio-overlay">
             <span class="portfolio-cat-tag">${this.esc(CAT_LABELS[item.category] || item.category)}</span>
           </div>
@@ -63,6 +81,14 @@ export default class PortfolioView extends BaseView {
           <p class="portfolio-title">${this.esc(item.title)}</p>
         </div>`;
       this._grid.appendChild(card);
+      card.querySelector('img[data-portfolio-image]')?.addEventListener('error', e => {
+        const wrap = e.currentTarget.closest('.portfolio-img-wrap');
+        if (!wrap) return;
+        const placeholder = document.createElement('div');
+        placeholder.className = 'portfolio-img-placeholder';
+        placeholder.innerHTML = '<i class="fas fa-image"></i>';
+        wrap.replaceChildren(placeholder);
+      }, { once: true });
     });
   }
 }

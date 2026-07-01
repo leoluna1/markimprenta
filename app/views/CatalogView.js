@@ -85,6 +85,7 @@ export default class CatalogView extends BaseView {
       this._grid.innerHTML = items.length
         ? items.map((p, i) => this._cardHTML(p, i)).join('')
         : this._emptyHTML();
+      this._bindImageFallbacks();
 
       // Contador de resultados
       if (this._count) {
@@ -114,17 +115,15 @@ export default class CatalogView extends BaseView {
 
   _imageHTML(p) {
     if (this._isImagePath(p.image)) {
-      const placeholder = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
       return `<img
-        src="${placeholder}"
-        data-src="${p.image}"
+        src="${this.esc(p.image)}"
         alt="${this.esc(p.name)}"
-        class="lazy-img"
+        loading="lazy"
         style="width:100%;height:100%;object-fit:contain;display:block;padding:8px;"
-        onerror="this.src='';this.style.display='none';this.nextElementSibling.style.display='flex';"
+        data-product-image
       /><span style="display:none;font-size:3.5rem;align-items:center;justify-content:center;width:100%;height:100%;">📦</span>`;
     }
-    return `<span style="font-size:3.5rem;display:flex;align-items:center;justify-content:center;width:100%;height:100%;">${p.image ?? '📦'}</span>`;
+    return `<span style="font-size:3.5rem;display:flex;align-items:center;justify-content:center;width:100%;height:100%;">${this.esc(p.image ?? '📦')}</span>`;
   }
 
   _cardHTML(p, i) {
@@ -213,19 +212,15 @@ export default class CatalogView extends BaseView {
       card.style.transform  = 'translateY(28px)';
       card.style.transition = `opacity .4s ease ${delay}, transform .4s ease ${delay}`;
       this._cardObs.observe(card);
+    });
+  }
 
-      // Lazy loading: cargar imagen real al entrar al viewport
-      const lazyImg = card.querySelector('img.lazy-img');
-      if (lazyImg?.dataset.src) {
-        const imgObs = new IntersectionObserver(([entry]) => {
-          if (entry.isIntersecting) {
-            lazyImg.src = lazyImg.dataset.src;
-            lazyImg.removeAttribute('data-src');
-            imgObs.disconnect();
-          }
-        }, { rootMargin: '100px' });
-        imgObs.observe(lazyImg);
-      }
+  _bindImageFallbacks() {
+    this._grid?.querySelectorAll('img[data-product-image]').forEach(img => {
+      img.addEventListener('error', () => {
+        img.style.display = 'none';
+        if (img.nextElementSibling) img.nextElementSibling.style.display = 'flex';
+      }, { once: true });
     });
   }
 }

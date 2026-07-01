@@ -20,6 +20,7 @@ const { body, validationResult } = require('express-validator');
 const speakeasy    = require('speakeasy');
 const QRCode       = require('qrcode');
 
+const db           = require('./db/db');
 const {
   createSession,
   isValidSession,
@@ -32,44 +33,67 @@ const { csrfCookie, csrfProtect, csrfTokenEndpoint } = require('./lib/csrf');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// ── Rutas de datos ────────────────────────────
-const DATA_FILE      = path.join(__dirname, 'data', 'products.json');
-const PRICING_FILE   = path.join(__dirname, 'data', 'pricing.json');
-const SETTINGS_FILE  = path.join(__dirname, 'data', 'settings.json');
-const CONTACTS_FILE  = path.join(__dirname, 'data', 'contacts.json');
-const AUTH_FILE      = path.join(__dirname, 'data', 'auth.json');
-const REVIEWS_FILE   = path.join(__dirname, 'data', 'reviews.json');
-const PORTFOLIO_FILE = path.join(__dirname, 'data', 'portfolio.json');
+// ── Rutas de directorios (medios y uploads) ──────────────────
 const UPLOADS_DIR    = path.join(__dirname, 'uploads');
 const VIDEOS_DIR     = path.join(__dirname, 'uploads', 'videos');
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
-// ── Auth helpers ──────────────────────────────
-function getAuthData() {
-  try {
-    if (fs.existsSync(AUTH_FILE)) {
-      const data = JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8'));
-      if (data.password) return data;
-    }
-  } catch {}
-  if (!ADMIN_PASSWORD) {
-    logger.error('[Auth] ADMIN_PASSWORD no configurado y no existe auth.json — login bloqueado');
-    return null;
-  }
-  return { password: ADMIN_PASSWORD };
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
 }
 
-async function verifyPassword(input) {
-  const auth = getAuthData();
+function fallbackAdminEmail() {
+  return normalizeEmail(process.env.ADMIN_EMAIL || process.env.GMAIL_USER || '');
+}
+
+function isValidEmailFormat(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(normalizeEmail(email));
+}
+
+function withAuthDefaults(auth) {
+  if (!auth) return null;
+  return {
+    ...auth,
+    email: normalizeEmail(auth.email || fallbackAdminEmail()),
+  };
+}
+
+function matchesAdminEmail(input, auth) {
+  const expected = normalizeEmail(auth && auth.email);
+  return Boolean(expected && normalizeEmail(input) === expected);
+}
+
+function maskEmail(email) {
+  return normalizeEmail(email).replace(/^(.{2}).*(@.*)$/, '$1***$2');
+}
+
+// ── Auth helpers ──────────────────────────────
+async function getAuthData() {
+  try {
+    const auth = await db.getAuth();
+    if (auth && auth.password) return withAuthDefaults(auth);
+  } catch {}
+  if (!ADMIN_PASSWORD) {
+    logger.error('[Auth] ADMIN_PASSWORD no configurado y no existe credenciales en BD — login bloqueado');
+    return null;
+  }
+  return withAuthDefaults({ email: fallbackAdminEmail(), password: ADMIN_PASSWORD });
+}
+
+async function verifyPassword(input, authData = null) {
+  const auth = authData || await getAuthData();
   if (!auth) return false;
-  if (auth.password.startsWith('$2')) {
-    return bcrypt.compare(input, auth.password);
+  const candidate = String(input || '');
+  const stored = String(auth.password || '');
+  if (!candidate || !stored) return false;
+  if (stored.startsWith('$2')) {
+    return bcrypt.compare(candidate, stored);
   }
   // Texto plano: verificar y migrar automáticamente a bcrypt
-  if (input !== auth.password) return false;
-  const hash = await bcrypt.hash(input, 12);
-  fs.writeFileSync(AUTH_FILE, JSON.stringify({ ...auth, password: hash }, null, 2), 'utf8');
+  if (candidate !== stored) return false;
+  const hash = await bcrypt.hash(candidate, 12);
+  await db.saveAuth({ ...auth, password: hash });
   logger.info('[Auth] Contraseña migrada a bcrypt');
   return true;
 }
@@ -117,7 +141,6 @@ function consumeChallengeToken(token) {
 // ── Carpetas necesarias ────────────────────────
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 if (!fs.existsSync(VIDEOS_DIR))  fs.mkdirSync(VIDEOS_DIR,  { recursive: true });
-if (!fs.existsSync(path.join(__dirname, 'data'))) fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
 
 // ── Multer — imágenes ─────────────────────────
 const storage = multer.diskStorage({
@@ -293,7 +316,24 @@ app.use((req, res, next) => {
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
   next();
 });
+
+function adminContentSecurityPolicy(nonce) {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    "script-src-attr 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
+    "img-src 'self' data: https: blob:",
+    "connect-src 'self' https://www.youtube.com https://i.ytimg.com",
+    "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:",
+    "object-src 'none'",
+    "frame-src 'self' https://maps.google.com https://www.google.com https://www.youtube.com https://www.youtube-nocookie.com",
+    "frame-ancestors 'none'",
+  ].join('; ');
+}
+
 app.use('/admin', (req, res, next) => {
+  res.setHeader('Content-Security-Policy', adminContentSecurityPolicy(res.locals.cspNonce));
   res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   next();
 });
@@ -317,7 +357,6 @@ app.use(globalLimiter);
 app.use(csrfCookie);
 
 // ── Bloquear archivos sensibles del servidor ──
-// Previene que express.static exponga server.js, package.json, etc.
 const PRIVATE_PATH_RE = /^\/(?:server\.js|package(?:-lock)?\.json|[^/]*\.md|lib\/|data\/|logs\/|node_modules\/|\.env|index\.html$|admin\/index\.html$)/i;
 app.use((req, res, next) => {
   if (PRIVATE_PATH_RE.test(req.path)) return res.status(403).end();
@@ -330,38 +369,12 @@ app.use('/uploads',        express.static(UPLOADS_DIR));
 app.use('/uploads/videos', express.static(VIDEOS_DIR));
 app.use('/admin',          express.static(path.join(__dirname, 'admin'), { index: false, redirect: false }));
 
-// ── Helpers de datos (JSON) ───────────────────
-function readProducts()  { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
-function writeProducts(d){ fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2), 'utf8'); }
-function readPricing()   { return JSON.parse(fs.readFileSync(PRICING_FILE, 'utf8')); }
-function writePricing(d) { fs.writeFileSync(PRICING_FILE, JSON.stringify(d, null, 2), 'utf8'); }
-function readSettings()  {
-  if (!fs.existsSync(SETTINGS_FILE)) return { videos: [], socialMedia: {} };
-  return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
-}
-function writeSettings(d){ fs.writeFileSync(SETTINGS_FILE, JSON.stringify(d, null, 2), 'utf8'); }
-function readContacts()  {
-  if (!fs.existsSync(CONTACTS_FILE)) return [];
-  try { return JSON.parse(fs.readFileSync(CONTACTS_FILE, 'utf8')); } catch { return []; }
-}
-function writeContacts(d){ fs.writeFileSync(CONTACTS_FILE, JSON.stringify(d, null, 2), 'utf8'); }
-function readReviews()   {
-  if (!fs.existsSync(REVIEWS_FILE)) return [];
-  try { return JSON.parse(fs.readFileSync(REVIEWS_FILE, 'utf8')); } catch { return []; }
-}
-function writeReviews(d) { fs.writeFileSync(REVIEWS_FILE, JSON.stringify(d, null, 2), 'utf8'); }
-function readPortfolio() {
-  if (!fs.existsSync(PORTFOLIO_FILE)) return [];
-  try { return JSON.parse(fs.readFileSync(PORTFOLIO_FILE, 'utf8')); } catch { return []; }
-}
-function writePortfolio(d){ fs.writeFileSync(PORTFOLIO_FILE, JSON.stringify(d, null, 2), 'utf8'); }
-
 // ── Middleware de autenticación ───────────────
 function authenticate(req, res, next) {
   const token = req.headers['x-admin-token'];
   if (!isValidSession(token))
     return res.status(401).json({ error: 'No autorizado' });
-  req.adminToken = token; // para usarlo en logout/invalidar
+  req.adminToken = token;
   next();
 }
 
@@ -375,24 +388,21 @@ app.get('/api/csrf-token', csrfTokenEndpoint);
 // ── Auth: login ───────────────────────────────
 app.post('/api/auth', authLimiter, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  const { password, totpCode } = req.body;
+  const { email, password, totpCode } = req.body || {};
 
-  const ok = await verifyPassword(password);
+  const auth = await getAuthData();
+  const ok = matchesAdminEmail(email, auth) && await verifyPassword(password, auth);
   if (!ok) {
     auditLog('LOGIN_FAILED', {}, req);
-    return res.status(401).json({ error: 'Contraseña incorrecta' });
+    return res.status(401).json({ error: 'Correo o contraseña incorrectos.' });
   }
 
-  const auth = getAuthData();
   if (auth && auth.totp_enabled && auth.totp_secret) {
-    // 2FA habilitado: verificar código TOTP
     if (!totpCode) {
-      // Primera fase: contraseña correcta, pedir TOTP
       const challengeToken = createChallengeToken();
       auditLog('LOGIN_2FA_CHALLENGE', {}, req);
       return res.json({ twoFaRequired: true, challengeToken });
     }
-    // Si ya viene con desafío y código en el mismo request
     const verified = speakeasy.totp.verify({
       secret:   auth.totp_secret,
       encoding: 'base32',
@@ -410,14 +420,14 @@ app.post('/api/auth', authLimiter, async (req, res) => {
 });
 
 // Segunda fase del login 2FA
-app.post('/api/auth/2fa/challenge', authLimiter, (req, res) => {
+app.post('/api/auth/2fa/challenge', authLimiter, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const { challengeToken, totpCode } = req.body;
 
   if (!isValidChallengeToken(challengeToken))
     return res.status(401).json({ error: 'Sesión de verificación expirada. Inicia sesión de nuevo.' });
 
-  const auth = getAuthData();
+  const auth = await getAuthData();
   if (!auth || !auth.totp_enabled || !auth.totp_secret)
     return res.status(400).json({ error: '2FA no está configurado.' });
 
@@ -445,8 +455,32 @@ app.post('/api/auth/logout', authenticate, (req, res) => {
   res.json({ success: true });
 });
 
+app.get('/api/auth/profile', authenticate, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const auth = await getAuthData();
+  res.json({ email: auth ? auth.email : '' });
+});
+
 // ── Auth: recuperar contraseña ─────────────────
 app.post('/api/auth/forgot', forgotLimiter, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const { email } = req.body || {};
+  const auth = await getAuthData();
+  const genericOk = {
+    success: true,
+    message: 'Si el correo coincide con el administrador, se enviará un enlace de recuperación.',
+  };
+
+  if (!auth || !isValidEmailFormat(auth.email)) {
+    logger.error('[Auth] Correo de administrador no configurado para recuperación');
+    return res.status(503).json({ error: 'Correo de administrador no configurado.' });
+  }
+
+  if (!matchesAdminEmail(email, auth)) {
+    auditLog('PASSWORD_RESET_EMAIL_MISMATCH', {}, req);
+    return res.json(genericOk);
+  }
+
   const transport = createMailTransport();
   if (!transport) return res.status(503).json({ error: 'Email no configurado en el servidor.' });
 
@@ -457,7 +491,7 @@ app.post('/api/auth/forgot', forgotLimiter, async (req, res) => {
   try {
     await transport.sendMail({
       from:    `"Mark Publicidad Admin" <${process.env.GMAIL_USER}>`,
-      to:      process.env.GMAIL_USER,
+      to:      auth.email,
       subject: 'Recuperación de contraseña — Mark Publicidad',
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
@@ -475,7 +509,7 @@ app.post('/api/auth/forgot', forgotLimiter, async (req, res) => {
       `,
     });
     auditLog('PASSWORD_RESET_REQUESTED', {}, req);
-    res.json({ success: true });
+    res.json(genericOk);
   } catch (e) {
     logger.error('[Auth] Error enviando email de recuperación', { err: e.message });
     res.status(500).json({ error: 'Error enviando el email.' });
@@ -496,8 +530,8 @@ app.post('/api/auth/reset-password', async (req, res) => {
 
   try {
     const hash = await bcrypt.hash(newPassword, 12);
-    const auth = getAuthData() || {};
-    fs.writeFileSync(AUTH_FILE, JSON.stringify({ ...auth, password: hash }, null, 2), 'utf8');
+    const auth = (await getAuthData()) || {};
+    await db.saveAuth({ ...auth, password: hash });
     resetTokens.delete(token);
     invalidateAllSessions();
     auditLog('PASSWORD_RESET_OK', {}, req);
@@ -508,22 +542,36 @@ app.post('/api/auth/reset-password', async (req, res) => {
 });
 
 app.post('/api/auth/change-password', authenticate, async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-  const ok = await verifyPassword(currentPassword);
+  const { email, currentPassword, newPassword } = req.body || {};
+  const auth = await getAuthData();
+  const ok = await verifyPassword(currentPassword, auth);
   if (!ok)
     return res.status(401).json({ error: 'La contraseña actual es incorrecta.' });
 
-  const pwErr = validatePasswordStrength(newPassword);
-  if (pwErr) return res.status(400).json({ error: pwErr });
+  const latestAuth = (await getAuthData()) || auth || {};
+  const nextEmail = normalizeEmail(email || latestAuth.email || fallbackAdminEmail());
+  if (!isValidEmailFormat(nextEmail))
+    return res.status(400).json({ error: 'Ingresa un correo de administrador válido.' });
+
+  const wantsPasswordChange = typeof newPassword === 'string' && newPassword.length > 0;
+  const emailChanged = nextEmail !== normalizeEmail(latestAuth.email);
+  if (!wantsPasswordChange && !emailChanged)
+    return res.status(400).json({ error: 'No hay cambios para guardar.' });
+
+  if (wantsPasswordChange) {
+    const pwErr = validatePasswordStrength(newPassword);
+    if (pwErr) return res.status(400).json({ error: pwErr });
+  }
 
   try {
-    const hash = await bcrypt.hash(newPassword, 12);
-    const auth = getAuthData() || {};
-    fs.writeFileSync(AUTH_FILE, JSON.stringify({ ...auth, password: hash }, null, 2), 'utf8');
+    const nextPassword = wantsPasswordChange
+      ? await bcrypt.hash(newPassword, 12)
+      : latestAuth.password;
+    await db.saveAuth({ ...latestAuth, email: nextEmail, password: nextPassword });
     invalidateAllSessions();
     const newToken = createSession();
-    auditLog('PASSWORD_CHANGED', {}, req);
-    res.json({ success: true, token: newToken });
+    auditLog(wantsPasswordChange ? 'PASSWORD_CHANGED' : 'ADMIN_EMAIL_CHANGED', {}, req);
+    res.json({ success: true, token: newToken, email: nextEmail });
   } catch (e) {
     res.status(500).json({ error: 'Error guardando la contraseña.' });
   }
@@ -538,22 +586,21 @@ app.get('/api/auth/2fa/setup', authenticate, async (req, res) => {
 
   try {
     const qrDataUrl = await QRCode.toDataURL(secret.otpauth_url);
-    // Guardamos el secreto temporalmente (no habilitado hasta verificar)
-    const auth = getAuthData() || {};
-    fs.writeFileSync(AUTH_FILE, JSON.stringify({
+    const auth = (await getAuthData()) || {};
+    await db.saveAuth({
       ...auth,
       totp_secret:  secret.base32,
       totp_enabled: false,
-    }, null, 2), 'utf8');
+    });
     res.json({ qrCode: qrDataUrl, secret: secret.base32 });
   } catch (e) {
     res.status(500).json({ error: 'Error generando código QR.' });
   }
 });
 
-app.post('/api/auth/2fa/enable', authenticate, (req, res) => {
+app.post('/api/auth/2fa/enable', authenticate, async (req, res) => {
   const { code } = req.body;
-  const auth = getAuthData();
+  const auth = await getAuthData();
   if (!auth || !auth.totp_secret)
     return res.status(400).json({ error: 'Primero genera el código QR desde /api/auth/2fa/setup' });
 
@@ -567,7 +614,7 @@ app.post('/api/auth/2fa/enable', authenticate, (req, res) => {
   if (!verified)
     return res.status(400).json({ error: 'Código incorrecto. Escanea de nuevo el QR e inténtalo.' });
 
-  fs.writeFileSync(AUTH_FILE, JSON.stringify({ ...auth, totp_enabled: true }, null, 2), 'utf8');
+  await db.saveAuth({ ...auth, totp_enabled: true });
   auditLog('2FA_ENABLED', {}, req);
   res.json({ success: true });
 });
@@ -578,15 +625,15 @@ app.post('/api/auth/2fa/disable', authenticate, async (req, res) => {
   if (!ok)
     return res.status(401).json({ error: 'Contraseña incorrecta.' });
 
-  const auth = getAuthData() || {};
+  const auth = (await getAuthData()) || {};
   const { totp_secret: _s, totp_enabled: _e, ...rest } = auth;
-  fs.writeFileSync(AUTH_FILE, JSON.stringify(rest, null, 2), 'utf8');
+  await db.saveAuth(rest);
   auditLog('2FA_DISABLED', {}, req);
   res.json({ success: true });
 });
 
-app.get('/api/auth/2fa/status', authenticate, (req, res) => {
-  const auth = getAuthData();
+app.get('/api/auth/2fa/status', authenticate, async (req, res) => {
+  const auth = await getAuthData();
   res.json({ enabled: !!(auth && auth.totp_enabled) });
 });
 
@@ -606,15 +653,13 @@ app.post('/api/contact', contactLimiter, csrfProtect, contactValidators, async (
   const { name, email, phone, message } = req.body;
 
   try {
-    const contacts = readContacts();
-    contacts.unshift({
+    await db.createContact({
       id:      Date.now(),
       name, email, phone: phone || '',
       message,
       date:    new Date().toISOString(),
       read:    false,
     });
-    writeContacts(contacts);
   } catch (e) {
     logger.error('[Contacto] Error guardando contacto', { err: e.message });
   }
@@ -679,24 +724,33 @@ app.post('/api/contact', contactLimiter, csrfProtect, contactValidators, async (
 });
 
 // ── Historial de contactos (admin) ────────────
-app.get('/api/contacts', authenticate, (req, res) => {
+app.get('/api/contacts', authenticate, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  res.json(readContacts());
+  try {
+    res.json(await db.getContacts());
+  } catch (e) {
+    res.status(500).json({ error: 'Error leyendo contactos' });
+  }
 });
 
-app.patch('/api/contacts/:id/read', authenticate, (req, res) => {
-  const contacts = readContacts();
-  const c = contacts.find(x => x.id === +req.params.id);
-  if (!c) return res.status(404).json({ error: 'No encontrado' });
-  c.read = true;
-  writeContacts(contacts);
-  res.json({ success: true });
+app.patch('/api/contacts/:id/read', authenticate, async (req, res) => {
+  try {
+    const ok = await db.markContactRead(+req.params.id);
+    if (!ok) return res.status(404).json({ error: 'No encontrado' });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Error' });
+  }
 });
 
-app.delete('/api/contacts/:id', authenticate, (req, res) => {
-  const contacts = readContacts().filter(x => x.id !== +req.params.id);
-  writeContacts(contacts);
-  res.json({ success: true });
+app.delete('/api/contacts/:id', authenticate, async (req, res) => {
+  try {
+    const ok = await db.deleteContact(+req.params.id);
+    if (!ok) return res.status(404).json({ error: 'No encontrado' });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Error' });
+  }
 });
 
 // ── Subida archivos ───────────────────────────
@@ -746,12 +800,22 @@ app.get('/api/uploads', authenticate, (req, res) => {
 });
 
 // ── Reseñas ───────────────────────────────────
-app.get('/api/reviews', (req, res) => {
-  res.json(readReviews().filter(r => r.approved));
+app.get('/api/reviews', async (req, res) => {
+  try {
+    const list = await db.getReviews();
+    res.json(list.filter(r => r.approved));
+  } catch (e) {
+    res.status(500).json({ error: 'Error leyendo reseñas' });
+  }
 });
 
-app.get('/api/reviews/all', authenticate, (req, res) => {
-  res.json(readReviews());
+app.get('/api/reviews/all', authenticate, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    res.json(await db.getReviews());
+  } catch (e) {
+    res.status(500).json({ error: 'Error leyendo reseñas' });
+  }
 });
 
 const reviewValidators = [
@@ -760,7 +824,7 @@ const reviewValidators = [
   body('comment').trim().notEmpty().withMessage('Comentario requerido.').isLength({ max: 1000 }),
 ];
 
-app.post('/api/reviews', reviewLimiter, csrfProtect, reviewValidators, (req, res) => {
+app.post('/api/reviews', reviewLimiter, csrfProtect, reviewValidators, async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty())
     return res.status(400).json({ error: errors.array()[0].msg });
@@ -774,32 +838,40 @@ app.post('/api/reviews', reviewLimiter, csrfProtect, reviewValidators, (req, res
     date:     new Date().toISOString(),
     approved: false,
   };
-  const reviews = readReviews();
-  reviews.unshift(review);
-  writeReviews(reviews);
-  res.status(201).json({ success: true, message: '¡Gracias! Tu reseña está pendiente de aprobación.' });
+  try {
+    await db.createReview(review);
+    res.status(201).json({ success: true, message: '¡Gracias! Tu reseña está pendiente de aprobación.' });
+  } catch (e) {
+    res.status(500).json({ error: 'Error guardando reseña' });
+  }
 });
 
-app.patch('/api/reviews/:id/approve', authenticate, (req, res) => {
-  const reviews = readReviews();
-  const r = reviews.find(x => x.id === +req.params.id);
-  if (!r) return res.status(404).json({ error: 'No encontrada' });
-  r.approved = true;
-  writeReviews(reviews);
-  res.json({ success: true });
+app.patch('/api/reviews/:id/approve', authenticate, async (req, res) => {
+  try {
+    const ok = await db.approveReview(+req.params.id);
+    if (!ok) return res.status(404).json({ error: 'No encontrada' });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Error' });
+  }
 });
 
-app.delete('/api/reviews/:id', authenticate, (req, res) => {
-  writeReviews(readReviews().filter(x => x.id !== +req.params.id));
-  res.json({ success: true });
+app.delete('/api/reviews/:id', authenticate, async (req, res) => {
+  try {
+    await db.deleteReview(+req.params.id);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Error' });
+  }
 });
 
 // ── Portfolio ─────────────────────────────────
-app.get('/api/portfolio', (req, res) => {
-  res.json(readPortfolio());
+app.get('/api/portfolio', async (req, res) => {
+  try { res.json(await db.getPortfolio()); }
+  catch (e) { res.status(500).json({ error: 'Error leyendo portfolio' }); }
 });
 
-app.post('/api/portfolio', authenticate, (req, res) => {
+app.post('/api/portfolio', authenticate, async (req, res) => {
   const { title, category, image } = req.body;
   if (!title || !image) return res.status(400).json({ error: 'Título e imagen son requeridos.' });
   if (typeof image !== 'string' || !image.startsWith('/uploads/') || image.includes('..'))
@@ -807,6 +879,7 @@ app.post('/api/portfolio', authenticate, (req, res) => {
   const imagePath = path.join(__dirname, image);
   if (!fs.existsSync(imagePath))
     return res.status(400).json({ error: 'El archivo de imagen no existe en el servidor.' });
+
   const item = {
     id:       Date.now(),
     title:    title.trim().substring(0, 120),
@@ -814,28 +887,72 @@ app.post('/api/portfolio', authenticate, (req, res) => {
     image,
     date:     new Date().toISOString(),
   };
-  const items = readPortfolio();
-  items.unshift(item);
-  writePortfolio(items);
-  auditLog('PORTFOLIO_CREATE', { id: item.id, title: item.title }, req);
-  res.status(201).json(item);
+
+  try {
+    await db.createPortfolioItem(item);
+    auditLog('PORTFOLIO_CREATE', { id: item.id, title: item.title }, req);
+    res.status(201).json(item);
+  } catch (e) {
+    res.status(500).json({ error: 'Error guardando item de portfolio' });
+  }
 });
 
-app.delete('/api/portfolio/:id', authenticate, (req, res) => {
+app.delete('/api/portfolio/:id', authenticate, async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
-  writePortfolio(readPortfolio().filter(x => x.id !== id));
-  auditLog('PORTFOLIO_DELETE', { id }, req);
-  res.json({ success: true });
+  try {
+    await db.deletePortfolioItem(id);
+    auditLog('PORTFOLIO_DELETE', { id }, req);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Error' });
+  }
 });
 
 // ── Productos ─────────────────────────────────
-app.get('/api/products', (req, res) => {
-  try { res.json(readProducts()); }
+app.get('/api/products', async (req, res) => {
+  try { res.json(await db.getProducts()); }
   catch (e) { res.status(500).json({ error: 'Error leyendo productos' }); }
 });
 
-const PRODUCT_FIELDS = ['name','category','description','image','features','price','priceNote','deliveryTime','materials','active'];
+const PRODUCT_FIELDS = [
+  'name',
+  'category',
+  'description',
+  'image',
+  'features',
+  'price',
+  'priceUnit',
+  'priceNote',
+  'deliveryTime',
+  'materials',
+  'minQuantity',
+  'popular',
+  'active',
+];
+
+function cleanText(value, max = 240) {
+  return String(value || '')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, max);
+}
+
+function sanitizeProductImage(value) {
+  const image = cleanText(value, 500);
+  if (!image) return '📦';
+
+  if (image.startsWith('/uploads/') && !image.includes('..')) return image;
+  if (image.startsWith('images/') && !image.includes('..')) return image;
+
+  try {
+    const url = new URL(image);
+    if (url.protocol === 'https:') return url.href;
+  } catch {}
+
+  return cleanText(image, 16) || '📦';
+}
 
 function sanitizeProduct(body) {
   const p = {};
@@ -844,78 +961,79 @@ function sanitizeProduct(body) {
   }
   if (typeof p.features === 'string')
     p.features = p.features.split('\n').map(f => f.trim()).filter(Boolean);
-  if (p.name        && typeof p.name        === 'string') p.name        = p.name.trim().substring(0, 120);
-  if (p.category    && typeof p.category    === 'string') p.category    = p.category.trim().substring(0, 60);
-  if (p.description && typeof p.description === 'string') p.description = p.description.substring(0, 2000);
+  if (Array.isArray(p.features))
+    p.features = p.features.map(f => cleanText(f, 120)).filter(Boolean).slice(0, 12);
+  if (p.name        && typeof p.name        === 'string') p.name        = cleanText(p.name, 120);
+  if (p.category    && typeof p.category    === 'string') p.category    = cleanText(p.category, 60);
+  if (p.description && typeof p.description === 'string') p.description = cleanText(p.description, 2000);
+  if (p.priceUnit   && typeof p.priceUnit   === 'string') p.priceUnit   = cleanText(p.priceUnit, 80);
+  if (p.materials   && typeof p.materials   === 'string') p.materials   = cleanText(p.materials, 160);
+  if (p.deliveryTime && typeof p.deliveryTime === 'string') p.deliveryTime = cleanText(p.deliveryTime, 120);
+  if ('image' in p) p.image = sanitizeProductImage(p.image);
+  if ('price' in p) p.price = Number.isFinite(Number(p.price)) ? Number(p.price) : 0;
+  if ('minQuantity' in p) p.minQuantity = Math.max(1, parseInt(p.minQuantity, 10) || 1);
+  if ('popular' in p) p.popular = Boolean(p.popular);
   return p;
 }
 
-app.post('/api/products', authenticate, (req, res) => {
+app.post('/api/products', authenticate, async (req, res) => {
   try {
-    const data    = readProducts();
-    const maxId   = data.reduce((m, p) => Math.max(m, p.id), 0);
-    const product = { ...sanitizeProduct(req.body), id: maxId + 1 };
-    data.push(product);
-    writeProducts(data);
+    const p = sanitizeProduct(req.body);
+    const product = await db.createProduct(p);
     auditLog('PRODUCT_CREATE', { id: product.id, name: product.name }, req);
     res.status(201).json(product);
   } catch (e) { res.status(500).json({ error: 'Error creando producto' }); }
 });
 
-app.put('/api/products/:id', authenticate, (req, res) => {
+app.put('/api/products/:id', authenticate, async (req, res) => {
   try {
-    const data  = readProducts();
-    const id    = parseInt(req.params.id);
+    const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
-    const index = data.findIndex(p => p.id === id);
-    if (index === -1) return res.status(404).json({ error: 'No encontrado' });
-    const updated = { ...data[index], ...sanitizeProduct(req.body), id };
-    data[index] = updated;
-    writeProducts(data);
+    const p = sanitizeProduct(req.body);
+    const updated = await db.updateProduct(id, p);
+    if (!updated) return res.status(404).json({ error: 'No encontrado' });
     auditLog('PRODUCT_UPDATE', { id }, req);
     res.json(updated);
   } catch (e) { res.status(500).json({ error: 'Error actualizando' }); }
 });
 
-app.delete('/api/products/:id', authenticate, (req, res) => {
+app.delete('/api/products/:id', authenticate, async (req, res) => {
   try {
-    const data     = readProducts();
-    const id       = parseInt(req.params.id);
+    const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
-    const filtered = data.filter(p => p.id !== id);
-    if (filtered.length === data.length)
-      return res.status(404).json({ error: 'No encontrado' });
-    writeProducts(filtered);
+    const ok = await db.deleteProduct(id);
+    if (!ok) return res.status(404).json({ error: 'No encontrado' });
     auditLog('PRODUCT_DELETE', { id }, req);
     res.json({ success: true, deleted: id });
   } catch (e) { res.status(500).json({ error: 'Error eliminando' }); }
 });
 
 // ── Precios del cotizador ─────────────────────
-app.get('/api/pricing', (req, res) => {
-  try { res.json(readPricing()); }
+app.get('/api/pricing', async (req, res) => {
+  try { res.json(await db.getPricing()); }
   catch (e) { res.status(500).json({ error: 'Error leyendo precios' }); }
 });
 
-app.put('/api/pricing', authenticate, (req, res) => {
+app.put('/api/pricing', authenticate, async (req, res) => {
   try {
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))
       return res.status(400).json({ error: 'Formato de precios inválido.' });
-    writePricing(req.body);
+    await db.savePricing(req.body);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Error guardando precios' }); }
 });
 
 // ── Configuración ─────────────────────────────
-app.get('/api/settings', (req, res) => {
-  try { res.json(readSettings()); }
+app.get('/api/settings', async (req, res) => {
+  try { res.json(await db.getSettings()); }
   catch (e) { res.status(500).json({ error: 'Error leyendo configuración' }); }
 });
 
-app.put('/api/settings', authenticate, (req, res) => {
+app.put('/api/settings', authenticate, async (req, res) => {
   try {
     const body    = req.body;
-    const allowed = { ...readSettings() };
+    const current = await db.getSettings();
+    const allowed = { ...current };
     if (Array.isArray(body.videos)) allowed.videos = body.videos.slice(0, 20);
     if (body.socialMedia && typeof body.socialMedia === 'object' && !Array.isArray(body.socialMedia)) {
       const SM_KEYS = ['facebook','instagram','twitter','tiktok','youtube','whatsapp'];
@@ -925,7 +1043,7 @@ app.put('/api/settings', authenticate, (req, res) => {
           allowed.socialMedia[k] = String(body.socialMedia[k]).substring(0, 200);
       }
     }
-    writeSettings(allowed);
+    await db.saveSettings(allowed);
     auditLog('SETTINGS_UPDATE', {}, req);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Error guardando configuración' }); }
@@ -937,14 +1055,38 @@ app.get('/admin',   serveHtmlWithNonce(path.join(__dirname, 'admin', 'index.html
 app.get('/admin/',  serveHtmlWithNonce(path.join(__dirname, 'admin', 'index.html')));
 
 // ── Inicio ────────────────────────────────────
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+  // Conectar e inicializar Base de Datos (PostgreSQL o local fallback JSON)
+  const isPostgres = await db.connectDb();
+  const authConfig = await getAuthData();
+
   const emailOk    = process.env.GMAIL_USER && process.env.GMAIL_PASS && !process.env.GMAIL_PASS.includes('xxxx');
-  const passwordOk = process.env.ADMIN_PASSWORD || fs.existsSync(AUTH_FILE);
   const jwtOk      = !!process.env.JWT_SECRET;
+  const passwordOk = !!(authConfig && authConfig.password);
+  const adminEmailOk = !!(authConfig && authConfig.email);
+
+  // En producción, forzar variables críticas
+  if (process.env.NODE_ENV === 'production') {
+    if (!jwtOk) {
+      logger.error('[Fatal] JWT_SECRET es obligatorio en producción. Abortando arranque.');
+      process.exit(1);
+    }
+    if (!passwordOk) {
+      logger.error('[Fatal] Contraseña de administrador obligatoria en producción. Abortando arranque.');
+      process.exit(1);
+    }
+    if (!adminEmailOk) {
+      logger.error('[Fatal] Correo de administrador obligatorio en producción. Configura ADMIN_EMAIL o guarda un email admin.');
+      process.exit(1);
+    }
+  }
 
   const emailDisplay = emailOk
-    ? 'OK (' + process.env.GMAIL_USER.replace(/^(.{3}).*(@.*)$/, '$1***$2') + ')'
+    ? 'OK (' + maskEmail(process.env.GMAIL_USER) + ')'
     : 'PENDIENTE — configura GMAIL_USER y GMAIL_PASS en .env';
+  const adminEmailDisplay = adminEmailOk
+    ? 'OK (' + maskEmail(authConfig.email) + ')'
+    : 'FALTA ADMIN_EMAIL o email guardado en credenciales';
 
   logger.info(`Servidor Mark Publicidad iniciado en puerto ${PORT}`);
 
@@ -953,7 +1095,9 @@ app.listen(PORT, () => {
   console.log(`  Sitio web:   http://localhost:${PORT}`);
   console.log(`  Panel admin: http://localhost:${PORT}/admin`);
   console.log('');
+  console.log(`  Database:    ${isPostgres ? 'POSTGRESQL (Producción)' : 'JSON LOCAL (Desarrollo / Fallback)'}`);
   console.log(`  Email:       ${emailDisplay}`);
+  console.log(`  Admin email: ${adminEmailDisplay}`);
   console.log(`  Admin pass:  ${passwordOk ? 'OK' : 'FALTA ADMIN_PASSWORD en .env'}`);
   console.log(`  JWT_SECRET:  ${jwtOk ? 'OK' : 'NO CONFIGURADO — sesiones no sobreviviran reinicios'}`);
   console.log('');

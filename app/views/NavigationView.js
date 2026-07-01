@@ -44,11 +44,6 @@ export default class NavigationView extends BaseView {
       if (btn) EventBus.emit('nav:go', { id: btn.dataset.nav });
     });
 
-    // Scroll → clase .scrolled en el nav
-    window.addEventListener('scroll', () => {
-      this.$el?.classList.toggle('scrolled', window.pageYOffset > 80);
-    }, { passive: true });
-
     // Toggle menú móvil
     const mobileToggle = document.getElementById('mobileToggle');
     mobileToggle?.addEventListener('click', () => this._toggleMobile());
@@ -102,7 +97,7 @@ export default class NavigationView extends BaseView {
   _observeSections() {
     const obs = new IntersectionObserver(
       entries => entries.forEach(e => { if (e.isIntersecting) this.setActive(e.target.id); }),
-      { threshold: 0.15, rootMargin: '-56px 0px 0px 0px' } // 56px = altura del nav fijo
+      { threshold: 0.15, rootMargin: '0px 0px -20% 0px' }
     );
     document.querySelectorAll('section[id]').forEach(s => obs.observe(s));
   }

@@ -287,16 +287,10 @@
             <p>Los clientes pueden calcular precios al instante. Para ajustar los precios:</p>
             
             <div class="code-block">
-// En script.js, busca esta sección:
-const basePrices = {
-    'flyers': 0.15,      // $0.15 por unidad
-    'tarjetas': 0.25,    // $0.25 por unidad
-    'packaging': 0.50,   // $0.50 por unidad
-    'etiquetas': 0.10,   // $0.10 por unidad
-    'diseno': 50,        // $50 servicio completo
-    'digital': 0.20,
-    'pop': 0.30
-};</div>
+// Ingresa al Panel Admin en /admin
+// Y modifica los precios en la sección "Precios del Cotizador".
+// Los cambios se aplican inmediatamente sin tocar el código.
+</div>
 
             <p>El cotizador también considera:</p>
             <ul style="margin-left: 40px; color: #555; margin-top: 15px;">
@@ -351,7 +345,7 @@ const basePrices = {
                     <h3>GitHub Pages</h3>
                     <p><strong>GRATIS</strong></p>
                     <p style="font-size: 0.9rem; color: #666;">Perfecto para comenzar</p>
-                    <a href="https://pages.github.com" target="_blank" class="button-demo" style="font-size: 0.9rem; margin-top: 10px;">Aprende más</a>
+                    <a href="https://pages.github.com" target="_blank" rel="noopener noreferrer" class="button-demo" style="font-size: 0.9rem; margin-top: 10px;">Aprende más</a>
                 </div>
                 
                 <div class="card-demo">
@@ -359,7 +353,7 @@ const basePrices = {
                     <h3>Netlify</h3>
                     <p><strong>GRATIS</strong></p>
                     <p style="font-size: 0.9rem; color: #666;">Super fácil y rápido</p>
-                    <a href="https://netlify.com" target="_blank" class="button-demo" style="font-size: 0.9rem; margin-top: 10px;">Aprende más</a>
+                    <a href="https://netlify.com" target="_blank" rel="noopener noreferrer" class="button-demo" style="font-size: 0.9rem; margin-top: 10px;">Aprende más</a>
                 </div>
                 
                 <div class="card-demo">
@@ -400,13 +394,14 @@ const basePrices = {
             
             <div class="code-block">
 offset/
-├── index.html          # 20KB - Página principal con HTML
-├── styles.css          # 21KB - Todo el diseño y animaciones
-├── script.js           # 20KB - Funcionalidad e interactividad
-└── README.md          # 3KB  - Documentación y guía</div>
+├── index.html          # Shell HTML de la página pública
+├── styles.css          # Estilos y animaciones del sitio
+├── app/                # Cliente MVC modular (lógica del frontend)
+├── admin/              # Panel de control de administración
+└── README.md           # Documentación y guía del desarrollador</div>
 
             <div class="alert">
-                <strong>💡 Tip:</strong> No modifiques styles.css ni script.js a menos que sepas programación. Para agregar productos, usa el panel de administración.
+                <strong>💡 Tip:</strong> La lógica del sitio está en la carpeta <code>app/</code>. No modifiques los estilos ni la lógica a menos que sepas programación. Para gestionar productos y precios, usa el panel de administración.
             </div>
         </div>
 

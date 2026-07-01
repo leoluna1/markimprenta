@@ -5,21 +5,25 @@ import { loadQuotePricing } from '../config/loadQuotePricing.js';
 let PRICING = {};
 let DELIVERY = {};
 
+function cloneState(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
 // Íconos por tab
 const ICONS = {
-  volantes:    { type: 'fa', cls: 'fas fa-file-alt' },
-  tarjetas:    { type: 'fa', cls: 'fas fa-id-card' },
-  tazas:       { type: 'fa', cls: 'fas fa-mug-hot' },
-  granformato: { type: 'fa', cls: 'fas fa-ruler-combined' },
-  pop:         { type: 'fa', cls: 'fas fa-gift' },
-  etiquetas:   { type: 'fa', cls: 'fas fa-tags' },
-  packaging:   { type: 'fa', cls: 'fas fa-box' },
-  diseno:      { type: 'fa', cls: 'fas fa-palette' },
-  letreros:    { type: 'fa', cls: 'fas fa-font' },
+  volantes:    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v5h4"/><path d="M10 12h6M10 16h4"/></svg>',
+  tarjetas:    '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 11h5M7 15h3M15 14h3"/></svg>',
+  tazas:       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h11v6a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5z"/><path d="M16 10h2a3 3 0 0 1 0 6h-2"/><path d="M8 3v2M12 3v2"/></svg>',
+  granformato: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="12" rx="2"/><path d="M8 21h8M12 17v4M8 9h8M8 13h5"/></svg>',
+  pop:         '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12v8H4v-8"/><path d="M2 8h20v4H2z"/><path d="M12 8v12"/><path d="M12 8c-1.5-4-6-3.5-6-1 0 2 3 2 6 1ZM12 8c1.5-4 6-3.5 6-1 0 2-3 2-6 1Z"/></svg>',
+  etiquetas:   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11V5h6l10 10-6 6z"/><circle cx="8" cy="8" r="1.5"/><path d="M14 6l6 6"/></svg>',
+  packaging:   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l9-5 9 5-9 5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>',
+  diseno:      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/></svg>',
+  letreros:    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V6h4l4 9 4-9h4v13"/><path d="M8 19v-7M16 19v-7"/></svg>',
 };
 
 // ── Estado reactivo del cotizador ─────────────────
-const QS = {
+const INITIAL_QS = {
   tab:        'volantes',
   vol:        { model: 'a6-1c', tierIdx: 0, qty: 1000, material: 'couche115', acabado: 'brillante' },
   tarjeta:    'brillo-uv',
@@ -32,6 +36,7 @@ const QS = {
   diseno:     'logo',
   letreros:   { tipo: 'acrilico', tierIdx: 0, letras: 5 },
 };
+const QS = cloneState(INITIAL_QS);
 
 // ── QuoteView ──────────────────────────────────────
 export default class QuoteView extends BaseView {
@@ -52,6 +57,7 @@ export default class QuoteView extends BaseView {
     this._renderLetTiers();
     this._bindTabs();
     this._bindInputs();
+    this._bindResultActions();
     this._updateResult();
   }
 
@@ -171,7 +177,7 @@ export default class QuoteView extends BaseView {
         'giganto':     ['Hasta 3.20m de ancho','Impresión HD gran escala','Material resistente intemperie','Instalación disponible'],
       };
       const items = specMap[tipo] || [];
-      specs.innerHTML = items.map(s => `<div class="qspec-item"><i class="fas fa-check"></i> ${s}</div>`).join('');
+      specs.innerHTML = items.map(s => `<div class="qspec-item"><span class="qcheck" aria-hidden="true">✓</span> ${s}</div>`).join('');
     }
   }
 
@@ -298,7 +304,7 @@ export default class QuoteView extends BaseView {
     const tierIdx = QS[stateKey].tierIdx;
     c.innerHTML = tiers.map((t, i) =>
       `<button class="qtier-btn${i === tierIdx ? ' active' : ''}" data-gidx="${i}">
-         <span class="tier-qty">${t.label}</span>
+         <span class="tier-qty">${t.label || `${Number(t.qty || 0).toLocaleString()} uds.`}</span>
          <span class="tier-price">$${t.ppu.toFixed(2)} c/u</span>
        </button>`
     ).join('');
@@ -627,7 +633,7 @@ export default class QuoteView extends BaseView {
     const icon = ICONS[QS.tab];
     const iconEl = document.getElementById('qrProductIcon');
     const nameEl = document.getElementById('qrProductName');
-    if (iconEl) iconEl.innerHTML = `<i class="${icon.cls}"></i>`;
+    if (iconEl) iconEl.innerHTML = icon || '';
     if (nameEl) nameEl.textContent = r.productName;
 
     // ── Especificaciones ──
@@ -667,12 +673,113 @@ export default class QuoteView extends BaseView {
     const delivEl = document.getElementById('qrDelivery');
     if (delivEl && r.delivery) {
       delivEl.style.display = 'flex';
-      delivEl.innerHTML = `<i class="fas fa-clock"></i> Tiempo estimado: <strong style="margin-left:4px;">${r.delivery}</strong>`;
+      delivEl.innerHTML = `<span class="qr-delivery-icon" aria-hidden="true">⏱</span> Tiempo estimado: <strong style="margin-left:4px;">${r.delivery}</strong>`;
     }
 
     // ── WhatsApp ──
     const msg = `Hola! Me interesa cotizar:\n${r.desc}\nPrecio estimado: $${r.total.toFixed(2)} + IVA\n¿Me pueden confirmar disponibilidad y tiempo de entrega?`;
     if (waBtn) waBtn.href = 'https://wa.me/593996884150?text=' + encodeURIComponent(msg);
+    this._lastQuoteText = this._formatQuoteText(r);
+    this._updateLiveSummary(r);
+  }
+
+  _updateLiveSummary(r) {
+    const product = document.getElementById('qlsProduct');
+    const config = document.getElementById('qlsConfig');
+    const delivery = document.getElementById('qlsDelivery');
+    const total = document.getElementById('qlsTotal');
+    if (product) product.textContent = r.productName;
+    if (config) config.textContent = r.detail;
+    if (delivery) delivery.textContent = r.delivery || 'Por confirmar';
+    if (total) total.textContent = `$${(r.total * 1.15).toFixed(2)}`;
+  }
+
+  _formatQuoteText(r) {
+    const iva = r.total * 0.15;
+    return [
+      `Cotización: ${r.productName}`,
+      `Detalle: ${r.desc}`,
+      `Subtotal: $${r.total.toFixed(2)}`,
+      `IVA 15%: $${iva.toFixed(2)}`,
+      `Total con IVA: $${(r.total + iva).toFixed(2)}`,
+      `Entrega estimada: ${r.delivery || 'Por confirmar'}`,
+    ].join('\n');
+  }
+
+  _bindResultActions() {
+    document.getElementById('qCopyBtn')?.addEventListener('click', async () => {
+      const text = this._lastQuoteText || '';
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        this._flashAction('qCopyBtn', 'Copiado');
+      } catch {
+        this._copyTextFallback(text);
+        this._flashAction('qCopyBtn', 'Copiado');
+      }
+    });
+
+    document.getElementById('qResetBtn')?.addEventListener('click', () => this._resetQuote());
+  }
+
+  _flashAction(id, label) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const original = btn.innerHTML;
+    btn.textContent = label;
+    setTimeout(() => { btn.innerHTML = original; }, 1200);
+  }
+
+  _copyTextFallback(text) {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.left = '-9999px';
+    document.body.appendChild(area);
+    area.select();
+    document.execCommand('copy');
+    area.remove();
+  }
+
+  _resetQuote() {
+    Object.keys(QS).forEach(k => delete QS[k]);
+    Object.assign(QS, cloneState(INITIAL_QS));
+
+    document.querySelectorAll('.qtab').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === QS.tab));
+    document.querySelectorAll('.qform').forEach(form => form.classList.toggle('active', form.id === `form-${QS.tab}`));
+
+    const setVal = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.value = value;
+    };
+    setVal('vol-model', QS.vol.model);
+    setVal('vol-material', QS.vol.material);
+    setVal('vol-acabado', QS.vol.acabado);
+    setVal('vol-qty-input', QS.vol.qty);
+    setVal('tar-qty', QS.tarjetaQty);
+    setVal('taza-tipo', QS.taza.tipo);
+    setVal('gf-tipo', QS.granformato.tipo);
+    setVal('gf-ancho', QS.granformato.ancho);
+    setVal('gf-alto', QS.granformato.alto);
+    setVal('gf-qty', QS.granformato.qty);
+    setVal('pop-tipo', QS.pop.tipo);
+    setVal('etiq-tipo', QS.etiquetas.tipo);
+    setVal('pack-tipo', QS.packaging.tipo);
+    setVal('let-tipo', QS.letreros.tipo);
+    setVal('let-letras', QS.letreros.letras);
+
+    this._renderTarjetas();
+    this._renderDiseno();
+    this._renderVolTiers();
+    this._renderTazaTiers();
+    this._renderPopTiers();
+    this._renderEtiqTiers();
+    this._renderPackTiers();
+    this._renderLetTiers();
+    this._updateGFFields();
+    this._updateGFSqm();
+    this._updateResult();
   }
 
   // ── Animación de precio ───────────────────────────

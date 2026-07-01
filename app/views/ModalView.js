@@ -50,13 +50,13 @@ export default class ModalView extends BaseView {
   _imageHTML(p) {
     if (this._isImagePath(p.image)) {
       return `<img
-        src="${p.image}"
+        src="${this.esc(p.image)}"
         alt="${this.esc(p.name)}"
         style="width:100%;max-height:260px;object-fit:cover;border-radius:12px;"
-        onerror="this.style.display='none';this.nextElementSibling.style.display='block';"
+        data-modal-image
       /><span style="display:none;font-size:4rem;text-align:center;width:100%;">📦</span>`;
     }
-    return `<span style="font-size:4rem;display:block;text-align:center;">${p.image ?? '📦'}</span>`;
+    return `<span style="font-size:4rem;display:block;text-align:center;">${this.esc(p.image ?? '📦')}</span>`;
   }
 
   static CATEGORY_LABELS = {
@@ -125,6 +125,7 @@ export default class ModalView extends BaseView {
         </div>
       </div>
     `;
+    this._bindImageFallback();
 
     this.$el.classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -135,5 +136,13 @@ export default class ModalView extends BaseView {
     this.$el?.classList.remove('active');
     document.body.style.overflow = '';
     this._isOpen = false;
+  }
+
+  _bindImageFallback() {
+    this._body?.querySelector('img[data-modal-image]')?.addEventListener('error', e => {
+      const img = e.currentTarget;
+      img.style.display = 'none';
+      if (img.nextElementSibling) img.nextElementSibling.style.display = 'block';
+    }, { once: true });
   }
 }

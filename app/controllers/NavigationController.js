@@ -15,7 +15,11 @@ export default class NavigationController {
 
     // Scroll suave al emitir nav:go
     EventBus.on('nav:go', ({ id }) => {
-      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const target = document.getElementById(id);
+      if (target) {
+        const top = target.getBoundingClientRect().top + window.pageYOffset;
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
       this._view.setActive(id);
     });
 

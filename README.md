@@ -1,121 +1,97 @@
 # 🖨️ Mark Publicidad Impresa - Sitio Web
 
-Sitio web moderno y profesional para imprenta con animaciones, catálogo dinámico de productos y cotizador en línea.
+Sitio web moderno y profesional para imprenta con animaciones, catálogo dinámico de productos, cotizador en línea y panel de administración.
+
+---
 
 ## ✨ Características Principales
 
-- 🎨 **Animaciones Modernas**: Efectos suaves y profesionales
-- 📦 **Catálogo Dinámico**: Sistema fácil de gestionar productos
-- 📱 **Diseño Responsive**: Perfecto en todos los dispositivos
-- 🧮 **Cotizador en Línea**: Cálculo automático de precios
-- 💬 **WhatsApp Flotante**: Contacto directo con clientes
-- 🎯 **Filtros de Categorías**: Navegación intuitiva
+- 🎨 **Animaciones Modernas**: Efectos suaves y profesionales en el frontend.
+- 📦 **Catálogo Dinámico**: Gestión de productos en tiempo real desde el Panel Admin.
+- 📱 **Diseño Responsive**: Perfecto en todos los dispositivos (Mobile-First).
+- 🧮 **Cotizador en Línea**: Cálculo automático de precios interactivo.
+- 💬 **WhatsApp Flotante**: Widget de contacto directo integrado.
+- 🔐 **Panel Admin**: Control total con login seguro y soporte 2FA (TOTP).
 
 ---
 
-## 📝 GUÍA RÁPIDA: Agregar Productos
+## 📝 GUÍA DE USO Y GESTIÓN
 
-### 1. Abre `products-data.js`
+### 1. Agregar y Gestionar Productos
+Ya **no** necesitas editar archivos de código como `products-data.js`.
+1. Ingresa al panel de administración: `http://localhost:3000/admin`.
+2. Introduce tu contraseña (y código 2FA si está activo).
+3. Ve a la sección **Productos** para crear, editar o eliminar productos del catálogo.
 
-### 2. Copia este template:
+### 2. Ajustar Precios del Cotizador
+Los precios se administran dinámicamente:
+1. En el Panel Admin, navega a **Precios del Cotizador**.
+2. Modifica los valores directamente en la interfaz gráfica.
+3. Guarda los cambios para que se apliquen al instante en la web pública.
 
-```javascript
-{
-    id: XX, // Número único
-    name: "Nombre del Producto",
-    category: "impresion", // impresion | pop | packaging | etiquetas | diseno
-    price: "Desde $XX.XX",
-    description: "Descripción completa del producto",
-    features: [
-        "✓ Característica 1",
-        "✓ Característica 2",
-        "✓ Característica 3"
-    ],
-    image: "🎨" // Emoji o URL de imagen
-},
-```
-
-### 3. Pégalo antes de `];`
-
-### 4. Guarda y recarga la página
-
----
-
-## 🎨 Cambiar Colores
-
-Edita las variables en `styles.css`:
-
+### 3. Cambiar Colores del Sitio
+Edita las variables CSS en la raíz de `styles.css`:
 ```css
 :root {
-    --primary-color: #e74c3c;
-    --secondary-color: #c0392b;
+    --primary-color: #E30613;    /* Color principal (Rojo Marka) */
+    --secondary-color: #c0392b;  /* Variación oscura */
+    /* ... */
 }
 ```
 
 ---
 
-## 📞 Actualizar Contacto
+## 📱 Estructura del Proyecto
 
-En `index.html` busca y modifica:
-- Dirección
-- Teléfonos  
-- Email
-- Horarios
-- WhatsApp: `https://wa.me/TUNUMERO`
-
----
-
-## 💰 Ajustar Precios del Cotizador
-
-En `script.js` modifica:
-
-```javascript
-const basePrices = {
-    'flyers': 0.15,
-    'tarjetas': 0.25,
-    // etc...
-};
-```
-
----
-
-## 🚀 Publicar en Internet
-
-**Opción 1: GitHub Pages** (Gratis)
-1. Sube a GitHub
-2. Activa GitHub Pages
-
-**Opción 2: Netlify** (Gratis)
-1. Arrastra carpeta a netlify.com
-2. Listo!
-
----
-
-## 📱 Estructura de Archivos
+El sitio web está organizado siguiendo una estructura limpia de separación de responsabilidades:
 
 ```
 offset/
-├── index.html          - Página principal
-├── styles.css          - Diseño y estilos
-├── script.js           - Funcionalidad
-├── products-data.js    - Productos del catálogo
-└── README.md          - Esta guía
+├── server.js               # Servidor Node.js (Express, APIs de productos, autenticación y CSRF)
+├── index.html              # Shell HTML de la aplicación principal
+├── styles.css              # Hoja de estilos de la aplicación principal
+├── package.json            # Script de ejecución y dependencias del backend
+├── app/                    # Aplicación Frontend Modular (Cliente MVC)
+│   ├── App.js              # Bootstrapper del cliente
+│   ├── config/             # Configuración y precios por defecto de cotizaciones
+│   ├── controllers/        # Controladores (Catálogo, Cotizaciones, Contacto, etc.)
+│   ├── models/             # Modelos de datos del cliente
+│   └── views/              # Vistas estructuradas
+├── admin/                  # Panel de Administración
+│   ├── index.html          # Estructura del panel administrativo
+│   ├── styles.css          # Estilos del panel
+│   └── admin.js            # Lógica del panel
+├── lib/                    # Lógica del servidor (Sesiones JWT, seguridad CSRF)
+├── db/                     # Cliente de base de datos PostgreSQL con fallback local
+└── data/                   # Archivos JSON usados como fallback local
 ```
+
+---
+
+## 🚀 Cómo Correr en Local
+
+1. Asegúrate de tener instalado Node.js.
+2. Instala las dependencias:
+   ```bash
+   npm install
+   ```
+3. Crea un archivo `.env` en la raíz (puedes guiarte por el log de arranque del servidor) configurando:
+   - `ADMIN_EMAIL` (Correo con el que ingresa el administrador; si no existe usa `GMAIL_USER`)
+   - `ADMIN_PASSWORD` (Contraseña de administrador)
+   - `JWT_SECRET` (Secreto para firmar sesiones)
+   - `GMAIL_USER` y `GMAIL_PASS` (necesarios para recuperación de contraseña y formularios de contacto)
+4. Inicia el servidor en modo desarrollo:
+   ```bash
+   npm run dev
+   ```
+5. Abre en tu navegador: `http://localhost:3000`
 
 ---
 
 ## ✅ Checklist Pre-Lanzamiento
 
-- [ ] Información de contacto correcta
-- [ ] WhatsApp configurado
-- [ ] Precios actualizados
-- [ ] Al menos 10 productos
-- [ ] Probado en móvil
-- [ ] Colores de marca aplicados
-
----
-
-**¡Sitio listo para usar! 🎉**
-
-Para soporte adicional, consulta la documentación completa en este archivo.
-# markimprenta
+- [ ] Configurar variables de entorno `.env` en producción.
+- [ ] Configurar WhatsApp en el Panel de Ajustes.
+- [ ] Ajustar la lista de precios en la sección del Cotizador.
+- [ ] Subir al menos 10 productos reales con sus respectivas imágenes.
+- [ ] Validar el correcto funcionamiento de correos para formularios de contacto.

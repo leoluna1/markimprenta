@@ -107,7 +107,7 @@ export default class ReviewsView extends BaseView {
     }
     if (this._empty) this._empty.style.display = 'none';
 
-    reviews.forEach(r => {
+    reviews.forEach((r, idx) => {
       const stars    = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
       const initials = r.name.trim().split(' ').map(w => w[0]).join('').toUpperCase().substring(0, 2);
       const color    = AVATAR_COLORS[r.id % AVATAR_COLORS.length];
@@ -115,6 +115,9 @@ export default class ReviewsView extends BaseView {
 
       const card = document.createElement('div');
       card.className = 'resena-card';
+      card.style.opacity   = '0';
+      card.style.transform = 'translateY(20px)';
+      card.style.transition = `opacity 0.5s ease ${idx * 0.08}s, transform 0.5s ease ${idx * 0.08}s`;
       card.innerHTML = `
         <div class="resena-stars">${stars}</div>
         <p class="resena-texto">"${this.esc(r.comment)}"</p>
@@ -126,6 +129,11 @@ export default class ReviewsView extends BaseView {
           </div>
         </div>`;
       this._grid.appendChild(card);
+      // Doble rAF para que el navegador pinte el estado inicial antes de animar
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        card.style.opacity   = '1';
+        card.style.transform = 'translateY(0)';
+      }));
     });
   }
 }

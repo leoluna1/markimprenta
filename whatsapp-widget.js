@@ -42,6 +42,20 @@
     return Math.min(Math.max(420, len * 24), 1900);
   }
 
+  // Chips de sugerencia según el producto elegido (paso 4 — acumulativos)
+  function contextualChips(product) {
+    const p = (product || '').toLowerCase();
+    if (p.includes('flyer') || p.includes('volante'))
+      return ['500 uds', '1000 uds', 'Full color', 'Blanco y negro', 'Con diseño', 'Sin diseño'];
+    if (p.includes('banner') || p.includes('lona'))
+      return ['1 unidad', '2-5 unidades', 'Con diseño', 'Sin diseño', 'Para esta semana', 'Urgente'];
+    if (p.includes('tarjeta'))
+      return ['100 uds', '250 uds', '500 uds', 'Doble cara', 'Con diseño', 'Sin diseño'];
+    if (p.includes('taza') || p.includes('gorra'))
+      return ['10 uds', '25 uds', '50 uds', 'Con logo', 'Con diseño', 'Para regalo'];
+    return ['Menos de 100 uds', '100-500 uds', 'Más de 500 uds', 'Con diseño', 'Sin diseño', 'Para esta semana'];
+  }
+
   // Emoji contextual según producto
   function productEmoji(product) {
     const p = (product || '').toLowerCase();
@@ -74,30 +88,40 @@
         () => `${greeting()}! 👋`,
         () => pick([
           'Soy el asistente de *Marka Publicidad*.\n¿Con quién tengo el gusto? 😊',
-          '¡Qué bueno que nos escribes! ¿Cómo te llamas? 😊',
-          'Bienvenido/a a *Marka Publicidad*.\n¿Cuál es tu nombre? 😊',
+          '¡Qué bueno que nos escribes! ¿Cómo te llamas?',
+          'Bienvenido/a a *Marka Publicidad*. ¿Cuál es tu nombre?',
+          'Me da mucho gusto que nos contactes. ¿Con quién hablo?',
+          'Estamos para ayudarte. Antes que nada, ¿cómo te llamas?',
+          '¡Hola! ¿Me dices tu nombre para atenderte mejor?',
         ]),
       ],
       ack: (v) => pick([
-        `¡Hola, *${v}*! Un gusto conocerte 😊`,
-        `*${v}*, ¡encantado/a de ayudarte! 👋`,
-        `¡Qué bueno, *${v}*! Gracias por escribirnos 🙌`,
+        `¡Qué bueno conocerte, *${v}*! 😊`,
+        `*${v}*, con mucho gusto te atendemos 🙌`,
+        `¡Hola, *${v}*! Un placer tenerte por aquí 👋`,
+        `Perfecto, *${v}*. Gracias por escribirnos.`,
+        `*${v}*, qué bueno que nos escribiste 🎉`,
+        `¡Hola, *${v}*! Ya estamos listos para ayudarte 💪`,
       ]),
       retryIntro: [
-        () => pick(['¡Ups! 🙈', 'Hmm... 🤔', 'Disculpa 😅']),
+        () => pick(['¡Ups! 🙈', 'Hmm... 🤔', 'No te preocupes 😊']),
         () => pick([
           '¿Puedes escribir solo tu nombre sin números? Ej: *Juan Pérez*',
           'Solo necesito letras para tu nombre 😊 Inténtalo de nuevo:',
+          'No te preocupes, solo escribe tu nombre como quieras 📝',
+          '¿Cómo te llamas? Con el nombre es suficiente.',
         ]),
       ],
       placeholder: 'Ej: Juan Pérez',
       validate(v) {
         if (!v || v.trim().length < 2)
-          return 'Necesito al menos 2 letras para tu nombre 😊';
+          return 'Solo necesito tu nombre, no te queda largo 😊';
+        if (/^\d+$/.test(v.trim()))
+          return 'Eso es un número, no un nombre. ¿Cómo te llamas?';
         if (/\d/.test(v))
-          return 'El nombre no debe tener números 🙈 Inténtalo de nuevo';
+          return 'Tu nombre no puede tener números. Ej: *María López*';
         if (/[^a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s\'-]/.test(v))
-          return 'Solo letras por favor, sin símbolos especiales 😊';
+          return 'Solo letras por favor, sin símbolos.';
         return null;
       },
     },
@@ -107,35 +131,43 @@
       key: 'phone',
       intro: [
         () => pick([
-          '¿Me das tu número de celular? Así te enviamos el presupuesto 📱',
-          '¿Cuál es tu WhatsApp o teléfono? 📱',
-          '¿Tu número de celular? Así te contactamos más rápido 📱',
+          '¿Me das tu número de celular? Así te enviamos el presupuesto directo 📱',
+          '¿Cuál es tu WhatsApp? Te mandamos la cotización ahí mismo 📱',
+          '¿Tu número de celular? Lo usamos para coordinar los detalles y la entrega 📱',
+          '¿Me compartes tu WhatsApp o celular? Así te damos el precio cuanto antes 📱',
+          '¿Cuál es tu número? Solo para enviarte la cotización y coordinar 📱',
+          '¿Tienes WhatsApp? Dime tu número y te enviamos el presupuesto por ahí 📱',
         ]),
       ],
       ack: () => pick([
-        'Anotado ✅',
-        '¡Perfecto, lo tengo! ✅',
-        'Listo, guardado 👌',
-        '¡Genial! 📋',
+        'Perfecto, lo tengo anotado 📋',
+        'Anotado ✅ Ya lo tengo guardado.',
+        'Listo, con eso ya podemos coordinar 👌',
+        '¡Genial! Ya tenemos tu número, gracias.',
+        'Anotado, gracias 😊 Con eso podemos contactarte.',
+        'Listo ✅ Te escribimos en cuanto tengamos el precio.',
       ]),
       retryIntro: [
-        () => pick(['Hmm, espera... 🤔', '¡Ojo! 🤭', 'Momento... 🧐']),
+        () => pick(['Hmm, déjame revisar eso... 🤔', 'Un momento... 🧐', 'Casi, solo un ajuste 😊']),
         () => pick([
-          'Ese número no parece completo. Escríbelo así:\n*0987 654 321* 📱',
-          'Necesito al menos 7 dígitos. ¿Puedes revisarlo? 📱',
-          'No pude leer ese número. ¿Celular completo? 📱',
+          'No pude leer ese número completo. ¿Puedes escribirlo así? *0987 654 321* 📱',
+          'Necesito el número completo para poder contactarte. ¿Lo intentas de nuevo? 😊',
+          'Ese número parece que le faltan algunos dígitos. ¿Puedes revisarlo? 📱',
+          'Para enviarte la cotización necesito el número completo, sin espacios está bien.',
         ]),
       ],
       placeholder: 'Ej: 0987 654 321',
       type: 'tel',
       validate(v) {
         const digits = v.replace(/\D/g, '');
+        if (digits.length === 0 && v.trim().length > 0)
+          return 'Eso parece texto, no un número. ¿Cuál es tu WhatsApp? Ej: *0987 654 321* 📱';
         if (!digits || digits.length === 0)
-          return 'Escribe tu número de teléfono 📱';
+          return 'Escribe tu número de WhatsApp 📱';
         if (digits.length < 7)
-          return `Muy corto (${digits.length} dígito${digits.length > 1 ? 's' : ''}). Mínimo 7 📱`;
-        if (digits.length > 15)
-          return '¿Seguro que es correcto? Ese número parece demasiado largo 🤔';
+          return `Número muy corto (${digits.length} dígito${digits.length !== 1 ? 's' : ''}). Mínimo 7 📱`;
+        if (digits.length > 13)
+          return 'Ese número tiene demasiados dígitos. ¿Puedes revisarlo?';
         return null;
       },
     },
@@ -146,25 +178,32 @@
       intro: [
         () => pick([
           '¿Qué producto estás buscando? 👇',
-          'Dime, ¿qué necesitas hoy? 👇',
-          '¿En qué te puedo ayudar? 👇',
-          'Cuéntame, ¿qué producto te interesa? 👇',
+          'Dime, ¿qué necesitas hoy? Estamos para ayudarte 🎨',
+          '¿En qué te puedo ayudar? Elige o escríbelo 👇',
+          '¿Qué producto tienes en mente? 🖨️',
+          '¿Qué necesitas imprimir o producir? 👇',
+          'Cuéntame, ¿qué producto te interesa cotizar? 🎨',
         ]),
       ],
       ack: (v) => {
         const e = productEmoji(v);
         return pick([
-          `${e} ¡Excelente elección!`,
-          `${e} Perfecto, *${v}* es algo en lo que somos muy buenos 💪`,
-          `${e} ¡Genial! Trabajamos *mucho* con ${v} 🙌`,
-          `${e} Anotado. *${v}* es uno de los que más hacemos 🖨️`,
+          `${e} ¡Excelente elección! Somos muy buenos en *${v}*`,
+          `${e} Perfecto. Llevamos años haciendo *${v}* y la calidad habla sola`,
+          `${e} ¡Genial! *${v}* es uno de los productos que más trabajamos`,
+          `${e} Anotado. Tenemos mucha experiencia con *${v}*, vas a quedar contento/a`,
+          `${e} *${v}* — una muy buena elección. Eso lo tenemos muy bien manejado`,
+          `${e} Perfecto, *${v}* es algo en lo que nos especializamos hace años`,
+          `${e} ¡Con gusto! Los *${v}* que hacemos tienen muy buena calidad`,
         ]);
       },
       retryIntro: [
-        () => 'No pude identificar el producto. 🤔',
+        () => pick(['No pude identificar bien el producto 🤔', 'Ayúdame a entender qué necesitas 😊']),
         () => pick([
           'Elige una opción de abajo o descríbelo con palabras:',
           'Selecciona una opción o escribe qué necesitas 😊',
+          '¿Qué producto te interesa? Puedes elegirlo de la lista o escribirlo 👇',
+          'Dime el nombre del producto y con gusto te cotizo 🎨',
         ]),
       ],
       placeholder: 'Ej: flyers, banners...',
@@ -181,9 +220,9 @@
       ],
       validate(v) {
         if (!v || v.trim().length < 2)
-          return 'Elige o escribe el producto que necesitas 🙈';
+          return '¿Qué producto necesitas? Puedes elegirlo de la lista o escribirlo.';
         if (/^[0-9\s.,;:!?]+$/.test(v))
-          return 'Escribe el nombre del producto, no solo números o signos 😅';
+          return 'Escribe el nombre del producto, no solo números.';
         return null;
       },
     },
@@ -193,29 +232,32 @@
       key: 'need',
       intro: [
         (d) => pick([
-          `¡Casi listo! ✏️ Para *${d.product}*:\n¿Cuántas unidades necesitas y para cuándo?`,
-          `Un dato más 🙌 Para *${d.product}*:\n¿Qué cantidad y tienes alguna fecha límite?`,
+          `¡Casi listo! ✏️ Para los *${d.product}*:\n¿Cuántas unidades necesitas y para cuándo?`,
+          `Un dato más 🙌 Para *${d.product}*:\n¿Qué cantidad tienes en mente y hay alguna fecha límite?`,
           `Ya casi terminamos 🎯 Para *${d.product}*:\n¿Cuántos quieres y en qué fecha los necesitas?`,
+          `Perfecto 📋 ¿Cuántas unidades de *${d.product}* necesitas y para cuándo?\nEj: *500 uds a color, sin diseño, para el viernes*`,
+          `¡Falta poquito! Cuéntame los detalles de los *${d.product}*:\ncantidad, colores y fecha aproximada 📅`,
         ]),
       ],
       retryIntro: [
         () => pick([
           'Cuéntame un poquito más 😊',
-          'Ayúdame con más detalle 📋',
-          'Necesito un poco más de info 🤔',
+          'No te preocupes, solo un poco más de detalle 📋',
+          'Mientras más info nos des, mejor cotización podemos darte 🎯',
         ]),
         () => pick([
-          'Indica cantidad, colores y fecha.\nEj: *"500 uds a color, para el 20 de abril"*',
-          'Dime cuántos quieres y para cuándo los necesitas:\nEj: *"200 tarjetas, para la próxima semana"*',
-          '¿Cuántos necesitas y para qué fecha? 📅',
+          'Dime cantidad, colores y fecha.\nEj: *"500 uds a color, para el 20 de abril"*',
+          'Cuéntanos cuántos quieres y para cuándo:\nEj: *"200 tarjetas, para la próxima semana"*',
+          '¿Cuántos necesitas y para qué fecha? Cualquier detalle que tengas nos ayuda 📅',
+          'No importa si no tienes todo claro aún. Cuéntame lo que tengas 😊',
         ]),
       ],
       placeholder: 'Ej: 500 uds, full color, para el 20 de abril',
       validate(v) {
         if (!v || v.trim().length < 6)
-          return 'Cuéntame cantidad y fecha aproximada 😊';
+          return 'Cuéntame la cantidad y para cuándo lo necesitas.';
         if (/^[.\-,;:\s!?]+$/.test(v))
-          return 'Descríbelo con palabras por favor 😅';
+          return 'Descríbelo con palabras. Ej: *500 uds, para el viernes*';
         return null;
       },
     },
@@ -335,6 +377,29 @@
     return wrap;
   }
 
+  // Chips acumulativos para el paso "need": no bloquean, acumulan texto en el input
+  function renderContextualChips(labels) {
+    const wrap = document.createElement('div');
+    wrap.className = 'ww-chips ww-chips--ctx';
+    labels.forEach(label => {
+      const chip = document.createElement('button');
+      chip.className   = 'ww-chip';
+      chip.textContent = label;
+      chip.addEventListener('click', () => {
+        const inp = $('ww-body').querySelector('.ww-row:last-of-type .ww-inp');
+        if (!inp) return;
+        inp.value = inp.value.trim() ? inp.value.trim() + ', ' + label : label;
+        chip.classList.toggle('ww-chip--sel');
+        inp.dispatchEvent(new Event('input'));
+        inp.focus();
+      });
+      wrap.appendChild(chip);
+    });
+    $('ww-body').appendChild(wrap);
+    scrollBot();
+    return wrap;
+  }
+
   /* ─────────────────────────────────────────────────
      INPUT ROW
   ───────────────────────────────────────────────── */
@@ -359,7 +424,9 @@
     if (step.key === 'phone') {
       btn.style.opacity = '0.4';
       inp.addEventListener('input', () => {
-        btn.style.opacity = inp.value.replace(/\D/g, '').length >= 7 ? '1' : '0.4';
+        const digits = inp.value.replace(/\D/g, '').length;
+        btn.style.opacity = digits >= 7 ? '1' : '0.4';
+        inp.classList.toggle('ww-inp--valid', digits >= 7 && digits <= 15);
       });
     }
 
@@ -396,7 +463,7 @@
           st.retries = 0;
         } else {
           // Primera falla: respuesta breve y directa
-          await botMsg(`⚠️ ${err}`);
+          await botMsg(err);
         }
 
         // Mostrar nuevo input (y chips si aplica)
@@ -436,6 +503,21 @@
     row.appendChild(inp);
     row.appendChild(btn);
     $('ww-body').appendChild(row);
+
+    // Contador de caracteres para el paso de detalle
+    if (step.key === 'need') {
+      const counter = document.createElement('div');
+      counter.className = 'ww-char-count';
+      counter.textContent = '0 / 200';
+      $('ww-body').appendChild(counter);
+      inp.addEventListener('input', () => {
+        const len = inp.value.length;
+        counter.textContent = `${len} / 200`;
+        counter.classList.toggle('ww-char-count--ok',   len >= 6);
+        counter.classList.toggle('ww-char-count--warn',  len >= 180);
+      });
+    }
+
     scrollBot();
     setTimeout(() => inp.focus(), 120);
 
@@ -461,20 +543,23 @@
 
     // Chips (si el paso los tiene)
     let chipsEl = null;
+    let activeInputRef = null;
+
     if (step.quickReplies) {
       chipsEl = renderChips(step, (label) => {
-        // Click en chip → simular envío de ese valor
-        const fakeRow = document.querySelector('.ww-row:last-of-type');
-        const fakeInp = fakeRow && fakeRow.querySelector('.ww-inp');
-        if (fakeInp) { fakeInp.value = label; }
-        // Buscar el botón en el último row y hacer click
-        const fakeBtn = fakeRow && fakeRow.querySelector('.ww-sbtn');
-        if (fakeBtn) fakeBtn.click();
+        if (!activeInputRef) return;
+        activeInputRef.inp.value = label;
+        activeInputRef.btn.click();
       });
     }
 
-    // Input
-    renderInputRow(step, chipsEl);
+    // Chips contextuales acumulativos para el paso de detalle
+    if (idx === 3) {
+      renderContextualChips(contextualChips(st.data.product));
+    }
+
+    // Input — capturar referencia directa para el handler de chips
+    activeInputRef = renderInputRow(step, chipsEl);
   }
 
   async function showFinal() {
@@ -483,13 +568,15 @@
 
     await botSay([
       () => pick([
-        `¡Listo, *${d.name}*! 🎉 Ya tengo todo lo que necesito.`,
-        `¡Perfecto, *${d.name}*! Con eso es más que suficiente 🙌`,
-        `¡Genial, *${d.name}*! Esto es justo lo que necesitaba 🎯`,
+        `¡Listo, *${d.name}*! 🎉 Ya con esto puedo armar una cotización rápida.`,
+        `¡Perfecto, *${d.name}*! Con estos datos ya podemos darte un precio 💬`,
+        `¡Genial, *${d.name}*! Eso es todo lo que necesitaba. Te damos precio en seguida 🙌`,
+        `*${d.name}*, ¡excelente! Ya tengo todo para prepararte la cotización 🎯`,
+        `¡Listo, *${d.name}*! Con esa info ya podemos ayudarte. Te respondemos en minutos 💪`,
       ]),
       () => {
         const e = productEmoji(d.product);
-        return `${e} *${d.product}*\n📝 ${d.need}\n\nToca el botón y te respondemos en minutos 👇`;
+        return `${e} *${d.product}*\n${d.need}\n\nTe contactaremos al *${d.phone}* para darte el precio.`;
       },
     ]);
 
@@ -520,13 +607,10 @@
   function waURL() {
     const d = st.data;
     const msg =
-      `Hola ${CONFIG.agentName}!\n\n` +
-      `📋 *Datos del cliente:*\n` +
-      `• Nombre: ${d.name    || '–'}\n` +
-      `• Teléfono: ${d.phone || '–'}\n\n` +
-      `📦 *Producto:* ${d.product || '–'}\n\n` +
-      `📝 *Detalle del pedido:*\n${d.need || '–'}\n\n` +
-      `Por favor, envíenme precio y disponibilidad. ¡Gracias!`;
+      `Hola Marka! 👋 Me atendió el chat y quiero saber el precio de *${d.product || '–'}*.\n\n` +
+      `Soy *${d.name || '–'}*, pueden escribirme al ${d.phone || '–'}.\n\n` +
+      `📦 Necesito: ${d.need || '–'}\n\n` +
+      `¡Gracias!`;
     return `https://wa.me/${CONFIG.phone}?text=${encodeURIComponent(msg)}`;
   }
 
@@ -780,6 +864,12 @@
 .ww-chip:hover:not(:disabled) { border-color:#25d366; color:#075e54; background:rgba(37,211,102,.1); }
 .ww-chip--sel  { border-color:#25d366; background:rgba(37,211,102,.18); color:#075e54; font-weight:600; }
 .ww-chip:disabled { cursor:default; opacity:.55; }
+.ww-chips--ctx .ww-chip--sel { background:rgba(37,211,102,.22); border-color:#25d366; color:#075e54; }
+
+/* Contador de caracteres */
+.ww-char-count { font-size:.72rem; color:var(--ww-footer-text); text-align:right; margin-top:.1rem; padding-right:.2rem; transition:color .2s; align-self:stretch; }
+.ww-char-count--ok   { color:#25d366; }
+.ww-char-count--warn { color:#f59e0b; }
 
 /* Input row */
 .ww-row { display:flex; gap:.35rem; align-self:stretch; animation:wwPop .22s ease; margin-top:.1rem; }
@@ -793,6 +883,7 @@
 .ww-inp::placeholder { color:var(--ww-typing-dot); opacity:1; }
 .ww-inp:focus { border-color:var(--ww-inp-focus); box-shadow:0 0 0 3px rgba(37,211,102,.15); }
 .ww-inp--error { border-color:var(--ww-inp-err) !important; box-shadow:0 0 0 3px rgba(239,68,68,.15) !important; }
+.ww-inp--valid { border-color:#25d366 !important; box-shadow:0 0 0 3px rgba(37,211,102,.12) !important; }
 
 @keyframes wwShake {
   0%,100%{ transform:translateX(0); }

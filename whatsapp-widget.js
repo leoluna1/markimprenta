@@ -435,7 +435,7 @@
   }
 
   // Chips acumulativos para el paso "need": no bloquean, acumulan texto en el input
-  function renderContextualChips(labels) {
+  function renderContextualChips(labels, inputRef) {
     const wrap = document.createElement('div');
     wrap.className = 'ww-chips ww-chips--ctx';
     labels.forEach(label => {
@@ -443,7 +443,7 @@
       chip.className   = 'ww-chip';
       chip.textContent = label;
       chip.addEventListener('click', () => {
-        const inp = $('ww-body').querySelector('.ww-row:last-of-type .ww-inp');
+        const inp = inputRef?.inp;
         if (!inp) return;
         inp.value = inp.value.trim() ? inp.value.trim() + ', ' + label : label;
         chip.classList.toggle('ww-chip--sel');
@@ -645,13 +645,13 @@
       });
     }
 
-    // Chips contextuales acumulativos para el paso de detalle
-    if (idx === 3) {
-      renderContextualChips(contextualChips(st.data.product));
-    }
-
     // Input — capturar referencia directa para el handler de chips
     activeInputRef = renderInputRow(step, chipsEl);
+
+    // Chips contextuales acumulativos para el paso de detalle
+    if (idx === 3) {
+      renderContextualChips(contextualChips(st.data.product), activeInputRef);
+    }
   }
 
   async function showFinal() {

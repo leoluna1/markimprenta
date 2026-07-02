@@ -5288,7 +5288,7 @@ html:not([data-theme="dark"]) .hero-section::after {
 .quote-section .qtab:hover {
     background: rgba(255,255,255,.46);
     border-color: rgba(255,255,255,.5);
-    color: #fff;
+    color: var(--clean-ink);
 }
 
 .quote-section .qtab.active {

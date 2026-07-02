@@ -5771,6 +5771,19 @@ html[data-theme="dark"] .main-nav.scrolled {
     display: none !important;
 }
 
+@media (hover: hover) and (pointer: fine) {
+    html:not([data-theme="dark"]) .service-card:hover .service-icon {
+        background: var(--card-accent, var(--clean-cherry)) !important;
+        border-color: color-mix(in srgb, var(--card-accent, var(--clean-cherry)) 58%, white) !important;
+        color: #fff !important;
+        box-shadow: 0 16px 36px color-mix(in srgb, var(--card-accent, var(--clean-cherry)) 28%, transparent) !important;
+    }
+
+    html:not([data-theme="dark"]) .service-card:hover .service-icon svg {
+        stroke: currentColor !important;
+    }
+}
+
 /* ===== ACCESIBILIDAD — MOVIMIENTO REDUCIDO ===== */
 @media (prefers-reduced-motion: reduce) {
     *,

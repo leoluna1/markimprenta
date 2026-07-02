@@ -5601,6 +5601,19 @@ html[data-theme="dark"] .bottom-nav {
     transform: translateX(-50%) !important;
     margin: 0 !important;
     width: min(calc(100% - 32px), 1180px) !important;
+    background:
+        linear-gradient(135deg, rgba(255,255,255,.38), rgba(255,255,255,.12) 54%, rgba(255,255,255,.24)),
+        rgba(255,255,255,.20) !important;
+    border: 1px solid rgba(255,255,255,.42) !important;
+    box-shadow: 0 18px 58px rgba(17,17,17,.12), inset 0 1px 0 rgba(255,255,255,.64) !important;
+    backdrop-filter: blur(34px) saturate(190%) !important;
+    -webkit-backdrop-filter: blur(34px) saturate(190%) !important;
+}
+
+.main-nav.scrolled {
+    background:
+        linear-gradient(135deg, rgba(255,255,255,.46), rgba(255,255,255,.16) 54%, rgba(255,255,255,.30)),
+        rgba(255,255,255,.26) !important;
 }
 
 .quote-section .quote-result {
@@ -5728,6 +5741,20 @@ html:not([data-theme="dark"]) .main-nav.scrolled {
     right: auto !important;
     bottom: auto !important;
     transform: translateX(-50%) !important;
+}
+
+html[data-theme="dark"] .main-nav {
+    background:
+        linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.035) 54%, rgba(255,255,255,.07)),
+        rgba(10,11,14,.28) !important;
+    border-color: rgba(255,255,255,.16) !important;
+    box-shadow: 0 18px 58px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+
+html[data-theme="dark"] .main-nav.scrolled {
+    background:
+        linear-gradient(135deg, rgba(255,255,255,.13), rgba(255,255,255,.045) 54%, rgba(255,255,255,.08)),
+        rgba(10,11,14,.34) !important;
 }
 
 @media (max-width: 768px) {

@@ -325,7 +325,7 @@
   /* ─────────────────────────────────────────────────
      ESTADO
   ───────────────────────────────────────────────── */
-  const st = { open: false, step: 0, data: {}, retries: 0, busy: false };
+  const st = { open: false, step: 0, data: {}, retries: 0, busy: false, inputRef: null };
 
   /* ─────────────────────────────────────────────────
      HELPERS DOM
@@ -408,6 +408,42 @@
     ).join('');
   }
 
+  function getActiveInputRef(ref) {
+    if (ref?.inp?.isConnected && ref?.btn?.isConnected && ref.inp.closest('.ww-row')?.style.pointerEvents !== 'none') {
+      return ref;
+    }
+    if (st.inputRef?.inp?.isConnected && st.inputRef?.btn?.isConnected && st.inputRef.inp.closest('.ww-row')?.style.pointerEvents !== 'none') {
+      return st.inputRef;
+    }
+    const rows = Array.from(document.querySelectorAll('#ww-body .ww-row')).reverse();
+    for (const row of rows) {
+      if (row.style.pointerEvents === 'none') continue;
+      const inp = row.querySelector('.ww-inp');
+      const btn = row.querySelector('.ww-sbtn');
+      if (inp && btn) return { inp, btn };
+    }
+    return null;
+  }
+
+  function submitChipValue(label, ref) {
+    const active = getActiveInputRef(ref);
+    if (!active) return false;
+    active.inp.value = label;
+    active.inp.dispatchEvent(new Event('input'));
+    active.btn.click();
+    return true;
+  }
+
+  function appendChipValue(label, ref) {
+    const active = getActiveInputRef(ref);
+    if (!active) return false;
+    const inp = active.inp;
+    inp.value = inp.value.trim() ? inp.value.trim() + ', ' + label : label;
+    inp.dispatchEvent(new Event('input'));
+    inp.focus();
+    return true;
+  }
+
   /* ─────────────────────────────────────────────────
      CHIPS DE RESPUESTA RÁPIDA
   ───────────────────────────────────────────────── */
@@ -420,12 +456,13 @@
       chip.textContent = label;
       chip.addEventListener('click', () => {
         if (wrap._used) return;
+        const didSelect = onSelect(label);
+        if (!didSelect) return;
         wrap._used = true;
         wrap.querySelectorAll('.ww-chip').forEach(c => {
           c.disabled = true;
           c.classList.toggle('ww-chip--sel', c === chip);
         });
-        onSelect(label);
       });
       wrap.appendChild(chip);
     });
@@ -443,12 +480,9 @@
       chip.className   = 'ww-chip';
       chip.textContent = label;
       chip.addEventListener('click', () => {
-        const inp = inputRef?.inp;
-        if (!inp) return;
-        inp.value = inp.value.trim() ? inp.value.trim() + ', ' + label : label;
+        const didAppend = appendChipValue(label, inputRef);
+        if (!didAppend) return;
         chip.classList.toggle('ww-chip--sel');
-        inp.dispatchEvent(new Event('input'));
-        inp.focus();
       });
       wrap.appendChild(chip);
     });
@@ -526,9 +560,9 @@
         // Mostrar nuevo input (y chips si aplica)
         await new Promise(r => setTimeout(r, 220));
         const newChips = step.quickReplies
-          ? renderChips(step, val => { if (inp2) inp2.value = val; btn2.click(); })
+          ? renderChips(step, val => submitChipValue(val))
           : null;
-        const { inp: inp2, btn: btn2 } = renderInputRowRaw(step, newChips);
+        renderInputRowRaw(step, newChips);
         st.busy = false;
         return;
       }
@@ -561,6 +595,7 @@
     row.appendChild(inp);
     row.appendChild(btn);
     $('ww-body').appendChild(row);
+    st.inputRef = { inp, btn };
 
     // Contador de caracteres para el paso de detalle
     if (step.key === 'need') {
@@ -639,9 +674,7 @@
 
     if (step.quickReplies) {
       chipsEl = renderChips(step, (label) => {
-        if (!activeInputRef) return;
-        activeInputRef.inp.value = label;
-        activeInputRef.btn.click();
+        return submitChipValue(label, activeInputRef);
       });
     }
 
@@ -719,6 +752,7 @@
     st.data = {};
     st.retries = 0;
     st.busy = false;
+    st.inputRef = null;
     clearLeadDraft();
   }
 

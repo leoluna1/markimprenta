@@ -17,6 +17,7 @@
     agentRole: 'Respondemos en minutos',
     openDelay: 0,
     hintText:  '¿Necesitas un presupuesto? 😊',
+    storageKey: 'marka-wa-widget-lead',
   };
 
   /* ─────────────────────────────────────────────────
@@ -40,6 +41,64 @@
   function typingMs(msg) {
     const len = (msg || '').replace(/<[^>]*>/g, '').replace(/[\*\n]/g, '').length;
     return Math.min(Math.max(420, len * 24), 1900);
+  }
+
+  function escapeHTML(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function formatBotHTML(text) {
+    return escapeHTML(text)
+      .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+  }
+
+  function normalizePhone(value) {
+    let digits = String(value || '').replace(/\D/g, '');
+    if (digits.startsWith('00')) digits = digits.slice(2);
+    if (digits.startsWith('0') && digits.length === 10) return '593' + digits.slice(1);
+    if (digits.startsWith('9') && digits.length === 9) return '593' + digits;
+    return digits;
+  }
+
+  function displayPhone(value) {
+    const digits = normalizePhone(value);
+    if (digits.startsWith('593') && digits.length === 12) {
+      return `+593 ${digits.slice(3, 5)} ${digits.slice(5, 8)} ${digits.slice(8)}`;
+    }
+    return value || '–';
+  }
+
+  function saveLeadDraft() {
+    try {
+      sessionStorage.setItem(CONFIG.storageKey, JSON.stringify({
+        step: st.step,
+        data: st.data,
+        ts: Date.now(),
+      }));
+    } catch {}
+  }
+
+  function loadLeadDraft() {
+    try {
+      const raw = sessionStorage.getItem(CONFIG.storageKey);
+      if (!raw) return null;
+      const draft = JSON.parse(raw);
+      const isFresh = Date.now() - Number(draft.ts || 0) < 1000 * 60 * 60 * 6;
+      if (!isFresh || !draft.data || typeof draft.step !== 'number') return null;
+      return draft;
+    } catch {
+      return null;
+    }
+  }
+
+  function clearLeadDraft() {
+    try { sessionStorage.removeItem(CONFIG.storageKey); } catch {}
   }
 
   // Chips de sugerencia según el producto elegido (paso 4 — acumulativos)
@@ -159,7 +218,7 @@
       placeholder: 'Ej: 0987 654 321',
       type: 'tel',
       validate(v) {
-        const digits = v.replace(/\D/g, '');
+        const digits = normalizePhone(v);
         if (digits.length === 0 && v.trim().length > 0)
           return 'Eso parece texto, no un número. ¿Cuál es tu WhatsApp? Ej: *0987 654 321* 📱';
         if (!digits || digits.length === 0)
@@ -292,9 +351,7 @@
     if (who === 'user') {
       d.textContent = html;
     } else {
-      d.innerHTML = html
-        .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
-        .replace(/\n/g, '<br>');
+      d.innerHTML = formatBotHTML(html);
     }
     $('ww-body').appendChild(d);
     scrollBot();
@@ -483,9 +540,10 @@
       if (chipsEl) { chipsEl.style.pointerEvents = 'none'; chipsEl.style.opacity = '0.55'; }
 
       addBubble(val, 'user');
-      st.data[step.key] = val;
+      st.data[step.key] = step.key === 'phone' ? normalizePhone(val) : val;
       st.step++;
       st.retries = 0;
+      saveLeadDraft();
 
       // Acuse de recibo
       if (step.ack) {
@@ -532,6 +590,40 @@
   /* ─────────────────────────────────────────────────
      LÓGICA PRINCIPAL
   ───────────────────────────────────────────────── */
+  function renderResumePrompt() {
+    updateProgress();
+    const product = st.data.product ? ` sobre *${st.data.product}*` : '';
+    addBubble(`Tienes una cotización pendiente${product}. ¿Quieres continuar donde la dejaste?`, 'bot');
+
+    const actions = document.createElement('div');
+    actions.className = 'ww-resume-actions';
+
+    const keep = document.createElement('button');
+    keep.className = 'ww-resume-btn ww-resume-btn--primary';
+    keep.textContent = 'Continuar';
+    keep.addEventListener('click', () => {
+      $('ww-body').innerHTML = '';
+      buildProgress();
+      if (st.step >= STEPS.length) showFinal();
+      else renderStep();
+    });
+
+    const restart = document.createElement('button');
+    restart.className = 'ww-resume-btn';
+    restart.textContent = 'Empezar de nuevo';
+    restart.addEventListener('click', () => {
+      resetConversation();
+      $('ww-body').innerHTML = '';
+      buildProgress();
+      renderStep();
+    });
+
+    actions.appendChild(keep);
+    actions.appendChild(restart);
+    $('ww-body').appendChild(actions);
+    scrollBot();
+  }
+
   async function renderStep() {
     const idx = st.step;
     if (idx >= STEPS.length) return showFinal();
@@ -576,7 +668,7 @@
       ]),
       () => {
         const e = productEmoji(d.product);
-        return `${e} *${d.product}*\n${d.need}\n\nTe contactaremos al *${d.phone}* para darte el precio.`;
+        return `${e} *${d.product}*\n${d.need}\n\nTe contactaremos al *${displayPhone(d.phone)}* para darte el precio.`;
       },
     ]);
 
@@ -588,14 +680,17 @@
     a.target    = '_blank';
     a.rel       = 'noopener';
     a.innerHTML = `${SVG_WA}<span>Enviar pedido por WhatsApp</span>`;
-    a.addEventListener('click', () => setTimeout(() => toggle(false), 400));
+    a.addEventListener('click', () => {
+      clearLeadDraft();
+      setTimeout(() => toggle(false), 400);
+    });
     $('ww-body').appendChild(a);
 
     const redo = document.createElement('button');
     redo.className   = 'ww-restart';
     redo.textContent = '↩ Empezar de nuevo';
     redo.addEventListener('click', () => {
-      st.step = 0; st.data = {}; st.retries = 0; st.busy = false;
+      resetConversation();
       $('ww-body').innerHTML = '';
       buildProgress();
       renderStep();
@@ -608,10 +703,23 @@
     const d = st.data;
     const msg =
       `Hola Marka! 👋 Me atendió el chat y quiero saber el precio de *${d.product || '–'}*.\n\n` +
-      `Soy *${d.name || '–'}*, pueden escribirme al ${d.phone || '–'}.\n\n` +
+      `Soy *${d.name || '–'}*, pueden escribirme al ${displayPhone(d.phone)}.\n\n` +
       `📦 Necesito: ${d.need || '–'}\n\n` +
       `¡Gracias!`;
     return `https://wa.me/${CONFIG.phone}?text=${encodeURIComponent(msg)}`;
+  }
+
+  function directWaURL() {
+    const msg = 'Hola Marka! 👋 Quiero hablar con un asesor sobre sus servicios de impresión.';
+    return `https://wa.me/${CONFIG.phone}?text=${encodeURIComponent(msg)}`;
+  }
+
+  function resetConversation() {
+    st.step = 0;
+    st.data = {};
+    st.retries = 0;
+    st.busy = false;
+    clearLeadDraft();
   }
 
   /* ─────────────────────────────────────────────────
@@ -622,12 +730,24 @@
     const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : !st.open;
     st.open         = shouldOpen;
     root.classList.toggle('ww-open', shouldOpen);
+    const fab = $('ww-fab');
+    if (fab) {
+      fab.setAttribute('aria-expanded', String(shouldOpen));
+      fab.setAttribute('aria-label', shouldOpen ? 'Cerrar chat WhatsApp' : 'Abrir chat WhatsApp');
+    }
     syncTheme();
     const badge = $('ww-badge');
     if (badge) badge.style.display = shouldOpen ? 'none' : '';
     if (shouldOpen && $('ww-body').children.length === 0) {
       buildProgress();
-      renderStep();
+      const draft = loadLeadDraft();
+      if (draft && draft.step > 0) {
+        st.step = Math.min(draft.step, STEPS.length);
+        st.data = draft.data || {};
+        renderResumePrompt();
+      } else {
+        renderStep();
+      }
     }
   }
 
@@ -798,6 +918,24 @@
 .ww-prog-dot--active { background:#25d366; opacity:1; transform:scale(1.4); }
 .ww-prog-dot--done   { background:#25d366; opacity:.55; }
 
+#ww-quick-actions {
+  display:flex; align-items:center; justify-content:center; gap:.5rem;
+  padding:.55rem .75rem; background:var(--ww-panel-bg);
+  border-bottom:1px solid var(--ww-border);
+}
+.ww-direct-link {
+  display:inline-flex; align-items:center; justify-content:center; gap:.4rem;
+  min-height:34px; padding:.35rem .85rem;
+  border-radius:999px; border:1px solid rgba(37,211,102,.38);
+  background:rgba(37,211,102,.10); color:#075e54;
+  text-decoration:none; font-size:.78rem; font-weight:700;
+  transition:background .18s, transform .18s, border-color .18s;
+}
+.ww-direct-link:hover {
+  background:rgba(37,211,102,.18); border-color:#25d366; transform:translateY(-1px);
+}
+#ww-root.ww-dark .ww-direct-link { color:#b7f7cd; background:rgba(37,211,102,.12); }
+
 /* Body */
 #ww-body {
   height:320px; overflow-y:auto;
@@ -865,6 +1003,21 @@
 .ww-chip--sel  { border-color:#25d366; background:rgba(37,211,102,.18); color:#075e54; font-weight:600; }
 .ww-chip:disabled { cursor:default; opacity:.55; }
 .ww-chips--ctx .ww-chip--sel { background:rgba(37,211,102,.22); border-color:#25d366; color:#075e54; }
+
+.ww-resume-actions {
+  display:grid; grid-template-columns:1fr 1fr; gap:.5rem;
+  align-self:stretch; animation:wwPop .24s ease;
+}
+.ww-resume-btn {
+  min-height:38px; border-radius:12px;
+  border:1px solid var(--ww-chip-border);
+  background:var(--ww-chip-bg); color:var(--ww-chip-text);
+  font:inherit; font-size:.8rem; font-weight:700; cursor:pointer;
+}
+.ww-resume-btn--primary {
+  background:#25d366; border-color:#25d366; color:#fff;
+}
+.ww-resume-btn:hover { transform:translateY(-1px); }
 
 /* Contador de caracteres */
 .ww-char-count { font-size:.72rem; color:var(--ww-footer-text); text-align:right; margin-top:.1rem; padding-right:.2rem; transition:color .2s; align-self:stretch; }
@@ -936,6 +1089,7 @@
   #ww-root  { right:.75rem; bottom:calc(64px + .75rem); }
   #ww-panel { width:calc(100vw - 1.5rem); }
   #ww-body  { height:270px; }
+  .ww-resume-actions { grid-template-columns:1fr; }
 }
     `;
     document.head.appendChild(s);
@@ -964,6 +1118,11 @@
         <button id="ww-close-btn" aria-label="Cerrar">${SVG_CLOSE}</button>
       </div>
       <div id="ww-progress"></div>
+      <div id="ww-quick-actions">
+        <a class="ww-direct-link" href="${directWaURL()}" target="_blank" rel="noopener noreferrer">
+          ${SVG_WA}<span>Hablar directo</span>
+        </a>
+      </div>
       <div id="ww-body"></div>
       <div id="ww-footer">🔒 Tus datos solo se usan para contactarte</div>
     `;
@@ -975,6 +1134,8 @@
     const fab = document.createElement('button');
     fab.id = 'ww-fab';
     fab.setAttribute('aria-label', 'Abrir chat WhatsApp');
+    fab.setAttribute('aria-expanded', 'false');
+    fab.setAttribute('aria-controls', 'ww-panel');
     fab.innerHTML = `
       <span id="ww-badge">1</span>
       <span class="ww-ico-open">
@@ -993,6 +1154,9 @@
     fab.addEventListener('click', () => toggle());
     hint.addEventListener('click', () => toggle(true));
     $('ww-close-btn').addEventListener('click', () => toggle(false));
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && st.open) toggle(false);
+    });
 
     // Ocultar hint después de 8s
     setTimeout(() => {

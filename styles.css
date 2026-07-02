@@ -3633,214 +3633,6 @@ button:focus-visible {
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ═══════════════════════════════════
-   FAQ — Preguntas Frecuentes
-   ══════════════════════════════════ */
-
-.faq-section {
-    background: var(--bg-gray);
-    padding: 5rem 2rem;
-    min-height: auto;
-}
-
-[data-theme="dark"] .faq-section {
-    background: var(--bg-gray);
-}
-
-.faq-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0 2.5rem;
-    margin-bottom: 3rem;
-}
-
-.faq-col {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-}
-
-/* ─ Item individual ─ */
-.faq-item {
-    border-bottom: 1px solid var(--glass-border);
-}
-
-.faq-item:first-child {
-    border-top: 1px solid var(--glass-border);
-}
-
-[data-theme="dark"] .faq-item,
-[data-theme="dark"] .faq-item:first-child {
-    border-color: rgba(255,255,255,0.08);
-}
-
-/* ─ Botón trigger ─ */
-.faq-trigger {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 1.2rem 0.25rem;
-    background: none;
-    border: none;
-    cursor: pointer;
-    text-align: left;
-    font-family: inherit;
-    font-size: 0.975rem;
-    font-weight: 600;
-    color: var(--text-dark);
-    transition: color 0.2s ease;
-    line-height: 1.4;
-}
-
-[data-theme="dark"] .faq-trigger {
-    color: rgba(255,255,255,0.9);
-}
-
-.faq-trigger:hover {
-    color: var(--secondary);
-}
-
-.faq-trigger[aria-expanded="true"] {
-    color: var(--secondary);
-}
-
-/* ─ Ícono +/× ─ */
-.faq-icon {
-    font-size: 0.8rem;
-    color: var(--text-light);
-    transition: transform 0.3s ease, color 0.2s ease;
-    flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1.5px solid var(--glass-border);
-    border-radius: 50%;
-    padding: 0;
-}
-
-.faq-trigger:hover .faq-icon {
-    border-color: var(--secondary);
-    color: var(--secondary);
-}
-
-.faq-trigger[aria-expanded="true"] .faq-icon {
-    transform: rotate(45deg);
-    background: var(--secondary);
-    border-color: var(--secondary);
-    color: #fff;
-}
-
-[data-theme="dark"] .faq-icon {
-    border-color: rgba(255,255,255,0.15);
-    color: rgba(255,255,255,0.5);
-}
-
-/* ─ Cuerpo colapsable ─ */
-.faq-body {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 0.35s cubic-bezier(0.4,0,0.2,1);
-    overflow: hidden;
-}
-
-.faq-body > * {
-    overflow: hidden;
-    min-height: 0;
-}
-
-.faq-body.open {
-    grid-template-rows: 1fr;
-}
-
-/* Contenido interno del body */
-.faq-body p,
-.faq-body ul {
-    padding-bottom: 1.25rem;
-    padding-left: 0.25rem;
-}
-
-.faq-body p {
-    font-size: 0.9rem;
-    color: var(--text-light);
-    line-height: 1.75;
-    margin-bottom: 0.5rem;
-}
-
-.faq-body p:last-child {
-    margin-bottom: 0;
-}
-
-[data-theme="dark"] .faq-body p {
-    color: rgba(255,255,255,0.6);
-}
-
-.faq-body ul {
-    padding-left: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-}
-
-.faq-body li {
-    font-size: 0.875rem;
-    color: var(--text-light);
-    line-height: 1.6;
-}
-
-[data-theme="dark"] .faq-body li {
-    color: rgba(255,255,255,0.55);
-}
-
-.faq-body strong {
-    color: var(--text-dark);
-    font-weight: 600;
-}
-
-[data-theme="dark"] .faq-body strong {
-    color: rgba(255,255,255,0.9);
-}
-
-/* ─ CTA inferior ─ */
-.faq-cta {
-    text-align: center;
-    padding-top: 2.5rem;
-    border-top: 1px solid var(--glass-border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1.25rem;
-    flex-wrap: wrap;
-}
-
-[data-theme="dark"] .faq-cta {
-    border-color: rgba(255,255,255,0.08);
-}
-
-.faq-cta p {
-    font-size: 1rem;
-    color: var(--text-light);
-    margin: 0;
-}
-
-[data-theme="dark"] .faq-cta p {
-    color: rgba(255,255,255,0.55);
-}
-
-/* Responsive FAQ */
-@media (max-width: 768px) {
-    .faq-grid {
-        grid-template-columns: 1fr;
-        gap: 0;
-    }
-    .faq-col:last-child .faq-item:first-child {
-        border-top: none;
-    }
-}
-
 /* ── Fixes móvil adicionales ── */
 @media (max-width: 768px) {
     /* Filtro de precio: ancho completo en móvil */
@@ -4260,23 +4052,12 @@ button:focus-visible {
 }
 
 /* Focus visible mejorado para accesibilidad */
-.faq-trigger:focus-visible,
 .qtab:focus-visible,
 .filter-btn:focus-visible,
 .pf-btn:focus-visible {
     outline: 2px solid var(--secondary);
     outline-offset: 3px;
     border-radius: 4px;
-}
-
-/* Sección FAQ: separación superior con la sección anterior */
-.faq-section {
-    margin-top: 0;
-}
-
-/* Animación fade-in para la sección FAQ */
-.faq-section .section-header {
-    animation: fadeInUp 0.6s ease-out backwards;
 }
 
 /* Resena avatar */
@@ -4638,7 +4419,6 @@ html:not([data-theme="dark"]) .hero-section::after {
 .catalog-section,
 .portfolio-section,
 .quote-section,
-.faq-section,
 .contact-section { background: transparent; }
 .testimonios-section,
 .social-section { background: var(--clean-ink); color: #fff; }
@@ -4665,15 +4445,13 @@ html:not([data-theme="dark"]) .hero-section::after {
 .resena-form-wrap,
 .product-card,
 .portfolio-card,
-.faq-item,
 .info-card,
 .contact-form,
 .map-container,
 .catalog-filters,
 .catalog-search-input,
 .quote-tabs,
-.quote-form-wrapper,
-.faq-cta { border: 0; border-radius: 30px; background: rgba(255,255,255,0.9); box-shadow: var(--clean-shadow-sm); backdrop-filter: none; -webkit-backdrop-filter: none; }
+.quote-form-wrapper { border: 0; border-radius: 30px; background: rgba(255,255,255,0.9); box-shadow: var(--clean-shadow-sm); backdrop-filter: none; -webkit-backdrop-filter: none; }
 .testimonios-section .testimonio-card,
 .testimonios-section .resena-card,
 .testimonios-section .resena-form-wrap { background: #fff; color: var(--clean-ink); }
@@ -4758,7 +4536,6 @@ html:not([data-theme="dark"]) .hero-section::after {
 [data-theme="dark"] .section-title,
 [data-theme="dark"] .service-card h3,
 [data-theme="dark"] .product-card h3,
-[data-theme="dark"] .faq-trigger,
 [data-theme="dark"] .info-content h4,
 [data-theme="dark"] .resena-form-title { color: var(--clean-ink); }
 [data-theme="dark"] .nav-link i { color: var(--clean-muted); }
@@ -4777,7 +4554,6 @@ html:not([data-theme="dark"]) .hero-section::after {
 [data-theme="dark"] .catalog-section,
 [data-theme="dark"] .portfolio-section,
 [data-theme="dark"] .quote-section,
-[data-theme="dark"] .faq-section,
 [data-theme="dark"] .contact-section { background: transparent; }
 [data-theme="dark"] .hero-section::before { background: var(--clean-cherry); opacity: .72; box-shadow: 0 24px 90px rgba(227,6,19,0.18); }
 [data-theme="dark"] .hero-section::after { background: #17181e; box-shadow: inset 0 0 0 1px var(--clean-line), 0 24px 70px rgba(0,0,0,.36); }
@@ -4794,8 +4570,6 @@ html:not([data-theme="dark"]) .hero-section::after {
 [data-theme="dark"] .service-card,
 [data-theme="dark"] .product-card,
 [data-theme="dark"] .portfolio-card,
-[data-theme="dark"] .faq-item,
-[data-theme="dark"] .faq-cta,
 [data-theme="dark"] .info-card,
 [data-theme="dark"] .contact-form,
 [data-theme="dark"] .map-container,
@@ -4819,8 +4593,6 @@ html:not([data-theme="dark"]) .hero-section::after {
 [data-theme="dark"] .testimonio-texto,
 [data-theme="dark"] .resena-texto,
 [data-theme="dark"] .product-card p,
-[data-theme="dark"] .faq-body p,
-[data-theme="dark"] .faq-body li,
 [data-theme="dark"] .info-content p,
 [data-theme="dark"] .qform-desc,
 [data-theme="dark"] .qhint { color: var(--clean-muted); }
@@ -5429,8 +5201,6 @@ html[data-theme="dark"] {
 .testimonio-card,
 .resena-card,
 .resena-form-wrap,
-.faq-item,
-.faq-cta,
 .info-card,
 .contact-form,
 .map-container,
@@ -5464,8 +5234,6 @@ html[data-theme="dark"] {
 .testimonio-card,
 .resena-card,
 .resena-form-wrap,
-.faq-item,
-.faq-cta,
 .info-card,
 .contact-form,
 .map-container,
@@ -5483,7 +5251,6 @@ html[data-theme="dark"] {
 .portfolio-card::before,
 .testimonio-card::before,
 .resena-card::before,
-.faq-item::before,
 .info-card::before,
 .contact-form::before,
 .social-cta::before,
@@ -5508,7 +5275,6 @@ html[data-theme="dark"] {
 .portfolio-card > *,
 .testimonio-card > *,
 .resena-card > *,
-.faq-item > *,
 .info-card > *,
 .contact-form > *,
 .social-cta > *,
@@ -5553,7 +5319,6 @@ html:not([data-theme="dark"]) .social-section .video-card {
 
 html:not([data-theme="dark"]) .service-card h3,
 html:not([data-theme="dark"]) .product-card h3,
-html:not([data-theme="dark"]) .faq-trigger,
 html:not([data-theme="dark"]) .info-content h4,
 html:not([data-theme="dark"]) .resena-form-title,
 html:not([data-theme="dark"]) .testimonio-autor strong,
@@ -5572,8 +5337,6 @@ html[data-theme="dark"] .portfolio-card,
 html[data-theme="dark"] .testimonio-card,
 html[data-theme="dark"] .resena-card,
 html[data-theme="dark"] .resena-form-wrap,
-html[data-theme="dark"] .faq-item,
-html[data-theme="dark"] .faq-cta,
 html[data-theme="dark"] .info-card,
 html[data-theme="dark"] .contact-form,
 html[data-theme="dark"] .map-container,
@@ -5713,7 +5476,6 @@ html:not([data-theme="dark"]) .section-title,
 html:not([data-theme="dark"]) .service-card h3,
 html:not([data-theme="dark"]) .product-card h3,
 html:not([data-theme="dark"]) .portfolio-title,
-html:not([data-theme="dark"]) .faq-trigger,
 html:not([data-theme="dark"]) .info-content h4,
 html:not([data-theme="dark"]) .resena-form-title,
 html:not([data-theme="dark"]) .dif-item strong,
@@ -5725,8 +5487,6 @@ html:not([data-theme="dark"]) .hero-description,
 html:not([data-theme="dark"]) .section-description,
 html:not([data-theme="dark"]) .service-card p,
 html:not([data-theme="dark"]) .product-card p,
-html:not([data-theme="dark"]) .faq-body p,
-html:not([data-theme="dark"]) .faq-body li,
 html:not([data-theme="dark"]) .info-content p,
 html:not([data-theme="dark"]) .dif-item span,
 html:not([data-theme="dark"]) .stat-label {
@@ -5798,9 +5558,7 @@ html[data-theme="dark"] .main-nav.scrolled {
     .hero-text,
     .hero-title .title-line,
     .hero-stats,
-    .hero-buttons,
-
-    .faq-section .section-header {
+    .hero-buttons {
         animation: none;
         opacity: 1;
         transform: none;

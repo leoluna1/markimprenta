@@ -5727,6 +5727,11 @@ html:not([data-theme="dark"]) .main-nav.scrolled {
     transform: none !important;
 }
 
+.service-card::after {
+    content: none !important;
+    display: none !important;
+}
+
 /* ===== ACCESIBILIDAD — MOVIMIENTO REDUCIDO ===== */
 @media (prefers-reduced-motion: reduce) {
     *,

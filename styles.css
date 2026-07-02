@@ -5592,14 +5592,14 @@ html[data-theme="dark"] .bottom-nav {
         rgba(10,11,14,.28) !important;
 }
 
-/* ===== AJUSTES FINALES — nav no fijo y cotizador blanco ===== */
+/* ===== AJUSTES FINALES — nav fijo y cotizador blanco ===== */
 .main-nav {
-    position: static !important;
-    top: auto !important;
-    left: auto !important;
+    position: fixed !important;
+    top: 18px !important;
+    left: 50% !important;
     right: auto !important;
-    transform: none !important;
-    margin: 18px auto 0 !important;
+    transform: translateX(-50%) !important;
+    margin: 0 !important;
     width: min(calc(100% - 32px), 1180px) !important;
 }
 
@@ -5722,9 +5722,21 @@ html:not([data-theme="dark"]) .stat-label {
 
 html:not([data-theme="dark"]) .main-nav,
 html:not([data-theme="dark"]) .main-nav.scrolled {
-    position: static !important;
-    inset: auto !important;
-    transform: none !important;
+    position: fixed !important;
+    top: 18px !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translateX(-50%) !important;
+}
+
+@media (max-width: 768px) {
+    .main-nav,
+    html:not([data-theme="dark"]) .main-nav,
+    html:not([data-theme="dark"]) .main-nav.scrolled {
+        top: 8px !important;
+        width: calc(100% - 20px) !important;
+    }
 }
 
 .service-card::after {

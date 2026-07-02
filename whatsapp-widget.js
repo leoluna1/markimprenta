@@ -16,7 +16,7 @@
     agentName: 'Marka Publicidad',
     agentRole: 'Respondemos en minutos',
     openDelay: 0,
-    hintText:  '¿Necesitas un presupuesto? 😊',
+    hintText:  '¿Necesitas un presupuesto?',
     storageKey: 'marka-wa-widget-lead',
   };
 
@@ -115,21 +115,6 @@
     return ['Menos de 100 uds', '100-500 uds', 'Más de 500 uds', 'Con diseño', 'Sin diseño', 'Para esta semana'];
   }
 
-  // Emoji contextual según producto
-  function productEmoji(product) {
-    const p = (product || '').toLowerCase();
-    if (p.includes('flyer') || p.includes('volante'))       return '🖨️';
-    if (p.includes('banner') || p.includes('lona'))         return '🪧';
-    if (p.includes('tarjeta'))                               return '📇';
-    if (p.includes('taza'))                                  return '☕';
-    if (p.includes('gorra'))                                 return '🧢';
-    if (p.includes('packaging') || p.includes('caja'))      return '📦';
-    if (p.includes('etiqueta') || p.includes('sticker'))    return '🏷️';
-    if (p.includes('letrero') || p.includes('3d'))          return '✨';
-    if (p.includes('giganto') || p.includes('gran format')) return '🖼️';
-    return '🎨';
-  }
-
   /* ─────────────────────────────────────────────────
      DEFINICIÓN DE PASOS
      Cada paso tiene:
@@ -144,9 +129,9 @@
     {
       key: 'name',
       intro: [
-        () => `${greeting()}! 👋`,
+        () => `${greeting()}!`,
         () => pick([
-          'Soy el asistente de *Marka Publicidad*.\n¿Con quién tengo el gusto? 😊',
+          'Soy el asistente de *Marka Publicidad*.\n¿Con quién tengo el gusto?',
           '¡Qué bueno que nos escribes! ¿Cómo te llamas?',
           'Bienvenido/a a *Marka Publicidad*. ¿Cuál es tu nombre?',
           'Me da mucho gusto que nos contactes. ¿Con quién hablo?',
@@ -155,26 +140,26 @@
         ]),
       ],
       ack: (v) => pick([
-        `¡Qué bueno conocerte, *${v}*! 😊`,
-        `*${v}*, con mucho gusto te atendemos 🙌`,
-        `¡Hola, *${v}*! Un placer tenerte por aquí 👋`,
+        `¡Qué bueno conocerte, *${v}*!`,
+        `*${v}*, con mucho gusto te atendemos.`,
+        `¡Hola, *${v}*! Un placer tenerte por aquí.`,
         `Perfecto, *${v}*. Gracias por escribirnos.`,
-        `*${v}*, qué bueno que nos escribiste 🎉`,
-        `¡Hola, *${v}*! Ya estamos listos para ayudarte 💪`,
+        `*${v}*, qué bueno que nos escribiste.`,
+        `¡Hola, *${v}*! Ya estamos listos para ayudarte.`,
       ]),
       retryIntro: [
-        () => pick(['¡Ups! 🙈', 'Hmm... 🤔', 'No te preocupes 😊']),
+        () => pick(['Revisemos ese dato.', 'Un momento.', 'No te preocupes.']),
         () => pick([
           '¿Puedes escribir solo tu nombre sin números? Ej: *Juan Pérez*',
-          'Solo necesito letras para tu nombre 😊 Inténtalo de nuevo:',
-          'No te preocupes, solo escribe tu nombre como quieras 📝',
+          'Solo necesito letras para tu nombre. Inténtalo de nuevo:',
+          'No te preocupes, solo escribe tu nombre como quieras.',
           '¿Cómo te llamas? Con el nombre es suficiente.',
         ]),
       ],
       placeholder: 'Ej: Juan Pérez',
       validate(v) {
         if (!v || v.trim().length < 2)
-          return 'Solo necesito tu nombre, no te queda largo 😊';
+          return 'Solo necesito tu nombre.';
         if (/^\d+$/.test(v.trim()))
           return 'Eso es un número, no un nombre. ¿Cómo te llamas?';
         if (/\d/.test(v))
@@ -190,28 +175,28 @@
       key: 'phone',
       intro: [
         () => pick([
-          '¿Me das tu número de celular? Así te enviamos el presupuesto directo 📱',
-          '¿Cuál es tu WhatsApp? Te mandamos la cotización ahí mismo 📱',
-          '¿Tu número de celular? Lo usamos para coordinar los detalles y la entrega 📱',
-          '¿Me compartes tu WhatsApp o celular? Así te damos el precio cuanto antes 📱',
-          '¿Cuál es tu número? Solo para enviarte la cotización y coordinar 📱',
-          '¿Tienes WhatsApp? Dime tu número y te enviamos el presupuesto por ahí 📱',
+          '¿Me das tu número de celular? Así te enviamos el presupuesto directo.',
+          '¿Cuál es tu WhatsApp? Te mandamos la cotización ahí mismo.',
+          '¿Tu número de celular? Lo usamos para coordinar los detalles y la entrega.',
+          '¿Me compartes tu WhatsApp o celular? Así te damos el precio cuanto antes.',
+          '¿Cuál es tu número? Solo para enviarte la cotización y coordinar.',
+          '¿Tienes WhatsApp? Dime tu número y te enviamos el presupuesto por ahí.',
         ]),
       ],
       ack: () => pick([
-        'Perfecto, lo tengo anotado 📋',
-        'Anotado ✅ Ya lo tengo guardado.',
-        'Listo, con eso ya podemos coordinar 👌',
+        'Perfecto, lo tengo anotado.',
+        'Anotado. Ya lo tengo guardado.',
+        'Listo, con eso ya podemos coordinar.',
         '¡Genial! Ya tenemos tu número, gracias.',
-        'Anotado, gracias 😊 Con eso podemos contactarte.',
-        'Listo ✅ Te escribimos en cuanto tengamos el precio.',
+        'Anotado, gracias. Con eso podemos contactarte.',
+        'Listo. Te escribimos en cuanto tengamos el precio.',
       ]),
       retryIntro: [
-        () => pick(['Hmm, déjame revisar eso... 🤔', 'Un momento... 🧐', 'Casi, solo un ajuste 😊']),
+        () => pick(['Déjame revisar ese dato.', 'Un momento.', 'Casi, solo un ajuste.']),
         () => pick([
-          'No pude leer ese número completo. ¿Puedes escribirlo así? *0987 654 321* 📱',
-          'Necesito el número completo para poder contactarte. ¿Lo intentas de nuevo? 😊',
-          'Ese número parece que le faltan algunos dígitos. ¿Puedes revisarlo? 📱',
+          'No pude leer ese número completo. ¿Puedes escribirlo así? *0987 654 321*',
+          'Necesito el número completo para poder contactarte. ¿Lo intentas de nuevo?',
+          'Ese número parece que le faltan algunos dígitos. ¿Puedes revisarlo?',
           'Para enviarte la cotización necesito el número completo, sin espacios está bien.',
         ]),
       ],
@@ -220,11 +205,11 @@
       validate(v) {
         const digits = normalizePhone(v);
         if (digits.length === 0 && v.trim().length > 0)
-          return 'Eso parece texto, no un número. ¿Cuál es tu WhatsApp? Ej: *0987 654 321* 📱';
+          return 'Eso parece texto, no un número. ¿Cuál es tu WhatsApp? Ej: *0987 654 321*';
         if (!digits || digits.length === 0)
-          return 'Escribe tu número de WhatsApp 📱';
+          return 'Escribe tu número de WhatsApp.';
         if (digits.length < 7)
-          return `Número muy corto (${digits.length} dígito${digits.length !== 1 ? 's' : ''}). Mínimo 7 📱`;
+          return `Número muy corto (${digits.length} dígito${digits.length !== 1 ? 's' : ''}). Mínimo 7.`;
         if (digits.length > 13)
           return 'Ese número tiene demasiados dígitos. ¿Puedes revisarlo?';
         return null;
@@ -236,33 +221,32 @@
       key: 'product',
       intro: [
         () => pick([
-          '¿Qué producto estás buscando? 👇',
-          'Dime, ¿qué necesitas hoy? Estamos para ayudarte 🎨',
-          '¿En qué te puedo ayudar? Elige o escríbelo 👇',
-          '¿Qué producto tienes en mente? 🖨️',
-          '¿Qué necesitas imprimir o producir? 👇',
-          'Cuéntame, ¿qué producto te interesa cotizar? 🎨',
+          '¿Qué producto estás buscando?',
+          'Dime, ¿qué necesitas hoy? Estamos para ayudarte.',
+          '¿En qué te puedo ayudar? Elige o escríbelo.',
+          '¿Qué producto tienes en mente?',
+          '¿Qué necesitas imprimir o producir?',
+          'Cuéntame, ¿qué producto te interesa cotizar?',
         ]),
       ],
       ack: (v) => {
-        const e = productEmoji(v);
         return pick([
-          `${e} ¡Excelente elección! Somos muy buenos en *${v}*`,
-          `${e} Perfecto. Llevamos años haciendo *${v}* y la calidad habla sola`,
-          `${e} ¡Genial! *${v}* es uno de los productos que más trabajamos`,
-          `${e} Anotado. Tenemos mucha experiencia con *${v}*, vas a quedar contento/a`,
-          `${e} *${v}* — una muy buena elección. Eso lo tenemos muy bien manejado`,
-          `${e} Perfecto, *${v}* es algo en lo que nos especializamos hace años`,
-          `${e} ¡Con gusto! Los *${v}* que hacemos tienen muy buena calidad`,
+          `Excelente elección. Somos muy buenos en *${v}*.`,
+          `Perfecto. Llevamos años haciendo *${v}* y la calidad habla sola.`,
+          `Genial. *${v}* es uno de los productos que más trabajamos.`,
+          `Anotado. Tenemos mucha experiencia con *${v}*, vas a quedar contento/a.`,
+          `*${v}* — una muy buena elección. Eso lo tenemos muy bien manejado.`,
+          `Perfecto, *${v}* es algo en lo que nos especializamos hace años.`,
+          `Con gusto. Los *${v}* que hacemos tienen muy buena calidad.`,
         ]);
       },
       retryIntro: [
-        () => pick(['No pude identificar bien el producto 🤔', 'Ayúdame a entender qué necesitas 😊']),
+        () => pick(['No pude identificar bien el producto.', 'Ayúdame a entender qué necesitas.']),
         () => pick([
           'Elige una opción de abajo o descríbelo con palabras:',
-          'Selecciona una opción o escribe qué necesitas 😊',
-          '¿Qué producto te interesa? Puedes elegirlo de la lista o escribirlo 👇',
-          'Dime el nombre del producto y con gusto te cotizo 🎨',
+          'Selecciona una opción o escribe qué necesitas.',
+          '¿Qué producto te interesa? Puedes elegirlo de la lista o escribirlo.',
+          'Dime el nombre del producto y con gusto te cotizo.',
         ]),
       ],
       placeholder: 'Ej: flyers, banners...',
@@ -273,7 +257,7 @@
         'Tazas sublimadas',
         'Gorras personalizadas',
         'Packaging / Cajas',
-        'Etiquetas / Stickers',
+        'Etiquetas adhesivas',
         'Letreros 3D',
         'Otro producto',
       ],
@@ -291,24 +275,24 @@
       key: 'need',
       intro: [
         (d) => pick([
-          `¡Casi listo! ✏️ Para los *${d.product}*:\n¿Cuántas unidades necesitas y para cuándo?`,
-          `Un dato más 🙌 Para *${d.product}*:\n¿Qué cantidad tienes en mente y hay alguna fecha límite?`,
-          `Ya casi terminamos 🎯 Para *${d.product}*:\n¿Cuántos quieres y en qué fecha los necesitas?`,
-          `Perfecto 📋 ¿Cuántas unidades de *${d.product}* necesitas y para cuándo?\nEj: *500 uds a color, sin diseño, para el viernes*`,
-          `¡Falta poquito! Cuéntame los detalles de los *${d.product}*:\ncantidad, colores y fecha aproximada 📅`,
+          `Casi listo. Para los *${d.product}*:\n¿Cuántas unidades necesitas y para cuándo?`,
+          `Un dato más. Para *${d.product}*:\n¿Qué cantidad tienes en mente y hay alguna fecha límite?`,
+          `Ya casi terminamos. Para *${d.product}*:\n¿Cuántos quieres y en qué fecha los necesitas?`,
+          `Perfecto. ¿Cuántas unidades de *${d.product}* necesitas y para cuándo?\nEj: *500 uds a color, sin diseño, para el viernes*`,
+          `Cuéntame los detalles de los *${d.product}*:\ncantidad, colores y fecha aproximada.`,
         ]),
       ],
       retryIntro: [
         () => pick([
-          'Cuéntame un poquito más 😊',
-          'No te preocupes, solo un poco más de detalle 📋',
-          'Mientras más info nos des, mejor cotización podemos darte 🎯',
+          'Cuéntame un poquito más.',
+          'No te preocupes, solo un poco más de detalle.',
+          'Mientras más info nos des, mejor cotización podemos darte.',
         ]),
         () => pick([
           'Dime cantidad, colores y fecha.\nEj: *"500 uds a color, para el 20 de abril"*',
           'Cuéntanos cuántos quieres y para cuándo:\nEj: *"200 tarjetas, para la próxima semana"*',
-          '¿Cuántos necesitas y para qué fecha? Cualquier detalle que tengas nos ayuda 📅',
-          'No importa si no tienes todo claro aún. Cuéntame lo que tengas 😊',
+          '¿Cuántos necesitas y para qué fecha? Cualquier detalle que tengas nos ayuda.',
+          'No importa si no tienes todo claro aún. Cuéntame lo que tengas.',
         ]),
       ],
       placeholder: 'Ej: 500 uds, full color, para el 20 de abril',
@@ -693,15 +677,14 @@
 
     await botSay([
       () => pick([
-        `¡Listo, *${d.name}*! 🎉 Ya con esto puedo armar una cotización rápida.`,
-        `¡Perfecto, *${d.name}*! Con estos datos ya podemos darte un precio 💬`,
-        `¡Genial, *${d.name}*! Eso es todo lo que necesitaba. Te damos precio en seguida 🙌`,
-        `*${d.name}*, ¡excelente! Ya tengo todo para prepararte la cotización 🎯`,
-        `¡Listo, *${d.name}*! Con esa info ya podemos ayudarte. Te respondemos en minutos 💪`,
+        `Listo, *${d.name}*. Ya con esto puedo armar una cotización rápida.`,
+        `Perfecto, *${d.name}*. Con estos datos ya podemos darte un precio.`,
+        `Genial, *${d.name}*. Eso es todo lo que necesitaba. Te damos precio en seguida.`,
+        `*${d.name}*, excelente. Ya tengo todo para prepararte la cotización.`,
+        `Listo, *${d.name}*. Con esa info ya podemos ayudarte. Te respondemos en minutos.`,
       ]),
       () => {
-        const e = productEmoji(d.product);
-        return `${e} *${d.product}*\n${d.need}\n\nTe contactaremos al *${displayPhone(d.phone)}* para darte el precio.`;
+        return `*${d.product}*\n${d.need}\n\nTe contactaremos al *${displayPhone(d.phone)}* para darte el precio.`;
       },
     ]);
 
@@ -721,7 +704,7 @@
 
     const redo = document.createElement('button');
     redo.className   = 'ww-restart';
-    redo.textContent = '↩ Empezar de nuevo';
+    redo.textContent = 'Empezar de nuevo';
     redo.addEventListener('click', () => {
       resetConversation();
       $('ww-body').innerHTML = '';
@@ -735,15 +718,15 @@
   function waURL() {
     const d = st.data;
     const msg =
-      `Hola Marka! 👋 Me atendió el chat y quiero saber el precio de *${d.product || '–'}*.\n\n` +
+      `Hola Marka! Me atendió el chat y quiero saber el precio de *${d.product || '–'}*.\n\n` +
       `Soy *${d.name || '–'}*, pueden escribirme al ${displayPhone(d.phone)}.\n\n` +
-      `📦 Necesito: ${d.need || '–'}\n\n` +
+      `Necesito: ${d.need || '–'}\n\n` +
       `¡Gracias!`;
     return `https://wa.me/${CONFIG.phone}?text=${encodeURIComponent(msg)}`;
   }
 
   function directWaURL() {
-    const msg = 'Hola Marka! 👋 Quiero hablar con un asesor sobre sus servicios de impresión.';
+    const msg = 'Hola Marka! Quiero hablar con un asesor sobre sus servicios de impresión.';
     return `https://wa.me/${CONFIG.phone}?text=${encodeURIComponent(msg)}`;
   }
 
@@ -1158,7 +1141,7 @@
         </a>
       </div>
       <div id="ww-body"></div>
-      <div id="ww-footer">🔒 Tus datos solo se usan para contactarte</div>
+      <div id="ww-footer">Tus datos solo se usan para contactarte</div>
     `;
 
     const hint = document.createElement('div');

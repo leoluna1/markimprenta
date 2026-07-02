@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Panel Admin — Mark Publicidad</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="stylesheet" href="styles.css?v=20260629-logo">
+<link rel="stylesheet" href="styles.css?v=20260702-security-dashboard">
 </head>
 <body>
 
@@ -148,7 +148,10 @@
     <!-- ── SECCIÓN DASHBOARD ── -->
     <div class="section-panel active" id="section-dashboard">
       <div class="topbar">
-        <div><h2>Dashboard</h2><div class="sub">Resumen general del sitio web</div></div>
+        <div>
+          <h2 class="dash-title"><span class="dash-title-icon"><i class="fas fa-chart-bar"></i></span>Dashboard</h2>
+          <div class="sub">Resumen general del sitio web</div>
+        </div>
         <button class="btn-add" id="dash-refresh-btn">
           <i class="fas fa-sync-alt" id="dash-refresh-icon"></i> Actualizar
         </button>
@@ -183,23 +186,23 @@
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-top:1.5rem;" id="dash-lists-grid">
         <div class="table-card">
-          <div style="padding:.875rem 1.25rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-            <strong style="font-size:.9rem;">Últimos mensajes</strong>
-            <button class="btn-add" style="padding:.35rem .875rem;font-size:.8rem;" data-goto="contacts">Ver todos</button>
+          <div class="dash-card-head">
+            <strong class="dash-card-title"><span class="dash-head-icon red"><i class="fas fa-envelope"></i></span>Últimos mensajes</strong>
+            <button class="btn-add dash-mini-btn" data-goto="contacts"><i class="fas fa-arrow-right"></i> Ver todos</button>
           </div>
           <div id="dash-messages-list"></div>
         </div>
         <div class="table-card">
-          <div style="padding:.875rem 1.25rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-            <strong style="font-size:.9rem;">Reseñas pendientes</strong>
-            <button class="btn-add" style="padding:.35rem .875rem;font-size:.8rem;" data-goto="reviews">Ver todas</button>
+          <div class="dash-card-head">
+            <strong class="dash-card-title"><span class="dash-head-icon orange"><i class="fas fa-star"></i></span>Reseñas pendientes</strong>
+            <button class="btn-add dash-mini-btn" data-goto="reviews"><i class="fas fa-arrow-right"></i> Ver todas</button>
           </div>
           <div id="dash-reviews-list"></div>
         </div>
       </div>
 
       <div style="margin-top:1.5rem;">
-        <div class="sub" style="margin-bottom:.75rem;font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;">Acciones rápidas</div>
+        <div class="dash-actions-title"><span class="dash-head-icon blue"><i class="fas fa-bolt"></i></span>Acciones rápidas</div>
         <div style="display:flex;flex-wrap:wrap;gap:.6rem;">
           <button class="btn-add" data-goto="products"><i class="fas fa-box"></i> Productos</button>
           <button class="btn-add" data-goto="pricing"><i class="fas fa-calculator"></i> Cotizador</button>
@@ -785,6 +788,6 @@
   </div>
 </div>
 
-<script src="admin.js?v=20260629-logo"></script>
+<script src="admin.js?v=20260702-security-dashboard"></script>
 </body>
 </html>

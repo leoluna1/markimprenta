@@ -121,6 +121,109 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
 .stat-value { font-size:1.5rem; font-weight:600; }
 .stat-label { font-size:.8rem; color:var(--muted); }
 
+/* ── Dashboard icon polish ── */
+.dash-title { display:flex; align-items:center; gap:.65rem; }
+.dash-title-icon,
+.dash-head-icon,
+.dash-row-icon {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
+.dash-title-icon {
+  width:36px;
+  height:36px;
+  border-radius:10px;
+  background:var(--blue-light);
+  color:var(--blue);
+  font-size:.95rem;
+}
+.dash-card-head {
+  padding:.875rem 1.25rem;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:.75rem;
+}
+.dash-card-title {
+  display:flex;
+  align-items:center;
+  gap:.55rem;
+  font-size:.9rem;
+  min-width:0;
+}
+.dash-head-icon {
+  width:28px;
+  height:28px;
+  border-radius:8px;
+  font-size:.8rem;
+}
+.dash-head-icon.red { background:var(--red-light); color:var(--red); }
+.dash-head-icon.orange { background:var(--orange-light); color:var(--orange); }
+.dash-head-icon.blue { background:var(--blue-light); color:var(--blue); }
+.dash-mini-btn { padding:.35rem .75rem; font-size:.8rem; white-space:nowrap; }
+.dash-actions-title {
+  display:flex;
+  align-items:center;
+  gap:.55rem;
+  margin-bottom:.75rem;
+  font-size:.8rem;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  color:var(--muted);
+  font-weight:700;
+}
+.dash-list-row {
+  padding:.65rem 1.25rem;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  gap:.75rem;
+}
+.dash-row-icon {
+  width:30px;
+  height:30px;
+  border-radius:9px;
+  background:var(--bg);
+  color:var(--muted);
+  font-size:.8rem;
+}
+.dash-row-icon.unread { background:var(--red-light); color:var(--red); }
+.dash-row-icon.pending { background:var(--orange-light); color:var(--orange); }
+.dash-approve-btn {
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem;
+  background:var(--green);
+  color:white;
+  border:none;
+  border-radius:6px;
+  padding:.32rem .7rem;
+  font-size:.75rem;
+  cursor:pointer;
+  font-family:inherit;
+  white-space:nowrap;
+}
+.dash-empty {
+  display:flex;
+  align-items:center;
+  gap:.65rem;
+  padding:1rem 1.25rem;
+  color:var(--muted);
+  font-size:.85rem;
+}
+.dash-empty i {
+  width:30px;
+  height:30px;
+  border-radius:9px;
+  background:var(--bg);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
 /* ── TOOLBAR ── */
 .toolbar { display:flex; align-items:center; gap:1rem; margin-bottom:1.25rem; flex-wrap:wrap; }
 .search-box { display:flex; align-items:center; gap:.5rem; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.5rem .875rem; flex:1; min-width:200px; }
@@ -595,7 +698,9 @@ td { padding:.875rem 1rem; vertical-align:middle; }
 }
 
 .fa-fallback .fa-bars::before { content:"☰"; }
+.fa-fallback .fa-arrow-right::before { content:"→"; }
 .fa-fallback .fa-bell::before { content:"•"; }
+.fa-fallback .fa-bolt::before { content:"⚡"; }
 .fa-fallback .fa-box::before { content:"▣"; }
 .fa-fallback .fa-box-open::before { content:"▱"; }
 .fa-fallback .fa-calculator::before { content:"▦"; }

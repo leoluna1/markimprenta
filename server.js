@@ -151,16 +151,25 @@ const storage = multer.diskStorage({
     cb(null, `${rand}${ext}`);
   },
 });
-const ALLOWED_MIME_TYPES = [
-  'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',
-  'application/pdf',
-];
+const ALLOWED_UPLOAD_TYPES = new Map([
+  ['image/jpeg',      new Set(['.jpg', '.jpeg'])],
+  ['image/jpg',       new Set(['.jpg', '.jpeg'])],
+  ['image/png',       new Set(['.png'])],
+  ['image/webp',      new Set(['.webp'])],
+  ['image/gif',       new Set(['.gif'])],
+  ['application/pdf', new Set(['.pdf'])],
+]);
+function isAllowedUploadFile(file, allowedTypes) {
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  const allowedExts = allowedTypes.get(file.mimetype);
+  return Boolean(allowedExts && allowedExts.has(ext));
+}
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    ALLOWED_MIME_TYPES.includes(file.mimetype)
+    isAllowedUploadFile(file, ALLOWED_UPLOAD_TYPES)
       ? cb(null, true)
-      : cb(new Error('Tipo no permitido. Acepta: JPG, PNG, WEBP, GIF, PDF'));
+      : cb(new Error('Tipo no permitido. Acepta: JPG, PNG, WEBP, GIF o PDF válidos.'));
   },
   limits: { fileSize: 20 * 1024 * 1024 },
 });
@@ -176,8 +185,14 @@ const videoUpload = multer({
     },
   }),
   fileFilter: (req, file, cb) => {
-    const ok = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/ogg'];
-    ok.includes(file.mimetype) ? cb(null, true) : cb(new Error('Solo videos MP4/WEBM/MOV/AVI'));
+    const ok = new Map([
+      ['video/mp4',       new Set(['.mp4'])],
+      ['video/webm',      new Set(['.webm'])],
+      ['video/quicktime', new Set(['.mov'])],
+      ['video/x-msvideo', new Set(['.avi'])],
+      ['video/ogg',       new Set(['.ogv', '.ogg'])],
+    ]);
+    isAllowedUploadFile(file, ok) ? cb(null, true) : cb(new Error('Solo videos MP4, WEBM, MOV, AVI u OGV válidos.'));
   },
   limits: { fileSize: 500 * 1024 * 1024 },
 });
@@ -357,7 +372,7 @@ app.use(globalLimiter);
 app.use(csrfCookie);
 
 // ── Bloquear archivos sensibles del servidor ──
-const PRIVATE_PATH_RE = /^\/(?:server\.js|package(?:-lock)?\.json|[^/]*\.md|lib\/|data\/|logs\/|node_modules\/|\.env|index\.html$|admin\/index\.html$)/i;
+const PRIVATE_PATH_RE = /^\/(?:server\.js|package(?:-lock)?\.json|railway\.json|ss-admin\.cjs|[^/]*\.md|lib\/|db\/|data\/|logs\/|node_modules\/|\.env|index\.html$|admin\/index\.html$)/i;
 app.use((req, res, next) => {
   if (PRIVATE_PATH_RE.test(req.path)) return res.status(403).end();
   next();

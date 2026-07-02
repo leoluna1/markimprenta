@@ -461,15 +461,15 @@ async function loadDashboard() {
       const sorted = [...contacts].sort((a, b) => (a.read === b.read ? 0 : a.read ? 1 : -1)).slice(0, 4);
       msgList.innerHTML = sorted.length
         ? sorted.map(c => `
-          <div style="padding:.5rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.75rem;">
-            <div style="width:8px;height:8px;border-radius:50%;background:${c.read ? 'var(--border)' : '#E30613'};flex-shrink:0;"></div>
+          <div class="dash-list-row">
+            <div class="dash-row-icon ${c.read ? '' : 'unread'}"><i class="fas fa-envelope"></i></div>
             <div style="flex:1;min-width:0;">
               <div style="font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.name)}</div>
               <div style="font-size:.75rem;color:var(--muted);">${new Date(c.date||c.createdAt).toLocaleDateString('es-EC',{day:'numeric',month:'short'})}</div>
             </div>
             ${!c.read ? '<span class="badge" style="background:#fff0ef;color:#ff3b30;flex-shrink:0;">Nuevo</span>' : ''}
           </div>`).join('')
-        : '<div style="padding:1rem 1.25rem;color:var(--muted);font-size:.85rem;">Sin mensajes</div>';
+        : '<div class="dash-empty"><i class="fas fa-envelope"></i><span>Sin mensajes</span></div>';
     }
 
     // Lista de reseñas pendientes (top 4)
@@ -478,16 +478,17 @@ async function loadDashboard() {
       const pend = reviews.filter(r => !r.approved).slice(0, 4);
       revList.innerHTML = pend.length
         ? pend.map(r => `
-          <div style="padding:.5rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.75rem;">
+          <div class="dash-list-row">
+            <div class="dash-row-icon pending"><i class="fas fa-star"></i></div>
             <div style="flex:1;min-width:0;">
               <div style="font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.name)}</div>
               <div style="font-size:.75rem;color:var(--muted);">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
             </div>
-            <button data-approve="${r.id}" style="background:var(--green);color:white;border:none;border-radius:6px;padding:.25rem .6rem;font-size:.75rem;cursor:pointer;font-family:inherit;">
-              Aprobar
+            <button data-approve="${r.id}" class="dash-approve-btn">
+              <i class="fas fa-check"></i> Aprobar
             </button>
           </div>`).join('')
-        : '<div style="padding:1rem 1.25rem;color:var(--muted);font-size:.85rem;">Sin reseñas pendientes</div>';
+        : '<div class="dash-empty"><i class="fas fa-star"></i><span>Sin reseñas pendientes</span></div>';
     }
   } catch(e) {
     showToast('Error cargando el dashboard: ' + (e.message || e), 'orange');

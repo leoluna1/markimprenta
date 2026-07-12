@@ -1103,7 +1103,9 @@
 
 /* Responsive */
 @media (max-width:480px) {
-  #ww-root  { right:.75rem; bottom:calc(64px + .75rem); }
+  #ww-root  { right:.8rem; bottom:calc(64px + .65rem + env(safe-area-inset-bottom, 0px)); }
+  #ww-hint  { display:none; }
+  #ww-fab   { width:50px; height:50px; }
   #ww-panel { width:calc(100vw - 1.5rem); }
   #ww-body  { height:270px; }
   .ww-resume-actions { grid-template-columns:1fr; }

@@ -1,11 +1,9 @@
 /**
  * Service Worker — Mark Publicidad Impresa
- * Estrategia: Cache-First para assets estáticos, Network-First para API
+ * Estrategia: Network-First para HTML/CSS y Cache-First para assets versionados.
  */
-const CACHE_NAME = 'mark-publicidad-v1';
+const CACHE_NAME = 'mark-publicidad-v20260703';
 const PRECACHE_URLS = [
-  '/',
-  '/styles.css',
   '/images/logo.png',
 ];
 
@@ -27,13 +25,31 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Fetch: Network-First para API, Cache-First para el resto
+// Fetch: no interceptar API/admin; Network-First para documentos y CSS.
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
 
   // No interceptar llamadas a la API ni al admin
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/admin/')) return;
+
+  const wantsFresh = e.request.mode === 'navigate' ||
+    e.request.destination === 'style' ||
+    url.pathname === '/' ||
+    url.pathname.endsWith('.html');
+
+  if (wantsFresh) {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res && res.status === 200 && res.type === 'basic') {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+        }
+        return res;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
 
   e.respondWith(
     caches.match(e.request).then(cached => {

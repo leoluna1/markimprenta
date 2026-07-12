@@ -133,7 +133,7 @@ export default class CatalogView extends BaseView {
     const priceUnit = typeof p.price === 'number' && p.priceUnit
       ? `<span class="price-unit"> ${this.esc(p.priceUnit)}</span>` : '';
     const badge = p.popular
-      ? `<span class="product-badge"><i class="fas fa-star"></i> Popular</span>`
+      ? `<span class="product-badge"><i class="fas fa-star"></i> Más pedido</span>`
       : '';
 
     const catInfo = CatalogView.CATEGORY_LABELS[p.category];

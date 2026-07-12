@@ -3,6 +3,8 @@
 
 # Datos sensibles — NUNCA subir a git
 data/auth.json
+data/admin-users.json
+data/audit-events.json
 data/contacts.json
 data/reviews.json
 
@@ -12,6 +14,7 @@ node_modules/
 # Logs (el directorio se crea automáticamente al iniciar el servidor)
 logs/*.log
 logs/*.gz
+qa-artifacts/
 
 # Imágenes subidas por el admin (Railway usa almacenamiento efímero)
 # Las imágenes se guardan en Cloudinary en producción

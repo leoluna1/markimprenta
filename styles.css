@@ -1249,6 +1249,30 @@ button:focus-visible {
     letter-spacing: 0.3px;
 }
 
+.product-badge {
+    position: absolute;
+    top: 0.85rem;
+    right: 0.85rem;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 28px;
+    padding: 0.32rem 0.72rem;
+    background: var(--secondary);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.34);
+    box-shadow: 0 12px 26px rgba(227,6,19,0.22);
+    font-size: 0.72rem;
+    line-height: 1;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.product-badge i {
+    font-size: 0.68rem;
+}
+
 .product-content {
     padding: 1.25rem 1.5rem;
 }
@@ -5542,6 +5566,131 @@ html[data-theme="dark"] .main-nav.scrolled {
     html:not([data-theme="dark"]) .service-card:hover .service-icon svg {
         stroke: currentColor !important;
     }
+}
+
+/* ===== COTIZADOR — ajustes mobile finales ===== */
+@media (max-width: 560px) {
+    #cotizador.quote-section {
+        padding-top: 7rem;
+        overflow-x: clip;
+    }
+
+    #cotizador .section-header {
+        margin-bottom: 1.75rem;
+    }
+
+    #cotizador .section-title {
+        max-width: 100%;
+        font-size: 3.25rem;
+        line-height: 0.98;
+        letter-spacing: 0;
+        overflow-wrap: normal;
+        text-wrap: balance;
+    }
+
+    #cotizador .section-subtitle {
+        max-width: 21rem;
+        font-size: 1.28rem;
+        line-height: 1.45;
+    }
+
+    #cotizador .quote-steps {
+        display: grid;
+        grid-template-columns: 1fr;
+        justify-items: start;
+        gap: 0.85rem;
+        margin: 2rem 0 1.25rem;
+    }
+
+    #cotizador .quote-steps .step-sep {
+        display: none;
+    }
+
+    #cotizador .quote-live-summary {
+        gap: 0.75rem;
+    }
+
+    #cotizador .quote-live-summary .qls-card {
+        min-height: 86px;
+        padding: 1.1rem 1.2rem;
+    }
+
+    #cotizador .quote-tabs {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 0.45rem;
+        margin-left: -0.25rem;
+        margin-right: -0.25rem;
+        padding: 0.45rem;
+        overflow-x: auto;
+        scroll-snap-type: x proximity;
+    }
+
+    #cotizador .qtab {
+        scroll-snap-align: start;
+        min-height: 44px;
+        padding: 0.6rem 0.9rem;
+    }
+
+    #cotizador .quote-container {
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 390px) {
+    #cotizador .section-title {
+        font-size: 2.85rem;
+    }
+
+    #cotizador .section-subtitle {
+        font-size: 1.12rem;
+    }
+}
+
+/* ===== REDES Y MAPA — correcciones finales ===== */
+.social-section .social-btn {
+    color: #fff !important;
+    border-color: rgba(255,255,255,.18) !important;
+    box-shadow: 0 18px 42px rgba(17,17,17,.16), inset 0 1px 0 rgba(255,255,255,.22) !important;
+}
+
+.social-section .social-btn.youtube {
+    background: linear-gradient(135deg, #ff0000, #d90000) !important;
+}
+
+.social-section .social-btn.instagram {
+    background: linear-gradient(135deg, #f09433, #e6683c 34%, #dc2743 58%, #bc1888) !important;
+}
+
+.social-section .social-btn.tiktok {
+    background: linear-gradient(135deg, #050505, #1b1b1f) !important;
+}
+
+.social-section .social-btn.facebook {
+    background: linear-gradient(135deg, #1877f2, #0b5ecf) !important;
+}
+
+.social-section .social-btn .social-svg,
+.social-section .social-cta .btn-svg,
+.footer-social .social-svg {
+    color: currentColor;
+    opacity: 1;
+    stroke: currentColor;
+}
+
+.social-section .social-btn-info,
+.social-section .social-btn-info small {
+    color: currentColor !important;
+    opacity: 1;
+}
+
+.map-frame-wrapper iframe {
+    transition: filter var(--transition-base), opacity var(--transition-base);
+}
+
+html[data-theme="dark"] .map-frame-wrapper iframe {
+    filter: invert(.9) hue-rotate(180deg) saturate(.8) brightness(.78) contrast(1.08);
+    opacity: .92;
 }
 
 /* ===== ACCESIBILIDAD — MOVIMIENTO REDUCIDO ===== */

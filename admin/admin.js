@@ -9,16 +9,48 @@ let deletingId = null;
 let selectedImageUrl = '';   // URL final que se guardará en el producto
 let uploadedImages = [];     // cache de galería
 let _challengeToken = null; // token temporal para verificación 2FA
+let currentAdminUser = null;
 
 function setupIconFallback() {
-  document.documentElement.classList.add('fa-fallback');
+  document.documentElement.classList.remove('fa-fallback');
+  const probe = document.createElement('i');
+  probe.className = 'fas fa-check';
+  probe.style.cssText = 'position:absolute;left:-9999px;visibility:hidden;';
+  document.body.appendChild(probe);
+  const family = getComputedStyle(probe).fontFamily || '';
+  probe.remove();
+  if (!/Font Awesome/i.test(family)) {
+    document.documentElement.classList.add('fa-fallback');
+  }
 }
 
-setupIconFallback();
+if (document.body) {
+  setupIconFallback();
+} else {
+  document.addEventListener('DOMContentLoaded', setupIconFallback, { once: true });
+}
 
 // ── Utilidad: escapar HTML para prevenir XSS ───
 function esc(str) {
   return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function jsStr(value) {
+  return JSON.stringify(String(value ?? ''));
+}
+
+function canManageAdmin() {
+  return ['owner', 'admin'].includes(currentAdminUser?.role || '');
+}
+
+function applyAdminPermissions() {
+  const allowed = canManageAdmin();
+  document.querySelectorAll('[data-admin-only]').forEach(el => {
+    el.hidden = !allowed;
+  });
+  if (!allowed && ['section-users', 'section-audit'].some(id => document.getElementById(id)?.classList.contains('active'))) {
+    showSection('dashboard');
+  }
 }
 
 // ── Contactos ──────────────────────────────────
@@ -120,8 +152,7 @@ async function doLogin() {
       setTimeout(() => document.getElementById('totp-code').focus(), 100);
       return;
     }
-    token = data.token;
-    sessionStorage.setItem('adminToken', token);
+    token = '';
     showApp();
   } catch {
     errEl.style.display = 'block';
@@ -149,8 +180,7 @@ async function doTotpVerify() {
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Error');
     _challengeToken = null;
-    token = data.token;
-    sessionStorage.setItem('adminToken', token);
+    token = '';
     showApp();
   } catch (e) {
     document.getElementById('totp-error').textContent = e.message || 'Código incorrecto o expirado';
@@ -165,7 +195,6 @@ async function logout() {
       headers: { 'x-admin-token': token, ...csrfH() },
     });
   } catch {}
-  sessionStorage.removeItem('adminToken');
   token = '';
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
@@ -176,7 +205,8 @@ async function logout() {
 async function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  loadAdminProfile();
+  await loadAdminProfile();
+  applyAdminPermissions();
   await loadDashboard();
   loadProducts();
   loadGallery();
@@ -415,6 +445,14 @@ function showSection(name) {
   if (name === 'reviews')   loadReviewsAdmin();
   if (name === 'contacts')  loadContacts();
   if (name === 'portfolio') loadPortfolioAdmin();
+  if (name === 'users') {
+    if (!canManageAdmin()) return showSection('dashboard');
+    loadAdminUsers();
+  }
+  if (name === 'audit') {
+    if (!canManageAdmin()) return showSection('dashboard');
+    loadAuditLog();
+  }
   if (name === 'security') {
     loadAdminProfile();
     loadTwoFaStatus();
@@ -427,19 +465,22 @@ async function loadDashboard() {
   const icon = document.getElementById('dash-refresh-icon');
   if (icon) icon.classList.add('fa-spin');
   try {
-    const [rP, rC, rR, rPort] = await Promise.all([
+    const adminAllowed = canManageAdmin();
+    const [rP, rC, rR, rPort, rUsers, rAudit] = await Promise.all([
       fetch('/api/products',    { headers: { 'x-admin-token': token } }),
       fetch('/api/contacts',    { headers: { 'x-admin-token': token } }),
       fetch('/api/reviews/all', { headers: { 'x-admin-token': token } }),
       fetch('/api/portfolio',   { headers: { 'x-admin-token': token } }),
+      adminAllowed ? fetch('/api/admin/users', { headers: { 'x-admin-token': token } }) : Promise.resolve({ json: async () => [] }),
+      adminAllowed ? fetch('/api/admin/audit?limit=50', { headers: { 'x-admin-token': token } }) : Promise.resolve({ json: async () => [] }),
     ]);
 
     const safeJson = async (res) => {
       const d = await res.json();
       return Array.isArray(d) ? d : [];
     };
-    const [prods, contacts, reviews, portfolio] = await Promise.all([
-      safeJson(rP), safeJson(rC), safeJson(rR), safeJson(rPort),
+    const [prods, contacts, reviews, portfolio, users, audit] = await Promise.all([
+      safeJson(rP), safeJson(rC), safeJson(rR), safeJson(rPort), safeJson(rUsers), safeJson(rAudit),
     ]);
 
     const unread  = contacts.filter(c => !c.read).length;
@@ -454,6 +495,8 @@ async function loadDashboard() {
     set('dash-reviews',    pending);
     set('dash-portfolio',  Array.isArray(portfolio) ? portfolio.length : '—');
     set('dash-categories', cats);
+    set('dash-users', users.filter(u => u.active !== false).length || '—');
+    set('dash-audit', audit.length || 0);
 
     // Lista de mensajes (top 4, sin leer primero)
     const msgList = document.getElementById('dash-messages-list');
@@ -742,8 +785,8 @@ async function renderModalGallery() {
     return;
   }
   container.innerHTML = uploadedImages.map(img => `
-    <div class="gs-item ${selectedImageUrl === img.url ? 'selected' : ''}" onclick="selectFromGallery('${img.url}', this)">
-      <img src="${img.url}" alt="${img.filename}" loading="lazy">
+    <div class="gs-item ${selectedImageUrl === img.url ? 'selected' : ''}" onclick="selectFromGallery(${jsStr(img.url)}, this)">
+      <img src="${esc(img.url)}" alt="${esc(img.filename)}" loading="lazy">
     </div>`).join('');
 }
 
@@ -771,10 +814,10 @@ function renderGallery() {
   }
   grid.innerHTML = uploadedImages.map(img => `
     <div class="gallery-item">
-      <img src="${img.url}" alt="${img.filename}" loading="lazy">
+      <img src="${esc(img.url)}" alt="${esc(img.filename)}" loading="lazy">
       <div class="gallery-item-info">
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${img.filename}</span>
-        <button class="gallery-item-del" onclick="deleteImage('${img.filename}', event)" title="Eliminar"><i class="fas fa-trash"></i></button>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${esc(img.filename)}</span>
+        <button class="gallery-item-del" onclick="deleteImage(${jsStr(img.deleteId || img.filename)}, event)" title="Eliminar"><i class="fas fa-trash"></i></button>
       </div>
     </div>`).join('');
 }
@@ -801,8 +844,12 @@ async function deleteImage(filename, e) {
   e.stopPropagation();
   if (!confirm('¿Eliminar esta imagen del servidor?')) return;
   try {
-    await fetch(`${API}/api/upload/${filename}`, { method: 'DELETE', headers: { 'x-admin-token': token } });
-    uploadedImages = uploadedImages.filter(i => i.filename !== filename);
+    const id = String(filename);
+    const url = id.includes('/')
+      ? `${API}/api/upload/cloudinary?public_id=${encodeURIComponent(id)}`
+      : `${API}/api/upload/${encodeURIComponent(id)}`;
+    await fetch(url, { method: 'DELETE', headers: { 'x-admin-token': token } });
+    uploadedImages = uploadedImages.filter(i => (i.deleteId || i.filename) !== id);
     renderGallery();
     toast('Imagen eliminada', 'success');
   } catch { toast('Error eliminando imagen', 'error'); }
@@ -910,9 +957,12 @@ function escHtml(str) {
 
 // ── Auto-login + Dashboard event delegation (CSP-safe) ─────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  // Auto-login
-  const saved = sessionStorage.getItem('adminToken');
-  if (saved) { token = saved; showApp(); }
+  // Auto-login via HttpOnly cookie
+  fetch('/api/auth/profile')
+    .then(r => {
+      if (r.ok) showApp();
+    })
+    .catch(() => {});
 
   // Nav sidebar delegation — todos los items usan data-goto (CSP-safe)
   document.querySelector('.sidebar-nav')?.addEventListener('click', e => {
@@ -924,9 +974,16 @@ window.addEventListener('DOMContentLoaded', () => {
   // Dashboard panel: navegación, actualizar y aprobar reseñas
   document.getElementById('dash-refresh-btn')?.addEventListener('click', loadDashboard);
   document.getElementById('dash-view-site-btn')?.addEventListener('click', () => window.open('/', '_blank'));
+  document.getElementById('btn-preview-pricing')?.addEventListener('click', () => window.open('/#cotizador', '_blank'));
 
   document.getElementById('section-pricing')?.addEventListener('input', e => {
     if (e.target.closest('[data-key]')) setPricingDirty(true);
+  });
+
+  window.addEventListener('beforeunload', e => {
+    if (!pricingDirty) return;
+    e.preventDefault();
+    e.returnValue = '';
   });
 
   document.getElementById('section-dashboard')?.addEventListener('click', e => {
@@ -981,11 +1038,19 @@ function setPricingStatus(mode, title, text) {
 
 function setPricingDirty(isDirty) {
   pricingDirty = Boolean(isDirty);
+  updatePricingSaveButton();
   if (pricingDirty) {
     setPricingStatus('dirty', 'Cambios sin guardar', 'Guarda para actualizar el cotizador público.');
   } else {
     setPricingStatus('clean', 'Sin cambios pendientes', 'Los precios cargados coinciden con el servidor.');
   }
+}
+
+function updatePricingSaveButton() {
+  const btn = document.getElementById('btn-save-pricing');
+  if (!btn) return;
+  btn.disabled = !pricingDirty;
+  btn.classList.toggle('is-idle', !pricingDirty);
 }
 
 function countPricingTiers(value) {
@@ -1036,7 +1101,10 @@ function renderPricingOverview() {
 function switchPricingTab(name, btn) {
   document.querySelectorAll('#pricing-tabs-bar .pricing-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.pricing-panel').forEach(p => p.classList.remove('active'));
-  if (btn) btn.classList.add('active');
+  if (btn) {
+    btn.classList.add('active');
+    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }
   const el = document.getElementById('pp-' + name);
   if (el) el.classList.add('active');
 }
@@ -1054,8 +1122,8 @@ function renderPricingForms() {
       if (!m || m.type !== 'tiers') return;
       html += `<div class="pricing-card">
         <div class="pricing-card-header"><i class="fas fa-layer-group"></i> ${escHtml(m.label)} &middot; ${escHtml(m.dims || '')} &mdash; precio total por cantidad</div>
-        <div style="display:grid;grid-template-columns:160px 1fr;gap:.75rem;padding:.5rem 1.25rem;background:var(--bg);font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1px solid var(--border)"><span>Cantidad</span><span>Precio total ($)</span></div>
-        ${(m.tiers || []).map((t, i) => `<div style="display:grid;grid-template-columns:160px 1fr;gap:.75rem;padding:.625rem 1.25rem;border-bottom:1px solid var(--border);align-items:center;">
+        <div class="pricing-two-col-row header"><span>Cantidad</span><span>Precio total ($)</span></div>
+        ${(m.tiers || []).map((t, i) => `<div class="pricing-two-col-row">
           <input type="number" class="price-input price-input-sm" step="100" min="100" data-key="pricing.volantes.${key}.tiers.${i}.qty" value="${t.qty}">
           <input type="number" class="price-input" step="0.01" min="0" data-key="pricing.volantes.${key}.tiers.${i}.total" value="${t.total}">
         </div>`).join('')}
@@ -1185,8 +1253,8 @@ function renderPricingForms() {
   if (disCont && p.diseno) {
     disCont.innerHTML = `<div class="pricing-card">
       <div class="pricing-card-header"><i class="fas fa-palette"></i> Servicios de diseño gráfico</div>
-      <div style="display:grid;grid-template-columns:1fr 120px 160px;gap:.75rem;padding:.5rem 1.25rem;background:var(--bg);font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1px solid var(--border)"><span>Servicio</span><span>Precio ($)</span><span>Tiempo entrega</span></div>
-      ${p.diseno.map((t, i) => `<div style="display:grid;grid-template-columns:1fr 120px 160px;gap:.75rem;padding:.625rem 1.25rem;border-bottom:1px solid var(--border);align-items:center;">
+      <div class="pricing-design-row header"><span>Servicio</span><span>Precio ($)</span><span>Tiempo entrega</span></div>
+      ${p.diseno.map((t, i) => `<div class="pricing-design-row">
         <div><div class="pricing-label">${escHtml(t.label)}</div><div class="pricing-sub">${escHtml(t.desc || '')}</div></div>
         <input type="number" class="price-input" step="1" min="0" data-key="pricing.diseno.${i}.price" value="${t.price}">
         <input type="text" class="price-input" placeholder="Ej: 3-5 días" data-key="pricing.diseno.${i}.delivery" value="${escHtml(t.delivery || '')}">
@@ -1200,14 +1268,14 @@ function renderPricingForms() {
   if (delivCont) {
     delivCont.innerHTML = `<div class="pricing-card">
       <div class="pricing-card-header"><i class="fas fa-clock"></i> Tiempos de entrega por categoría</div>
-      <div style="padding:.75rem 1.25rem;display:grid;gap:.625rem;">
+      <div class="pricing-delivery-list">
         ${[
           ['volantes','Volantes / Flyers'],
           ['tarjetas','Tarjetas de presentación'],
           ['tazas','Tazas personalizadas'],
           ['etiquetas','Etiquetas'],
           ['packaging','Packaging'],
-        ].map(([key, label]) => `<div style="display:grid;grid-template-columns:1fr 200px;gap:.75rem;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--border);">
+        ].map(([key, label]) => `<div class="pricing-delivery-row">
           <div class="pricing-label">${label}</div>
           <input type="text" class="price-input" placeholder="Ej: 3-5 días hábiles" data-key="delivery.${key}" value="${escHtml(d[key] || '')}">
         </div>`).join('')}
@@ -1261,6 +1329,7 @@ async function savePricing() {
 
   btn.disabled = false;
   btn.innerHTML = '<i class="fas fa-save"></i> Guardar precios';
+  updatePricingSaveButton();
 }
 
 function addTierRow(basePath) {
@@ -1302,6 +1371,7 @@ let videosData = [];
 let editingVideoId = null;
 let _currentVideoType = 'youtube';
 let _existingLocalUrl = '';
+let _existingLocalPublicId = '';
 
 async function loadVideos() {
   try {
@@ -1393,6 +1463,7 @@ function previewLocalVideo() {
 function openVideoModal(id) {
   editingVideoId = id || null;
   _existingLocalUrl = '';
+  _existingLocalPublicId = '';
   const modal = document.getElementById('video-modal-overlay');
   document.getElementById('video-modal-title').textContent = id ? 'Editar video' : 'Agregar video';
 
@@ -1419,6 +1490,7 @@ function openVideoModal(id) {
     if (v.type === 'local') {
       setVideoType('local');
       _existingLocalUrl = v.url || '';
+      _existingLocalPublicId = v.publicId || '';
       if (_existingLocalUrl) {
         const existing = document.getElementById('vf-local-existing');
         existing.textContent = 'Archivo actual: ' + _existingLocalUrl.split('/').pop();
@@ -1497,13 +1569,15 @@ async function saveVideo() {
       toast('Selecciona un archivo de video', 'error'); return;
     }
     if (file) {
-      const uploadedUrl = await uploadVideoFile(file);
-      if (!uploadedUrl) return;
+      const uploaded = await uploadVideoFile(file);
+      if (!uploaded?.url) return;
       videoObj.type = 'local';
-      videoObj.url  = uploadedUrl;
+      videoObj.url  = uploaded.url;
+      if (uploaded.publicId) videoObj.publicId = uploaded.publicId;
     } else {
       videoObj.type = 'local';
       videoObj.url  = _existingLocalUrl;
+      if (_existingLocalPublicId) videoObj.publicId = _existingLocalPublicId;
     }
   } else {
     const rawUrl = document.getElementById('vf-yt-url').value.trim();
@@ -1538,6 +1612,7 @@ function uploadVideoFile(file) {
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', API + '/api/upload/video');
+    xhr.setRequestHeader('x-admin-token', token);
 
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) {
@@ -1550,7 +1625,7 @@ function uploadVideoFile(file) {
       if (xhr.status === 200) {
         try {
           const data = JSON.parse(xhr.responseText);
-          resolve(data.url || null);
+          resolve(data.url ? { url: data.url, publicId: data.publicId || '' } : null);
         } catch {
           toast('Error procesando respuesta del servidor', 'error');
           resolve(null);
@@ -1578,7 +1653,10 @@ async function deleteVideo(id) {
   await persistSettings();
   if (v && v.type === 'local' && v.url) {
     const filename = v.url.split('/').pop();
-    fetch(API + '/api/upload/video/' + encodeURIComponent(filename), { method: 'DELETE' })
+    const url = v.publicId
+      ? API + '/api/upload/video/cloudinary?public_id=' + encodeURIComponent(v.publicId)
+      : API + '/api/upload/video/' + encodeURIComponent(filename);
+    fetch(url, { method: 'DELETE', headers: { 'x-admin-token': token } })
       .catch(() => {});
   }
   renderVideosAdmin();
@@ -1806,7 +1884,6 @@ async function sendResetLink() {
 }
 
 async function loadAdminProfile() {
-  if (!token) return;
   try {
     const r = await fetch(API + '/api/auth/profile', {
       headers: { 'x-admin-token': token },
@@ -1814,6 +1891,8 @@ async function loadAdminProfile() {
     });
     if (!r.ok) return;
     const d = await r.json();
+    currentAdminUser = d;
+    applyAdminPermissions();
     if (d.email) {
       const email = cleanEmail(d.email);
       sessionStorage.setItem('adminEmail', email);
@@ -1857,8 +1936,7 @@ async function changePassword() {
     });
     const d = await r.json();
     if (d.success) {
-      token = d.token;
-      sessionStorage.setItem('adminToken', d.token);
+      token = '';
       if (d.email) {
         document.getElementById('sec-email').value = d.email;
         sessionStorage.setItem('adminEmail', d.email);
@@ -1872,6 +1950,152 @@ async function changePassword() {
     }
   } catch {
     show('Error de conexión.', false);
+  }
+}
+
+// ── Usuarios admin / historial ────────────────
+function showInlineMsg(id, msg, ok) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.className = `admin-inline-msg ${ok ? 'ok' : 'err'}`;
+}
+
+function roleLabel(role) {
+  return ({ owner: 'Propietario', admin: 'Administrador', editor: 'Editor' })[role] || role || 'Admin';
+}
+
+function formatDateTime(value) {
+  if (!value) return '—';
+  try {
+    return new Date(value).toLocaleString('es-EC', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    });
+  } catch {
+    return value;
+  }
+}
+
+async function loadAdminUsers() {
+  const list = document.getElementById('admin-users-list');
+  if (!list) return;
+  list.innerHTML = '<div class="dash-empty"><i class="fas fa-sync-alt fa-spin"></i><span>Cargando usuarios...</span></div>';
+  try {
+    const r = await fetch('/api/admin/users', { headers: { 'x-admin-token': token }, cache: 'no-store' });
+    const users = await r.json();
+    if (!r.ok || !Array.isArray(users)) throw new Error(users.error || 'Error');
+    list.innerHTML = users.length ? users.map(u => `
+      <div class="admin-user-row">
+        <div class="admin-user-main">
+          <div class="admin-user-avatar"><i class="fas fa-user"></i></div>
+          <div style="min-width:0;">
+            <div class="admin-user-name">${esc(u.name || u.email)}</div>
+            <div class="admin-user-email">${esc(u.email)}</div>
+            <div class="admin-user-meta">
+              <span class="badge ${u.active ? 'active' : 'inactive'}">${u.active ? 'Activo' : 'Inactivo'}</span>
+              <span class="badge">${esc(roleLabel(u.role))}</span>
+              ${u.totp_enabled ? '<span class="badge active">2FA</span>' : ''}
+            </div>
+          </div>
+        </div>
+        <div class="admin-user-actions">
+          <button class="btn-mini" onclick="resetAdminUserPassword(${u.id}, ${jsStr(u.email)})"><i class="fas fa-key"></i> Contraseña</button>
+          ${currentAdminUser && currentAdminUser.id === u.id
+            ? '<span class="audit-muted">Tu usuario</span>'
+            : `<button class="btn-mini ${u.active ? 'danger' : 'success'}" onclick="toggleAdminUser(${u.id}, ${!u.active})"><i class="fas ${u.active ? 'fa-ban' : 'fa-check'}"></i> ${u.active ? 'Desactivar' : 'Activar'}</button>`}
+        </div>
+      </div>
+    `).join('') : '<div class="dash-empty"><i class="fas fa-users-cog"></i><span>No hay usuarios registrados.</span></div>';
+  } catch (e) {
+    list.innerHTML = `<div class="dash-empty"><i class="fas fa-exclamation-triangle"></i><span>${esc(e.message || 'Error cargando usuarios')}</span></div>`;
+  }
+}
+
+async function createAdminUser() {
+  const name = document.getElementById('user-name')?.value.trim();
+  const email = cleanEmail(document.getElementById('user-email')?.value);
+  const role = 'editor';
+  const password = document.getElementById('user-password')?.value || '';
+  if (!name) return showInlineMsg('users-msg', 'Ingresa el nombre del usuario.', false);
+  if (!isValidEmail(email)) return showInlineMsg('users-msg', 'Ingresa un correo válido.', false);
+  if (password.length < 8) return showInlineMsg('users-msg', 'La contraseña debe tener al menos 8 caracteres.', false);
+
+  try {
+    const r = await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
+      body: JSON.stringify({ name, email, role, password }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error creando usuario');
+    ['user-name', 'user-email', 'user-password'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    showInlineMsg('users-msg', 'Usuario creado correctamente.', true);
+    await loadAdminUsers();
+    loadDashboard();
+  } catch (e) {
+    showInlineMsg('users-msg', e.message || 'Error creando usuario.', false);
+  }
+}
+
+async function toggleAdminUser(id, active) {
+  if (!confirm(active ? '¿Activar este usuario?' : '¿Desactivar este usuario?')) return;
+  try {
+    const r = await fetch('/api/admin/users/' + id, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
+      body: JSON.stringify({ active }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error actualizando usuario');
+    await loadAdminUsers();
+    loadDashboard();
+  } catch (e) {
+    alert(e.message || 'Error actualizando usuario.');
+  }
+}
+
+async function resetAdminUserPassword(id, email) {
+  const password = prompt(`Nueva contraseña para ${email}:`);
+  if (!password) return;
+  try {
+    const r = await fetch('/api/admin/users/' + id + '/password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
+      body: JSON.stringify({ password }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error cambiando contraseña');
+    alert('Contraseña actualizada.');
+    loadAuditLog();
+  } catch (e) {
+    alert(e.message || 'Error cambiando contraseña.');
+  }
+}
+
+function auditActionLabel(action) {
+  return String(action || '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+async function loadAuditLog() {
+  const tbody = document.getElementById('audit-list');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">Cargando historial...</td></tr>';
+  try {
+    const r = await fetch('/api/admin/audit?limit=150', { headers: { 'x-admin-token': token }, cache: 'no-store' });
+    const events = await r.json();
+    if (!r.ok || !Array.isArray(events)) throw new Error(events.error || 'Error');
+    tbody.innerHTML = events.length ? events.map(ev => `
+      <tr>
+        <td><div>${esc(formatDateTime(ev.created_at))}</div><div class="audit-muted">IP ${esc(ev.ip || '—')}</div></td>
+        <td><div>${esc(ev.user_email || 'Sistema')}</div><div class="audit-muted">${ev.user_id ? 'ID ' + esc(ev.user_id) : ''}</div></td>
+        <td><span class="audit-action">${esc(auditActionLabel(ev.action))}</span></td>
+        <td><div>${esc(ev.entity || '—')}</div><div class="audit-muted">${esc(ev.entity_id || '')}</div></td>
+        <td><div class="audit-summary">${esc(ev.summary || 'Sin detalle')}</div></td>
+      </tr>
+    `).join('') : '<tr><td colspan="5" style="color:var(--muted);">Aún no hay eventos registrados.</td></tr>';
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--red);">${esc(e.message || 'Error cargando historial')}</td></tr>`;
   }
 }
 
@@ -2018,6 +2242,11 @@ window.togglePw = togglePw;
 window.checkStrength = checkStrength;
 window.sendResetLink = sendResetLink;
 window.changePassword = changePassword;
+window.loadAdminUsers = loadAdminUsers;
+window.createAdminUser = createAdminUser;
+window.toggleAdminUser = toggleAdminUser;
+window.resetAdminUserPassword = resetAdminUserPassword;
+window.loadAuditLog = loadAuditLog;
 window.initTwoFaSetup = initTwoFaSetup;
 window.cancelTwoFaSetup = cancelTwoFaSetup;
 window.confirmTwoFa = confirmTwoFa;

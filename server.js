@@ -19,10 +19,12 @@ const compression  = require('compression');
 const { body, validationResult } = require('express-validator');
 const speakeasy    = require('speakeasy');
 const QRCode       = require('qrcode');
+const { v2: cloudinary } = require('cloudinary');
 
 const db           = require('./db/db');
 const {
   createSession,
+  readSession,
   isValidSession,
   invalidateSession,
   invalidateAllSessions,
@@ -32,12 +34,37 @@ const { csrfCookie, csrfProtect, csrfTokenEndpoint } = require('./lib/csrf');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
-
-// ── Rutas de directorios (medios y uploads) ──────────────────
-const UPLOADS_DIR    = path.join(__dirname, 'uploads');
-const VIDEOS_DIR     = path.join(__dirname, 'uploads', 'videos');
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const ADMIN_SESSION_COOKIE = 'admin_session';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const CLOUDINARY_CONFIGURED = Boolean(
+  process.env.CLOUDINARY_CLOUD_NAME &&
+  process.env.CLOUDINARY_API_KEY &&
+  process.env.CLOUDINARY_API_SECRET
+);
+const UPLOAD_STORAGE = String(process.env.UPLOAD_STORAGE || (CLOUDINARY_CONFIGURED ? 'cloudinary' : 'local')).toLowerCase();
+const CLOUDINARY_ENABLED = UPLOAD_STORAGE === 'cloudinary' && CLOUDINARY_CONFIGURED;
+const CLOUDINARY_FOLDER = process.env.CLOUDINARY_FOLDER || 'marka-publicidad';
+
+// ── Rutas de directorios (medios y uploads locales/NAS) ──────────────────
+const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || path.join(__dirname, 'uploads'));
+const VIDEOS_DIR  = path.resolve(process.env.VIDEOS_DIR || path.join(UPLOADS_DIR, 'videos'));
+const PUBLIC_UPLOADS_URL = String(process.env.PUBLIC_UPLOADS_URL || '/uploads').replace(/\/+$/, '') || '/uploads';
+
+if (CLOUDINARY_ENABLED) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key:    process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure:     true,
+  });
+}
+
+function publicUploadUrl(...segments) {
+  const encoded = segments.map(s => encodeURIComponent(String(s).replace(/^\/+|\/+$/g, ''))).join('/');
+  return `${PUBLIC_UPLOADS_URL}/${encoded}`;
+}
 
 function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
@@ -59,6 +86,21 @@ function withAuthDefaults(auth) {
   };
 }
 
+function publicAdminUser(user) {
+  if (!user) return null;
+  return {
+    id: user.id,
+    name: user.name || '',
+    email: normalizeEmail(user.email),
+    role: user.role || 'admin',
+    active: user.active !== false,
+    totp_enabled: !!user.totp_enabled,
+    created_at: user.created_at || null,
+    updated_at: user.updated_at || null,
+    last_login_at: user.last_login_at || null,
+  };
+}
+
 function matchesAdminEmail(input, auth) {
   const expected = normalizeEmail(auth && auth.email);
   return Boolean(expected && normalizeEmail(input) === expected);
@@ -66,6 +108,46 @@ function matchesAdminEmail(input, auth) {
 
 function maskEmail(email) {
   return normalizeEmail(email).replace(/^(.{2}).*(@.*)$/, '$1***$2');
+}
+
+function parseCookies(req) {
+  return String(req.headers.cookie || '').split(';').reduce((acc, part) => {
+    const idx = part.indexOf('=');
+    if (idx === -1) return acc;
+    const key = part.slice(0, idx).trim();
+    const value = part.slice(idx + 1).trim();
+    if (key) {
+      try {
+        acc[key] = decodeURIComponent(value);
+      } catch {
+        acc[key] = value;
+      }
+    }
+    return acc;
+  }, {});
+}
+
+function setAdminSessionCookie(res, token) {
+  res.cookie(ADMIN_SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: IS_PRODUCTION,
+    sameSite: 'strict',
+    path: '/',
+    maxAge: 8 * 60 * 60 * 1000,
+  });
+}
+
+function clearAdminSessionCookie(res) {
+  res.clearCookie(ADMIN_SESSION_COOKIE, {
+    httpOnly: true,
+    secure: IS_PRODUCTION,
+    sameSite: 'strict',
+    path: '/',
+  });
+}
+
+function getAdminSessionToken(req) {
+  return req.headers['x-admin-token'] || parseCookies(req)[ADMIN_SESSION_COOKIE];
 }
 
 // ── Auth helpers ──────────────────────────────
@@ -93,7 +175,11 @@ async function verifyPassword(input, authData = null) {
   // Texto plano: verificar y migrar automáticamente a bcrypt
   if (candidate !== stored) return false;
   const hash = await bcrypt.hash(candidate, 12);
-  await db.saveAuth({ ...auth, password: hash });
+  if (auth.id) {
+    await db.updateAdminUserPassword(auth.id, hash);
+  } else {
+    await db.saveAuth({ ...auth, password: hash });
+  }
   logger.info('[Auth] Contraseña migrada a bcrypt');
   return true;
 }
@@ -110,29 +196,47 @@ function validatePasswordStrength(pwd) {
 const resetTokens = new Map();
 const RESET_TTL_MS = 15 * 60 * 1000;
 
-function createResetToken() {
+function createResetToken(user) {
   const token = crypto.randomBytes(32).toString('hex');
-  resetTokens.set(token, Date.now() + RESET_TTL_MS);
+  resetTokens.set(token, {
+    expiresAt: Date.now() + RESET_TTL_MS,
+    userId: user?.id || null,
+  });
   return token;
 }
 function isValidResetToken(token) {
   if (!token || !resetTokens.has(token)) return false;
-  if (Date.now() > resetTokens.get(token)) { resetTokens.delete(token); return false; }
+  const entry = resetTokens.get(token);
+  const expiresAt = typeof entry === 'number' ? entry : entry.expiresAt;
+  if (Date.now() > expiresAt) { resetTokens.delete(token); return false; }
   return true;
+}
+function getResetTokenUserId(token) {
+  const entry = resetTokens.get(token);
+  return entry && typeof entry === 'object' ? entry.userId : null;
 }
 
 // ── 2FA challenge tokens (5 min, solo en memoria) ──
 const challengeTokens = new Map();
 
-function createChallengeToken() {
+function createChallengeToken(user) {
   const token = crypto.randomBytes(32).toString('hex');
-  challengeTokens.set(token, Date.now() + 5 * 60 * 1000);
+  challengeTokens.set(token, {
+    expiresAt: Date.now() + 5 * 60 * 1000,
+    userId: user?.id || null,
+  });
   return token;
 }
 function isValidChallengeToken(token) {
   if (!token || !challengeTokens.has(token)) return false;
-  if (Date.now() > challengeTokens.get(token)) { challengeTokens.delete(token); return false; }
+  const entry = challengeTokens.get(token);
+  const expiresAt = typeof entry === 'number' ? entry : entry.expiresAt;
+  if (Date.now() > expiresAt) { challengeTokens.delete(token); return false; }
   return true;
+}
+function getChallengeUserId(token) {
+  const entry = challengeTokens.get(token);
+  return entry && typeof entry === 'object' ? entry.userId : null;
 }
 function consumeChallengeToken(token) {
   challengeTokens.delete(token);
@@ -212,6 +316,15 @@ function createMailTransport() {
   });
 }
 
+function isLocalRequest(req) {
+  const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '');
+  return ['::1', '127.0.0.1', '::ffff:127.0.0.1'].includes(ip) || ip.includes('127.0.0.1');
+}
+
+function canExposeResetLink(req) {
+  return !IS_PRODUCTION && isLocalRequest(req);
+}
+
 // ── Rate limiters ─────────────────────────────
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -241,6 +354,13 @@ const forgotLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+const resetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Demasiados intentos. Espera 15 minutos.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // ── Helpers ───────────────────────────────────
 function escapeHtml(str) {
@@ -252,9 +372,29 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
-function auditLog(action, details, req) {
+function auditLog(action, details = {}, req = {}, userOverride = null) {
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '?';
-  logger.warn(`[AUDIT] ${action}`, { ip, ...details });
+  const user = userOverride || req.adminUser || null;
+  const event = {
+    user_id: user?.id || null,
+    user_email: user?.email || details.user_email || null,
+    action,
+    entity: details.entity || null,
+    entity_id: details.entity_id || details.id || null,
+    summary: details.summary || null,
+    details,
+    ip,
+  };
+  logger.warn(`[AUDIT] ${action}`, {
+    ip,
+    user: event.user_email || 'anon',
+    entity: event.entity,
+    entity_id: event.entity_id,
+    summary: event.summary,
+  });
+  db.createAuditEvent(event).catch(err => {
+    logger.error('[AUDIT] Error guardando evento', { err: err.message, action });
+  });
 }
 
 // Sirve archivos HTML inyectando el nonce CSP en todos los <script>
@@ -316,7 +456,7 @@ app.use(helmet({
     },
   },
   crossOriginEmbedderPolicy: false,
-  strictTransportSecurity: process.env.NODE_ENV === 'production'
+  strictTransportSecurity: IS_PRODUCTION
     ? { maxAge: 31536000, includeSubDomains: true, preload: true }
     : false,
   crossOriginResourcePolicy: { policy: 'same-site' },
@@ -364,7 +504,10 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Demasiadas solicitudes. Intenta de nuevo en unos minutos.' },
-  skip: (req) => req.method === 'GET' && req.path.startsWith('/uploads/'),
+  skip: (req) => (
+    (req.method === 'GET' && req.path.startsWith('/uploads/')) ||
+    (!IS_PRODUCTION && req.headers['x-qa-browser'] === '1')
+  ),
 });
 app.use(globalLimiter);
 
@@ -372,7 +515,7 @@ app.use(globalLimiter);
 app.use(csrfCookie);
 
 // ── Bloquear archivos sensibles del servidor ──
-const PRIVATE_PATH_RE = /^\/(?:server\.js|package(?:-lock)?\.json|railway\.json|ss-admin\.cjs|[^/]*\.md|lib\/|db\/|data\/|logs\/|node_modules\/|\.env|index\.html$|admin\/index\.html$)/i;
+const PRIVATE_PATH_RE = /^\/(?:server\.js|package(?:-lock)?\.json|railway\.json|[^/]*\.md|lib\/|db\/|data\/|logs\/|node_modules\/|\.env|index\.html$|admin\/index\.html$)/i;
 app.use((req, res, next) => {
   if (PRIVATE_PATH_RE.test(req.path)) return res.status(403).end();
   next();
@@ -385,11 +528,21 @@ app.use('/uploads/videos', express.static(VIDEOS_DIR));
 app.use('/admin',          express.static(path.join(__dirname, 'admin'), { index: false, redirect: false }));
 
 // ── Middleware de autenticación ───────────────
-function authenticate(req, res, next) {
-  const token = req.headers['x-admin-token'];
-  if (!isValidSession(token))
+async function authenticate(req, res, next) {
+  const token = getAdminSessionToken(req);
+  const session = readSession(token);
+  if (!session)
     return res.status(401).json({ error: 'No autorizado' });
+
+  let user = null;
+  if (session.sub) user = await db.getAdminUserById(session.sub);
+  if (!user && session.email) user = await db.getAdminUserByEmail(session.email);
+  if (!user || user.active === false)
+    return res.status(401).json({ error: 'Usuario no autorizado o inactivo.' });
+
   req.adminToken = token;
+  req.adminSession = session;
+  req.adminUser = user;
   next();
 }
 
@@ -405,33 +558,35 @@ app.post('/api/auth', authLimiter, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const { email, password, totpCode } = req.body || {};
 
-  const auth = await getAuthData();
-  const ok = matchesAdminEmail(email, auth) && await verifyPassword(password, auth);
+  const user = await db.getAdminUserByEmail(email);
+  const ok = user && user.active !== false && await verifyPassword(password, user);
   if (!ok) {
-    auditLog('LOGIN_FAILED', {}, req);
+    auditLog('LOGIN_FAILED', { summary: `Intento fallido para ${normalizeEmail(email)}` }, req);
     return res.status(401).json({ error: 'Correo o contraseña incorrectos.' });
   }
 
-  if (auth && auth.totp_enabled && auth.totp_secret) {
+  if (user.totp_enabled && user.totp_secret) {
     if (!totpCode) {
-      const challengeToken = createChallengeToken();
-      auditLog('LOGIN_2FA_CHALLENGE', {}, req);
+      const challengeToken = createChallengeToken(user);
+      auditLog('LOGIN_2FA_CHALLENGE', { summary: 'Login requiere verificacion 2FA' }, req, user);
       return res.json({ twoFaRequired: true, challengeToken });
     }
     const verified = speakeasy.totp.verify({
-      secret:   auth.totp_secret,
+      secret:   user.totp_secret,
       encoding: 'base32',
       token:    String(totpCode),
       window:   1,
     });
     if (!verified) {
-      auditLog('LOGIN_2FA_FAILED', {}, req);
+      auditLog('LOGIN_2FA_FAILED', { summary: 'Codigo 2FA incorrecto' }, req, user);
       return res.status(401).json({ error: 'Código 2FA incorrecto.' });
     }
   }
 
-  auditLog('LOGIN_OK', {}, req);
-  res.json({ token: createSession(), success: true });
+  await db.markAdminUserLogin(user.id);
+  auditLog('LOGIN_OK', { summary: 'Inicio de sesion correcto' }, req, user);
+  setAdminSessionCookie(res, createSession(user));
+  res.json({ success: true, user: publicAdminUser(user) });
 });
 
 // Segunda fase del login 2FA
@@ -442,56 +597,54 @@ app.post('/api/auth/2fa/challenge', authLimiter, async (req, res) => {
   if (!isValidChallengeToken(challengeToken))
     return res.status(401).json({ error: 'Sesión de verificación expirada. Inicia sesión de nuevo.' });
 
-  const auth = await getAuthData();
-  if (!auth || !auth.totp_enabled || !auth.totp_secret)
+  const userId = getChallengeUserId(challengeToken);
+  const user = userId ? await db.getAdminUserById(userId) : null;
+  if (!user || user.active === false || !user.totp_enabled || !user.totp_secret)
     return res.status(400).json({ error: '2FA no está configurado.' });
 
   const verified = speakeasy.totp.verify({
-    secret:   auth.totp_secret,
+    secret:   user.totp_secret,
     encoding: 'base32',
     token:    String(totpCode || ''),
     window:   1,
   });
 
   if (!verified) {
-    auditLog('LOGIN_2FA_FAILED', {}, req);
+    auditLog('LOGIN_2FA_FAILED', { summary: 'Codigo 2FA incorrecto' }, req, user);
     return res.status(401).json({ error: 'Código 2FA incorrecto.' });
   }
 
   consumeChallengeToken(challengeToken);
-  auditLog('LOGIN_OK_2FA', {}, req);
-  res.json({ token: createSession(), success: true });
+  await db.markAdminUserLogin(user.id);
+  auditLog('LOGIN_OK_2FA', { summary: 'Inicio de sesion con 2FA correcto' }, req, user);
+  setAdminSessionCookie(res, createSession(user));
+  res.json({ success: true, user: publicAdminUser(user) });
 });
 
 // ── Auth: logout ──────────────────────────────
 app.post('/api/auth/logout', authenticate, (req, res) => {
   invalidateSession(req.adminToken);
+  clearAdminSessionCookie(res);
   auditLog('LOGOUT', {}, req);
   res.json({ success: true });
 });
 
 app.get('/api/auth/profile', authenticate, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  const auth = await getAuthData();
-  res.json({ email: auth ? auth.email : '' });
+  res.json(publicAdminUser(req.adminUser));
 });
 
 // ── Auth: recuperar contraseña ─────────────────
 app.post('/api/auth/forgot', forgotLimiter, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const { email } = req.body || {};
-  const auth = await getAuthData();
   const genericOk = {
     success: true,
     message: 'Si el correo coincide con el administrador, se enviará un enlace de recuperación.',
   };
+  const user = await db.getAdminUserByEmail(email);
 
-  if (!auth || !isValidEmailFormat(auth.email)) {
-    logger.error('[Auth] Correo de administrador no configurado para recuperación');
-    return res.status(503).json({ error: 'Correo de administrador no configurado.' });
-  }
-
-  if (!matchesAdminEmail(email, auth)) {
+  if (!user || user.active === false || !isValidEmailFormat(user.email)) {
     auditLog('PASSWORD_RESET_EMAIL_MISMATCH', {}, req);
     return res.json(genericOk);
   }
@@ -499,14 +652,14 @@ app.post('/api/auth/forgot', forgotLimiter, async (req, res) => {
   const transport = createMailTransport();
   if (!transport) return res.status(503).json({ error: 'Email no configurado en el servidor.' });
 
-  const token    = createResetToken();
+  const token    = createResetToken(user);
   const siteUrl  = process.env.SITE_URL || `http://localhost:${PORT}`;
   const resetLink = `${siteUrl}/admin?reset_token=${token}`;
 
   try {
     await transport.sendMail({
       from:    `"Mark Publicidad Admin" <${process.env.GMAIL_USER}>`,
-      to:      auth.email,
+      to:      user.email,
       subject: 'Recuperación de contraseña — Mark Publicidad',
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
@@ -523,7 +676,7 @@ app.post('/api/auth/forgot', forgotLimiter, async (req, res) => {
         </div>
       `,
     });
-    auditLog('PASSWORD_RESET_REQUESTED', {}, req);
+    auditLog('PASSWORD_RESET_REQUESTED', { summary: 'Solicitud de recuperacion de contraseña' }, req, user);
     res.json(genericOk);
   } catch (e) {
     logger.error('[Auth] Error enviando email de recuperación', { err: e.message });
@@ -531,11 +684,11 @@ app.post('/api/auth/forgot', forgotLimiter, async (req, res) => {
   }
 });
 
-app.get('/api/auth/reset-token', (req, res) => {
+app.get('/api/auth/reset-token', resetLimiter, (req, res) => {
   res.json({ valid: isValidResetToken(req.query.token) });
 });
 
-app.post('/api/auth/reset-password', async (req, res) => {
+app.post('/api/auth/reset-password', resetLimiter, async (req, res) => {
   const { token, newPassword } = req.body;
   if (!isValidResetToken(token))
     return res.status(400).json({ error: 'Enlace inválido o expirado. Solicita uno nuevo.' });
@@ -544,12 +697,16 @@ app.post('/api/auth/reset-password', async (req, res) => {
   if (pwErr) return res.status(400).json({ error: pwErr });
 
   try {
+    const userId = getResetTokenUserId(token);
+    const user = userId ? await db.getAdminUserById(userId) : null;
+    if (!user || user.active === false)
+      return res.status(400).json({ error: 'Usuario no encontrado o inactivo.' });
     const hash = await bcrypt.hash(newPassword, 12);
-    const auth = (await getAuthData()) || {};
-    await db.saveAuth({ ...auth, password: hash });
+    await db.updateAdminUserPassword(user.id, hash);
     resetTokens.delete(token);
     invalidateAllSessions();
-    auditLog('PASSWORD_RESET_OK', {}, req);
+    clearAdminSessionCookie(res);
+    auditLog('PASSWORD_RESET_OK', { summary: 'Contraseña restablecida por email' }, req, user);
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: 'Error guardando la contraseña.' });
@@ -558,12 +715,12 @@ app.post('/api/auth/reset-password', async (req, res) => {
 
 app.post('/api/auth/change-password', authenticate, async (req, res) => {
   const { email, currentPassword, newPassword } = req.body || {};
-  const auth = await getAuthData();
+  const auth = req.adminUser;
   const ok = await verifyPassword(currentPassword, auth);
   if (!ok)
     return res.status(401).json({ error: 'La contraseña actual es incorrecta.' });
 
-  const latestAuth = (await getAuthData()) || auth || {};
+  const latestAuth = await db.getAdminUserById(auth.id) || auth;
   const nextEmail = normalizeEmail(email || latestAuth.email || fallbackAdminEmail());
   if (!isValidEmailFormat(nextEmail))
     return res.status(400).json({ error: 'Ingresa un correo de administrador válido.' });
@@ -579,14 +736,23 @@ app.post('/api/auth/change-password', authenticate, async (req, res) => {
   }
 
   try {
-    const nextPassword = wantsPasswordChange
-      ? await bcrypt.hash(newPassword, 12)
-      : latestAuth.password;
-    await db.saveAuth({ ...latestAuth, email: nextEmail, password: nextPassword });
+    if (emailChanged) {
+      await db.updateAdminUser(latestAuth.id, { email: nextEmail });
+    }
+    if (wantsPasswordChange) {
+      const nextPassword = await bcrypt.hash(newPassword, 12);
+      await db.updateAdminUserPassword(latestAuth.id, nextPassword);
+    }
     invalidateAllSessions();
-    const newToken = createSession();
-    auditLog(wantsPasswordChange ? 'PASSWORD_CHANGED' : 'ADMIN_EMAIL_CHANGED', {}, req);
-    res.json({ success: true, token: newToken, email: nextEmail });
+    const updatedUser = await db.getAdminUserById(latestAuth.id);
+    const newToken = createSession(updatedUser);
+    setAdminSessionCookie(res, newToken);
+    auditLog(wantsPasswordChange ? 'PASSWORD_CHANGED' : 'ADMIN_EMAIL_CHANGED', {
+      summary: wantsPasswordChange && emailChanged
+        ? 'Correo y contraseña actualizados'
+        : wantsPasswordChange ? 'Contraseña actualizada' : 'Correo actualizado',
+    }, req, updatedUser);
+    res.json({ success: true, email: nextEmail, user: publicAdminUser(updatedUser) });
   } catch (e) {
     res.status(500).json({ error: 'Error guardando la contraseña.' });
   }
@@ -595,15 +761,13 @@ app.post('/api/auth/change-password', authenticate, async (req, res) => {
 // ── 2FA: configurar TOTP ──────────────────────
 app.get('/api/auth/2fa/setup', authenticate, async (req, res) => {
   const secret = speakeasy.generateSecret({
-    name:   'Mark Publicidad Admin',
+    name:   `Mark Publicidad Admin (${req.adminUser.email})`,
     length: 20,
   });
 
   try {
     const qrDataUrl = await QRCode.toDataURL(secret.otpauth_url);
-    const auth = (await getAuthData()) || {};
-    await db.saveAuth({
-      ...auth,
+    await db.updateAdminUserTotp(req.adminUser.id, {
       totp_secret:  secret.base32,
       totp_enabled: false,
     });
@@ -615,7 +779,7 @@ app.get('/api/auth/2fa/setup', authenticate, async (req, res) => {
 
 app.post('/api/auth/2fa/enable', authenticate, async (req, res) => {
   const { code } = req.body;
-  const auth = await getAuthData();
+  const auth = await db.getAdminUserById(req.adminUser.id);
   if (!auth || !auth.totp_secret)
     return res.status(400).json({ error: 'Primero genera el código QR desde /api/auth/2fa/setup' });
 
@@ -629,27 +793,135 @@ app.post('/api/auth/2fa/enable', authenticate, async (req, res) => {
   if (!verified)
     return res.status(400).json({ error: 'Código incorrecto. Escanea de nuevo el QR e inténtalo.' });
 
-  await db.saveAuth({ ...auth, totp_enabled: true });
-  auditLog('2FA_ENABLED', {}, req);
+  await db.updateAdminUserTotp(auth.id, { totp_secret: auth.totp_secret, totp_enabled: true });
+  auditLog('2FA_ENABLED', { summary: '2FA activado' }, req);
   res.json({ success: true });
 });
 
 app.post('/api/auth/2fa/disable', authenticate, async (req, res) => {
   const { password } = req.body;
-  const ok = await verifyPassword(password);
+  const ok = await verifyPassword(password, req.adminUser);
   if (!ok)
     return res.status(401).json({ error: 'Contraseña incorrecta.' });
 
-  const auth = (await getAuthData()) || {};
-  const { totp_secret: _s, totp_enabled: _e, ...rest } = auth;
-  await db.saveAuth(rest);
-  auditLog('2FA_DISABLED', {}, req);
+  await db.updateAdminUserTotp(req.adminUser.id, { totp_secret: null, totp_enabled: false });
+  auditLog('2FA_DISABLED', { summary: '2FA desactivado' }, req);
   res.json({ success: true });
 });
 
 app.get('/api/auth/2fa/status', authenticate, async (req, res) => {
-  const auth = await getAuthData();
+  const auth = await db.getAdminUserById(req.adminUser.id);
   res.json({ enabled: !!(auth && auth.totp_enabled) });
+});
+
+// ── Usuarios admin y auditoria ────────────────
+function requireAdminRole(req, res, next) {
+  if (!['owner', 'admin'].includes(req.adminUser?.role || ''))
+    return res.status(403).json({ error: 'No tienes permisos para esta acción.' });
+  next();
+}
+
+app.get('/api/admin/users', authenticate, requireAdminRole, async (req, res) => {
+  try {
+    res.json(await db.listAdminUsers());
+  } catch (e) {
+    res.status(500).json({ error: 'Error cargando usuarios.' });
+  }
+});
+
+app.post('/api/admin/users', authenticate, requireAdminRole, async (req, res) => {
+  try {
+    const name = cleanText(req.body?.name || '', 120);
+    const email = normalizeEmail(req.body?.email);
+    const role = 'editor';
+    const password = String(req.body?.password || '');
+    if (!name) return res.status(400).json({ error: 'Ingresa el nombre del usuario.' });
+    if (!isValidEmailFormat(email)) return res.status(400).json({ error: 'Ingresa un correo válido.' });
+    const pwErr = validatePasswordStrength(password);
+    if (pwErr) return res.status(400).json({ error: pwErr });
+    const exists = await db.getAdminUserByEmail(email);
+    if (exists) return res.status(409).json({ error: 'Ya existe un usuario con ese correo.' });
+    const hash = await bcrypt.hash(password, 12);
+    const user = await db.createAdminUser({ name, email, role, password: hash });
+    auditLog('ADMIN_USER_CREATED', {
+      entity: 'admin_user',
+      entity_id: user.id,
+      summary: `Creo usuario ${user.email}`,
+      user_email_created: user.email,
+      role,
+    }, req);
+    res.status(201).json(user);
+  } catch (e) {
+    logger.error('[AdminUsers] Error creando usuario', { err: e.message });
+    res.status(500).json({ error: 'Error creando usuario.' });
+  }
+});
+
+app.patch('/api/admin/users/:id', authenticate, requireAdminRole, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const current = await db.getAdminUserById(id);
+    if (!current) return res.status(404).json({ error: 'Usuario no encontrado.' });
+    const patch = {};
+    if (req.body.name !== undefined) patch.name = cleanText(req.body.name, 120);
+    if (req.body.email !== undefined) {
+      patch.email = normalizeEmail(req.body.email);
+      if (!isValidEmailFormat(patch.email)) return res.status(400).json({ error: 'Correo inválido.' });
+    }
+    if (req.body.role !== undefined) {
+      patch.role = ['owner', 'admin', 'editor'].includes(req.body.role) ? req.body.role : current.role;
+    }
+    if (req.body.active !== undefined) {
+      if (id === req.adminUser.id && req.body.active === false)
+        return res.status(400).json({ error: 'No puedes desactivar tu propio usuario.' });
+      patch.active = !!req.body.active;
+    }
+    if (patch.email && patch.email !== current.email) {
+      const exists = await db.getAdminUserByEmail(patch.email);
+      if (exists && exists.id !== id) return res.status(409).json({ error: 'Ya existe un usuario con ese correo.' });
+    }
+    const updated = await db.updateAdminUser(id, patch);
+    auditLog('ADMIN_USER_UPDATED', {
+      entity: 'admin_user',
+      entity_id: id,
+      summary: `Actualizo usuario ${updated.email}`,
+      changes: patch,
+    }, req);
+    res.json(updated);
+  } catch (e) {
+    logger.error('[AdminUsers] Error actualizando usuario', { err: e.message });
+    res.status(500).json({ error: 'Error actualizando usuario.' });
+  }
+});
+
+app.post('/api/admin/users/:id/password', authenticate, requireAdminRole, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const user = await db.getAdminUserById(id);
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado.' });
+    const password = String(req.body?.password || '');
+    const pwErr = validatePasswordStrength(password);
+    if (pwErr) return res.status(400).json({ error: pwErr });
+    const hash = await bcrypt.hash(password, 12);
+    await db.updateAdminUserPassword(id, hash);
+    if (id === req.adminUser.id) invalidateAllSessions();
+    auditLog('ADMIN_USER_PASSWORD_CHANGED', {
+      entity: 'admin_user',
+      entity_id: id,
+      summary: `Cambio contraseña de usuario ${user.email}`,
+    }, req);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Error actualizando contraseña.' });
+  }
+});
+
+app.get('/api/admin/audit', authenticate, requireAdminRole, async (req, res) => {
+  try {
+    res.json(await db.listAuditEvents(req.query.limit || 150));
+  } catch (e) {
+    res.status(500).json({ error: 'Error cargando historial.' });
+  }
 });
 
 // ── Contacto ──────────────────────────────────
@@ -752,6 +1024,11 @@ app.patch('/api/contacts/:id/read', authenticate, async (req, res) => {
   try {
     const ok = await db.markContactRead(+req.params.id);
     if (!ok) return res.status(404).json({ error: 'No encontrado' });
+    auditLog('CONTACT_MARK_READ', {
+      entity: 'contact',
+      entity_id: req.params.id,
+      summary: `Marco contacto ${req.params.id} como leido`,
+    }, req);
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: 'Error' });
@@ -762,50 +1039,228 @@ app.delete('/api/contacts/:id', authenticate, async (req, res) => {
   try {
     const ok = await db.deleteContact(+req.params.id);
     if (!ok) return res.status(404).json({ error: 'No encontrado' });
+    auditLog('CONTACT_DELETE', {
+      entity: 'contact',
+      entity_id: req.params.id,
+      summary: `Elimino contacto ${req.params.id}`,
+    }, req);
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: 'Error' });
   }
 });
 
-// ── Subida archivos ───────────────────────────
-app.post('/api/upload/video', authenticate, videoUpload.single('video'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
-  res.json({ url: `/uploads/videos/${req.file.filename}`, filename: req.file.filename, size: req.file.size });
-});
+async function uploadToCloudinary(filePath, resourceType) {
+  const result = await cloudinary.uploader.upload(filePath, {
+    folder:        CLOUDINARY_FOLDER,
+    resource_type: resourceType,
+    use_filename:  false,
+    unique_filename: true,
+    overwrite:     false,
+  });
+  return {
+    url:      result.secure_url,
+    publicId: result.public_id,
+    filename: result.public_id.split('/').pop(),
+    size:     result.bytes,
+    date:     result.created_at,
+  };
+}
 
-app.delete('/api/upload/video/:filename', authenticate, (req, res) => {
-  const filename = req.params.filename;
-  if (filename.includes('/') || filename.includes('..'))
-    return res.status(400).json({ error: 'Nombre inválido' });
-  const filepath = path.join(VIDEOS_DIR, filename);
-  if (fs.existsSync(filepath)) { fs.unlinkSync(filepath); res.json({ success: true }); }
-  else res.status(404).json({ error: 'Archivo no encontrado' });
-});
+function removeTempUpload(filePath) {
+  if (!filePath) return;
+  fs.promises.unlink(filePath).catch(() => {});
+}
 
-app.post('/api/upload', authenticate, upload.single('image'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
-  res.json({ url: `/uploads/${req.file.filename}`, filename: req.file.filename, size: req.file.size });
-});
+async function listCloudinaryImages() {
+  const result = await cloudinary.api.resources({
+    type:          'upload',
+    resource_type: 'image',
+    prefix:        `${CLOUDINARY_FOLDER}/`,
+    max_results:   100,
+  });
+  return (result.resources || []).map(r => ({
+    filename: r.public_id.split('/').pop(),
+    deleteId: r.public_id,
+    url:      r.secure_url,
+    size:     r.bytes,
+    date:     r.created_at,
+    storage:  'cloudinary',
+  }));
+}
 
-app.delete('/api/upload/:filename', authenticate, (req, res) => {
-  const filename = req.params.filename;
-  if (filename.includes('/') || filename.includes('..'))
-    return res.status(400).json({ error: 'Nombre inválido' });
-  const filepath = path.join(UPLOADS_DIR, filename);
-  if (fs.existsSync(filepath)) { fs.unlinkSync(filepath); res.json({ success: true }); }
-  else res.status(404).json({ error: 'Archivo no encontrado' });
-});
-
-app.get('/api/uploads', authenticate, (req, res) => {
+function isCloudinaryUrl(value) {
   try {
+    const url = new URL(String(value || ''));
+    return url.protocol === 'https:' && url.hostname === 'res.cloudinary.com';
+  } catch {
+    return false;
+  }
+}
+
+function localUploadPathFromUrl(value) {
+  const raw = String(value || '');
+  if (!raw || raw.includes('..')) return null;
+  try {
+    const baseIsAbsolute = /^https?:\/\//i.test(PUBLIC_UPLOADS_URL);
+    const rawIsAbsolute = /^https?:\/\//i.test(raw);
+    if (!baseIsAbsolute && rawIsAbsolute) return null;
+    const publicBase = new URL(PUBLIC_UPLOADS_URL, 'http://local.invalid');
+    const candidate = new URL(raw, publicBase.origin);
+    if (baseIsAbsolute && candidate.origin !== publicBase.origin) return null;
+    const basePath = publicBase.pathname.replace(/\/+$/, '');
+    if (candidate.pathname.startsWith(`${basePath}/`)) {
+      const relativePath = decodeURIComponent(candidate.pathname.slice(basePath.length + 1));
+      if (!relativePath || relativePath.includes('..')) return null;
+      return path.join(UPLOADS_DIR, relativePath);
+    }
+  } catch {}
+  if (raw.startsWith('/uploads/') && !raw.includes('..')) {
+    return path.join(UPLOADS_DIR, decodeURIComponent(raw.slice('/uploads/'.length)));
+  }
+  return null;
+}
+
+// ── Subida archivos ───────────────────────────
+app.post('/api/upload/video', authenticate, videoUpload.single('video'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
+  if (!CLOUDINARY_ENABLED) {
+    auditLog('VIDEO_UPLOAD', {
+      entity: 'upload',
+      entity_id: req.file.filename,
+      summary: `Subio video ${req.file.filename}`,
+      size: req.file.size,
+      storage: 'local',
+    }, req);
+    return res.json({ url: publicUploadUrl('videos', req.file.filename), filename: req.file.filename, size: req.file.size, storage: 'local' });
+  }
+  try {
+    const uploaded = await uploadToCloudinary(req.file.path, 'video');
+    removeTempUpload(req.file.path);
+    auditLog('VIDEO_UPLOAD', {
+      entity: 'upload',
+      entity_id: uploaded.publicId,
+      summary: `Subio video ${uploaded.filename}`,
+      size: uploaded.size,
+      storage: 'cloudinary',
+    }, req);
+    res.json({ ...uploaded, storage: 'cloudinary' });
+  } catch (e) {
+    removeTempUpload(req.file.path);
+    logger.error('[Uploads] Error subiendo video a Cloudinary', { err: e.message });
+    res.status(500).json({ error: 'Error subiendo video.' });
+  }
+});
+
+app.delete('/api/upload/video/cloudinary', authenticate, async (req, res) => {
+  if (!CLOUDINARY_ENABLED) return res.status(400).json({ error: 'Cloudinary no configurado.' });
+  if (!req.query.public_id) return res.status(400).json({ error: 'public_id requerido.' });
+  try {
+    await cloudinary.uploader.destroy(String(req.query.public_id), { resource_type: 'video' });
+    auditLog('VIDEO_DELETE', {
+      entity: 'upload',
+      entity_id: req.query.public_id,
+      summary: `Elimino video Cloudinary ${req.query.public_id}`,
+    }, req);
+    res.json({ success: true });
+  } catch (e) {
+    logger.error('[Uploads] Error eliminando video Cloudinary', { err: e.message });
+    res.status(500).json({ error: 'Error eliminando video.' });
+  }
+});
+
+app.delete('/api/upload/video/:filename', authenticate, async (req, res) => {
+  const filename = req.params.filename;
+  if (filename.includes('/') || filename.includes('..')) return res.status(400).json({ error: 'Nombre inválido' });
+  const filepath = path.join(VIDEOS_DIR, filename);
+  if (fs.existsSync(filepath)) {
+    fs.unlinkSync(filepath);
+    auditLog('VIDEO_DELETE', {
+      entity: 'upload',
+      entity_id: filename,
+      summary: `Elimino video ${filename}`,
+    }, req);
+    res.json({ success: true });
+  }
+  else res.status(404).json({ error: 'Archivo no encontrado' });
+});
+
+app.post('/api/upload', authenticate, upload.single('image'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
+  if (!CLOUDINARY_ENABLED) {
+    auditLog('IMAGE_UPLOAD', {
+      entity: 'upload',
+      entity_id: req.file.filename,
+      summary: `Subio imagen ${req.file.filename}`,
+      size: req.file.size,
+      storage: 'local',
+    }, req);
+    return res.json({ url: publicUploadUrl(req.file.filename), filename: req.file.filename, size: req.file.size, storage: 'local' });
+  }
+  try {
+    const uploaded = await uploadToCloudinary(req.file.path, 'image');
+    removeTempUpload(req.file.path);
+    auditLog('IMAGE_UPLOAD', {
+      entity: 'upload',
+      entity_id: uploaded.publicId,
+      summary: `Subio imagen ${uploaded.filename}`,
+      size: uploaded.size,
+      storage: 'cloudinary',
+    }, req);
+    res.json({ ...uploaded, storage: 'cloudinary' });
+  } catch (e) {
+    removeTempUpload(req.file.path);
+    logger.error('[Uploads] Error subiendo imagen a Cloudinary', { err: e.message });
+    res.status(500).json({ error: 'Error subiendo imagen.' });
+  }
+});
+
+app.delete('/api/upload/cloudinary', authenticate, async (req, res) => {
+  if (!CLOUDINARY_ENABLED) return res.status(400).json({ error: 'Cloudinary no configurado.' });
+  if (!req.query.public_id) return res.status(400).json({ error: 'public_id requerido.' });
+  try {
+    await cloudinary.uploader.destroy(String(req.query.public_id), { resource_type: 'image' });
+    auditLog('IMAGE_DELETE', {
+      entity: 'upload',
+      entity_id: req.query.public_id,
+      summary: `Elimino imagen Cloudinary ${req.query.public_id}`,
+    }, req);
+    res.json({ success: true });
+  } catch (e) {
+    logger.error('[Uploads] Error eliminando imagen Cloudinary', { err: e.message });
+    res.status(500).json({ error: 'Error eliminando imagen.' });
+  }
+});
+
+app.delete('/api/upload/:filename', authenticate, async (req, res) => {
+  const filename = req.params.filename;
+  if (filename.includes('/') || filename.includes('..')) return res.status(400).json({ error: 'Nombre inválido' });
+  const filepath = path.join(UPLOADS_DIR, filename);
+  if (fs.existsSync(filepath)) {
+    fs.unlinkSync(filepath);
+    auditLog('IMAGE_DELETE', {
+      entity: 'upload',
+      entity_id: filename,
+      summary: `Elimino imagen ${filename}`,
+    }, req);
+    res.json({ success: true });
+  }
+  else res.status(404).json({ error: 'Archivo no encontrado' });
+});
+
+app.get('/api/uploads', authenticate, async (req, res) => {
+  try {
+    if (CLOUDINARY_ENABLED) return res.json(await listCloudinaryImages());
+
     const files = fs.readdirSync(UPLOADS_DIR)
       .filter(f => /\.(jpg|jpeg|png|webp|gif)$/i.test(f))
       .map(f => ({
         filename: f,
-        url:  `/uploads/${f}`,
+        deleteId: f,
+        url:  publicUploadUrl(f),
         size: fs.statSync(path.join(UPLOADS_DIR, f)).size,
         date: fs.statSync(path.join(UPLOADS_DIR, f)).mtime,
+        storage: 'local',
       }))
       .sort((a, b) => new Date(b.date) - new Date(a.date));
     res.json(files);
@@ -865,6 +1320,11 @@ app.patch('/api/reviews/:id/approve', authenticate, async (req, res) => {
   try {
     const ok = await db.approveReview(+req.params.id);
     if (!ok) return res.status(404).json({ error: 'No encontrada' });
+    auditLog('REVIEW_APPROVE', {
+      entity: 'review',
+      entity_id: req.params.id,
+      summary: `Aprobo reseña ${req.params.id}`,
+    }, req);
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: 'Error' });
@@ -874,6 +1334,11 @@ app.patch('/api/reviews/:id/approve', authenticate, async (req, res) => {
 app.delete('/api/reviews/:id', authenticate, async (req, res) => {
   try {
     await db.deleteReview(+req.params.id);
+    auditLog('REVIEW_DELETE', {
+      entity: 'review',
+      entity_id: req.params.id,
+      summary: `Elimino reseña ${req.params.id}`,
+    }, req);
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: 'Error' });
@@ -889,11 +1354,15 @@ app.get('/api/portfolio', async (req, res) => {
 app.post('/api/portfolio', authenticate, async (req, res) => {
   const { title, category, image } = req.body;
   if (!title || !image) return res.status(400).json({ error: 'Título e imagen son requeridos.' });
-  if (typeof image !== 'string' || !image.startsWith('/uploads/') || image.includes('..'))
-    return res.status(400).json({ error: 'La imagen debe provenir de /uploads/.' });
-  const imagePath = path.join(__dirname, image);
-  if (!fs.existsSync(imagePath))
-    return res.status(400).json({ error: 'El archivo de imagen no existe en el servidor.' });
+  const localPath = localUploadPathFromUrl(image);
+  const localUpload = Boolean(localPath);
+  const cloudUpload = isCloudinaryUrl(image);
+  if (!localUpload && !cloudUpload)
+    return res.status(400).json({ error: 'La imagen debe provenir de uploads o Cloudinary.' });
+  if (localUpload) {
+    if (!fs.existsSync(localPath))
+      return res.status(400).json({ error: 'El archivo de imagen no existe en el servidor.' });
+  }
 
   const item = {
     id:       Date.now(),
@@ -905,7 +1374,12 @@ app.post('/api/portfolio', authenticate, async (req, res) => {
 
   try {
     await db.createPortfolioItem(item);
-    auditLog('PORTFOLIO_CREATE', { id: item.id, title: item.title }, req);
+    auditLog('PORTFOLIO_CREATE', {
+      entity: 'portfolio',
+      entity_id: item.id,
+      summary: `Creo item de portfolio ${item.title}`,
+      title: item.title,
+    }, req);
     res.status(201).json(item);
   } catch (e) {
     res.status(500).json({ error: 'Error guardando item de portfolio' });
@@ -917,7 +1391,11 @@ app.delete('/api/portfolio/:id', authenticate, async (req, res) => {
   if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
   try {
     await db.deletePortfolioItem(id);
-    auditLog('PORTFOLIO_DELETE', { id }, req);
+    auditLog('PORTFOLIO_DELETE', {
+      entity: 'portfolio',
+      entity_id: id,
+      summary: `Elimino item de portfolio ${id}`,
+    }, req);
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: 'Error' });
@@ -995,7 +1473,12 @@ app.post('/api/products', authenticate, async (req, res) => {
   try {
     const p = sanitizeProduct(req.body);
     const product = await db.createProduct(p);
-    auditLog('PRODUCT_CREATE', { id: product.id, name: product.name }, req);
+    auditLog('PRODUCT_CREATE', {
+      entity: 'product',
+      entity_id: product.id,
+      summary: `Creo producto ${product.name}`,
+      name: product.name,
+    }, req);
     res.status(201).json(product);
   } catch (e) { res.status(500).json({ error: 'Error creando producto' }); }
 });
@@ -1007,7 +1490,12 @@ app.put('/api/products/:id', authenticate, async (req, res) => {
     const p = sanitizeProduct(req.body);
     const updated = await db.updateProduct(id, p);
     if (!updated) return res.status(404).json({ error: 'No encontrado' });
-    auditLog('PRODUCT_UPDATE', { id }, req);
+    auditLog('PRODUCT_UPDATE', {
+      entity: 'product',
+      entity_id: id,
+      summary: `Actualizo producto ${updated.name || id}`,
+      fields: Object.keys(p),
+    }, req);
     res.json(updated);
   } catch (e) { res.status(500).json({ error: 'Error actualizando' }); }
 });
@@ -1018,7 +1506,11 @@ app.delete('/api/products/:id', authenticate, async (req, res) => {
     if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
     const ok = await db.deleteProduct(id);
     if (!ok) return res.status(404).json({ error: 'No encontrado' });
-    auditLog('PRODUCT_DELETE', { id }, req);
+    auditLog('PRODUCT_DELETE', {
+      entity: 'product',
+      entity_id: id,
+      summary: `Elimino producto ${id}`,
+    }, req);
     res.json({ success: true, deleted: id });
   } catch (e) { res.status(500).json({ error: 'Error eliminando' }); }
 });
@@ -1034,6 +1526,12 @@ app.put('/api/pricing', authenticate, async (req, res) => {
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))
       return res.status(400).json({ error: 'Formato de precios inválido.' });
     await db.savePricing(req.body);
+    auditLog('PRICING_UPDATE', {
+      entity: 'pricing',
+      entity_id: 'singleton',
+      summary: 'Actualizo precios del cotizador',
+      sections: Object.keys(req.body.pricing || {}),
+    }, req);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Error guardando precios' }); }
 });
@@ -1059,7 +1557,12 @@ app.put('/api/settings', authenticate, async (req, res) => {
       }
     }
     await db.saveSettings(allowed);
-    auditLog('SETTINGS_UPDATE', {}, req);
+    auditLog('SETTINGS_UPDATE', {
+      entity: 'settings',
+      entity_id: 'singleton',
+      summary: 'Actualizo configuracion del sitio',
+      sections: Object.keys(body || {}),
+    }, req);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Error guardando configuración' }); }
 });
@@ -1079,9 +1582,21 @@ app.listen(PORT, async () => {
   const jwtOk      = !!process.env.JWT_SECRET;
   const passwordOk = !!(authConfig && authConfig.password);
   const adminEmailOk = !!(authConfig && authConfig.email);
+  const uploadStorageOk = ['local', 'cloudinary'].includes(UPLOAD_STORAGE);
+  const localUploadsExplicit = !!process.env.UPLOADS_DIR;
+  let localUploadsWritable = false;
+  try {
+    fs.accessSync(UPLOADS_DIR, fs.constants.W_OK);
+    fs.accessSync(VIDEOS_DIR, fs.constants.W_OK);
+    localUploadsWritable = true;
+  } catch {}
 
   // En producción, forzar variables críticas
-  if (process.env.NODE_ENV === 'production') {
+  if (IS_PRODUCTION) {
+    if (!isPostgres) {
+      logger.error('[Fatal] DATABASE_URL/PostgreSQL es obligatorio en producción. Abortando arranque.');
+      process.exit(1);
+    }
     if (!jwtOk) {
       logger.error('[Fatal] JWT_SECRET es obligatorio en producción. Abortando arranque.');
       process.exit(1);
@@ -1092,6 +1607,21 @@ app.listen(PORT, async () => {
     }
     if (!adminEmailOk) {
       logger.error('[Fatal] Correo de administrador obligatorio en producción. Configura ADMIN_EMAIL o guarda un email admin.');
+      process.exit(1);
+    }
+    if (!uploadStorageOk) {
+      logger.error('[Fatal] UPLOAD_STORAGE inválido. Usa "local" para NAS o "cloudinary".');
+      process.exit(1);
+    }
+    if (UPLOAD_STORAGE === 'cloudinary' && !CLOUDINARY_CONFIGURED) {
+      logger.error('[Fatal] UPLOAD_STORAGE=cloudinary requiere CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY y CLOUDINARY_API_SECRET.');
+      process.exit(1);
+    }
+    if (UPLOAD_STORAGE === 'local' && (!localUploadsExplicit || !localUploadsWritable)) {
+      logger.error('[Fatal] UPLOAD_STORAGE=local requiere UPLOADS_DIR explícito y escribible en producción.', {
+        uploadsDir: UPLOADS_DIR,
+        videosDir: VIDEOS_DIR,
+      });
       process.exit(1);
     }
   }
@@ -1115,5 +1645,7 @@ app.listen(PORT, async () => {
   console.log(`  Admin email: ${adminEmailDisplay}`);
   console.log(`  Admin pass:  ${passwordOk ? 'OK' : 'FALTA ADMIN_PASSWORD en .env'}`);
   console.log(`  JWT_SECRET:  ${jwtOk ? 'OK' : 'NO CONFIGURADO — sesiones no sobreviviran reinicios'}`);
+  console.log(`  Uploads:     ${UPLOAD_STORAGE === 'cloudinary' ? 'Cloudinary' : 'Local/NAS'} (${UPLOADS_DIR})`);
+  console.log(`  Upload URL:  ${PUBLIC_UPLOADS_URL}`);
   console.log('');
 });

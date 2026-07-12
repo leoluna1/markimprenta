@@ -12,6 +12,8 @@ Sitio web moderno y profesional para imprenta con animaciones, catálogo dinámi
 - 🧮 **Cotizador en Línea**: Cálculo automático de precios interactivo.
 - 💬 **WhatsApp Flotante**: Widget de contacto directo integrado.
 - 🔐 **Panel Admin**: Control total con login seguro y soporte 2FA (TOTP).
+- 👥 **Usuarios Admin**: Accesos separados para varios usuarios del panel.
+- 🧾 **Historial de Cambios**: Registro de usuario, fecha, hora y acción realizada.
 
 ---
 
@@ -29,7 +31,12 @@ Los precios se administran dinámicamente:
 2. Modifica los valores directamente en la interfaz gráfica.
 3. Guarda los cambios para que se apliquen al instante en la web pública.
 
-### 3. Cambiar Colores del Sitio
+### 3. Gestionar Usuarios e Historial
+1. En el Panel Admin, navega a **Usuarios** para crear o desactivar accesos.
+2. Navega a **Historial** para revisar quién hizo cambios, cuándo y sobre qué módulo.
+3. Cada usuario puede cambiar su propio correo, contraseña y 2FA desde **Seguridad**.
+
+### 4. Cambiar Colores del Sitio
 Edita las variables CSS en la raíz de `styles.css`:
 ```css
 :root {
@@ -63,6 +70,7 @@ offset/
 │   └── admin.js            # Lógica del panel
 ├── lib/                    # Lógica del servidor (Sesiones JWT, seguridad CSRF)
 ├── db/                     # Cliente de base de datos PostgreSQL con fallback local
+│   └── seeds/              # Semillas iniciales para cotizador y ajustes si faltan JSON locales
 └── data/                   # Archivos JSON usados como fallback local
 ```
 
@@ -90,8 +98,13 @@ offset/
 
 ## ✅ Checklist Pre-Lanzamiento
 
-- [ ] Configurar variables de entorno `.env` en producción.
+- [ ] Configurar variables de entorno de producción usando `.env.example` como referencia.
+- [ ] Configurar `NODE_ENV=production`.
+- [ ] Crear PostgreSQL y configurar `DATABASE_URL`.
+- [ ] Configurar uploads persistentes en el NAS: `UPLOAD_STORAGE=local`, `UPLOADS_DIR=/volume1/web/marka/uploads`, `PUBLIC_UPLOADS_URL=/uploads`.
+- [ ] Configurar `SITE_URL=https://markpublicidad.com` para enlaces de recuperación de contraseña.
 - [ ] Configurar WhatsApp en el Panel de Ajustes.
 - [ ] Ajustar la lista de precios en la sección del Cotizador.
 - [ ] Subir al menos 10 productos reales con sus respectivas imágenes.
 - [ ] Validar el correcto funcionamiento de correos para formularios de contacto.
+- [ ] Cambiar la contraseña admin antes de publicar y activar 2FA.

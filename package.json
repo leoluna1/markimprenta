@@ -5,10 +5,12 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "npx nodemon server.js"
+    "dev": "npx nodemon server.js",
+    "qa:browser": "node scripts/qa-browser.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.10.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
@@ -23,5 +25,8 @@
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",
     "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.61.1"
   }
 }

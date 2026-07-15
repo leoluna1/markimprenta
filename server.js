@@ -25,9 +25,7 @@ const db           = require('./db/db');
 const {
   createSession,
   readSession,
-  isValidSession,
-  invalidateSession,
-  invalidateAllSessions,
+  sessionExpiryDate,
 } = require('./lib/jwt-session');
 const logger = require('./lib/logger');
 const { csrfCookie, csrfProtect, csrfTokenEndpoint } = require('./lib/csrf');
@@ -261,19 +259,63 @@ const ALLOWED_UPLOAD_TYPES = new Map([
   ['image/png',       new Set(['.png'])],
   ['image/webp',      new Set(['.webp'])],
   ['image/gif',       new Set(['.gif'])],
-  ['application/pdf', new Set(['.pdf'])],
 ]);
 function isAllowedUploadFile(file, allowedTypes) {
   const ext = path.extname(file.originalname || '').toLowerCase();
   const allowedExts = allowedTypes.get(file.mimetype);
   return Boolean(allowedExts && allowedExts.has(ext));
 }
+
+async function readFileHeader(filePath, length = 32) {
+  const handle = await fs.promises.open(filePath, 'r');
+  try {
+    const buffer = Buffer.alloc(length);
+    const { bytesRead } = await handle.read(buffer, 0, length, 0);
+    return buffer.subarray(0, bytesRead);
+  } finally {
+    await handle.close();
+  }
+}
+
+function hasImageMagicBytes(file, header) {
+  const mime = file.mimetype;
+  if (['image/jpeg', 'image/jpg'].includes(mime))
+    return header.length >= 3 && header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff;
+  if (mime === 'image/png')
+    return header.length >= 8 && header.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  if (mime === 'image/gif') {
+    const sig = header.subarray(0, 6).toString('ascii');
+    return sig === 'GIF87a' || sig === 'GIF89a';
+  }
+  if (mime === 'image/webp')
+    return header.length >= 12 && header.subarray(0, 4).toString('ascii') === 'RIFF' && header.subarray(8, 12).toString('ascii') === 'WEBP';
+  return false;
+}
+
+function hasVideoMagicBytes(file, header) {
+  const mime = file.mimetype;
+  if (['video/mp4', 'video/quicktime'].includes(mime))
+    return header.length >= 12 && header.subarray(4, 8).toString('ascii') === 'ftyp';
+  if (mime === 'video/webm')
+    return header.length >= 4 && header[0] === 0x1a && header[1] === 0x45 && header[2] === 0xdf && header[3] === 0xa3;
+  if (mime === 'video/x-msvideo')
+    return header.length >= 12 && header.subarray(0, 4).toString('ascii') === 'RIFF' && header.subarray(8, 11).toString('ascii') === 'AVI';
+  if (mime === 'video/ogg')
+    return header.length >= 4 && header.subarray(0, 4).toString('ascii') === 'OggS';
+  return false;
+}
+
+async function validateUploadedMagicBytes(file, kind) {
+  if (!file?.path) return false;
+  const header = await readFileHeader(file.path);
+  return kind === 'image' ? hasImageMagicBytes(file, header) : hasVideoMagicBytes(file, header);
+}
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
     isAllowedUploadFile(file, ALLOWED_UPLOAD_TYPES)
       ? cb(null, true)
-      : cb(new Error('Tipo no permitido. Acepta: JPG, PNG, WEBP, GIF o PDF válidos.'));
+      : cb(new Error('Tipo no permitido. Acepta: JPG, PNG, WEBP o GIF válidos.'));
   },
   limits: { fileSize: 20 * 1024 * 1024 },
 });
@@ -509,7 +551,7 @@ function adminContentSecurityPolicy(nonce) {
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
-    "script-src-attr 'unsafe-inline'",
+    "script-src-attr 'none'",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
     "img-src 'self' data: https: blob:",
     "connect-src 'self' https://www.youtube.com https://i.ytimg.com",
@@ -547,6 +589,13 @@ app.use(globalLimiter);
 // 6. CSRF cookie (pública, genera cookie en cada visita)
 app.use(csrfCookie);
 
+function requireApiCsrf(req, res, next) {
+  if (!req.path.startsWith('/api/')) return next();
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  return csrfProtect(req, res, next);
+}
+app.use(requireApiCsrf);
+
 // ── Bloquear archivos sensibles del servidor ──
 const PRIVATE_PATH_RE = /^\/(?:server\.js|package(?:-lock)?\.json|railway\.json|[^/]*\.md|lib\/|db\/|data\/|logs\/|node_modules\/|\.env|index\.html$|admin\/index\.html$)/i;
 app.use((req, res, next) => {
@@ -572,6 +621,10 @@ async function authenticate(req, res, next) {
   if (!user && session.email) user = await db.getAdminUserByEmail(session.email);
   if (!user || user.active === false)
     return res.status(401).json({ error: 'Usuario no autorizado o inactivo.' });
+  if ((parseInt(user.session_version, 10) || 1) !== (parseInt(session.sv, 10) || 1))
+    return res.status(401).json({ error: 'Sesión expirada. Inicia sesión de nuevo.' });
+  if (await db.isAdminSessionRevoked(session.jti))
+    return res.status(401).json({ error: 'Sesión cerrada. Inicia sesión de nuevo.' });
 
   req.adminToken = token;
   req.adminSession = session;
@@ -655,8 +708,8 @@ app.post('/api/auth/2fa/challenge', authLimiter, async (req, res) => {
 });
 
 // ── Auth: logout ──────────────────────────────
-app.post('/api/auth/logout', authenticate, (req, res) => {
-  invalidateSession(req.adminToken);
+app.post('/api/auth/logout', authenticate, async (req, res) => {
+  await db.revokeAdminSession(req.adminSession.jti, req.adminUser.id, sessionExpiryDate(req.adminSession));
   clearAdminSessionCookie(res);
   auditLog('LOGOUT', {}, req);
   res.json({ success: true });
@@ -749,8 +802,8 @@ app.post('/api/auth/reset-password', resetLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Usuario no encontrado o inactivo.' });
     const hash = await bcrypt.hash(newPassword, 12);
     await db.updateAdminUserPassword(user.id, hash);
+    await db.incrementAdminUserSessionVersion(user.id);
     resetTokens.delete(token);
-    invalidateAllSessions();
     clearAdminSessionCookie(res);
     auditLog('PASSWORD_RESET_OK', { summary: 'Contraseña restablecida por email' }, req, user);
     res.json({ success: true });
@@ -789,7 +842,7 @@ app.post('/api/auth/change-password', authenticate, async (req, res) => {
       const nextPassword = await bcrypt.hash(newPassword, 12);
       await db.updateAdminUserPassword(latestAuth.id, nextPassword);
     }
-    invalidateAllSessions();
+    if (wantsPasswordChange || emailChanged) await db.incrementAdminUserSessionVersion(latestAuth.id);
     const updatedUser = await db.getAdminUserById(latestAuth.id);
     const newToken = createSession(updatedUser);
     setAdminSessionCookie(res, newToken);
@@ -805,7 +858,7 @@ app.post('/api/auth/change-password', authenticate, async (req, res) => {
 });
 
 // ── 2FA: configurar TOTP ──────────────────────
-app.get('/api/auth/2fa/setup', authenticate, async (req, res) => {
+app.post('/api/auth/2fa/setup', authenticate, async (req, res) => {
   const secret = speakeasy.generateSecret({
     name:   `Mark Publicidad Admin (${req.adminUser.email})`,
     length: 20,
@@ -915,11 +968,18 @@ app.patch('/api/admin/users/:id', authenticate, requireAdminRole, async (req, re
       if (!isValidEmailFormat(patch.email)) return res.status(400).json({ error: 'Correo inválido.' });
     }
     if (req.body.role !== undefined) {
-      patch.role = ['owner', 'admin', 'editor'].includes(req.body.role) ? req.body.role : current.role;
+      if (req.adminUser.role !== 'owner')
+        return res.status(403).json({ error: 'Solo el owner puede cambiar roles.' });
+      const nextRole = ['owner', 'admin', 'editor'].includes(req.body.role) ? req.body.role : current.role;
+      if (current.role === 'owner' && nextRole !== 'owner' && await db.countActiveOwners() <= 1)
+        return res.status(400).json({ error: 'Debe existir al menos un owner activo.' });
+      patch.role = nextRole;
     }
     if (req.body.active !== undefined) {
       if (id === req.adminUser.id && req.body.active === false)
         return res.status(400).json({ error: 'No puedes desactivar tu propio usuario.' });
+      if (current.role === 'owner' && req.body.active === false && await db.countActiveOwners() <= 1)
+        return res.status(400).json({ error: 'Debe existir al menos un owner activo.' });
       patch.active = !!req.body.active;
     }
     if (patch.email && patch.email !== current.email) {
@@ -950,7 +1010,7 @@ app.post('/api/admin/users/:id/password', authenticate, requireAdminRole, async 
     if (pwErr) return res.status(400).json({ error: pwErr });
     const hash = await bcrypt.hash(password, 12);
     await db.updateAdminUserPassword(id, hash);
-    if (id === req.adminUser.id) invalidateAllSessions();
+    await db.incrementAdminUserSessionVersion(id);
     auditLog('ADMIN_USER_PASSWORD_CHANGED', {
       entity: 'admin_user',
       entity_id: id,
@@ -1144,6 +1204,11 @@ function isCloudinaryUrl(value) {
   }
 }
 
+function isCloudinaryPublicIdInFolder(value) {
+  const publicId = String(value || '').trim();
+  return Boolean(publicId && publicId.startsWith(`${CLOUDINARY_FOLDER}/`) && !publicId.includes('..'));
+}
+
 function localUploadPathFromUrl(value) {
   const raw = String(value || '');
   if (!raw || raw.includes('..')) return null;
@@ -1170,6 +1235,10 @@ function localUploadPathFromUrl(value) {
 // ── Subida archivos ───────────────────────────
 app.post('/api/upload/video', authenticate, videoUpload.single('video'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
+  if (!await validateUploadedMagicBytes(req.file, 'video')) {
+    removeTempUpload(req.file.path);
+    return res.status(400).json({ error: 'La firma del archivo no coincide con un video permitido.' });
+  }
   if (!CLOUDINARY_ENABLED) {
     auditLog('VIDEO_UPLOAD', {
       entity: 'upload',
@@ -1201,6 +1270,8 @@ app.post('/api/upload/video', authenticate, videoUpload.single('video'), async (
 app.delete('/api/upload/video/cloudinary', authenticate, async (req, res) => {
   if (!CLOUDINARY_ENABLED) return res.status(400).json({ error: 'Cloudinary no configurado.' });
   if (!req.query.public_id) return res.status(400).json({ error: 'public_id requerido.' });
+  if (!isCloudinaryPublicIdInFolder(req.query.public_id))
+    return res.status(400).json({ error: 'public_id fuera del folder configurado.' });
   try {
     await cloudinary.uploader.destroy(String(req.query.public_id), { resource_type: 'video' });
     auditLog('VIDEO_DELETE', {
@@ -1233,6 +1304,10 @@ app.delete('/api/upload/video/:filename', authenticate, async (req, res) => {
 
 app.post('/api/upload', authenticate, upload.single('image'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
+  if (!await validateUploadedMagicBytes(req.file, 'image')) {
+    removeTempUpload(req.file.path);
+    return res.status(400).json({ error: 'La firma del archivo no coincide con una imagen permitida.' });
+  }
   if (!CLOUDINARY_ENABLED) {
     auditLog('IMAGE_UPLOAD', {
       entity: 'upload',
@@ -1264,6 +1339,8 @@ app.post('/api/upload', authenticate, upload.single('image'), async (req, res) =
 app.delete('/api/upload/cloudinary', authenticate, async (req, res) => {
   if (!CLOUDINARY_ENABLED) return res.status(400).json({ error: 'Cloudinary no configurado.' });
   if (!req.query.public_id) return res.status(400).json({ error: 'public_id requerido.' });
+  if (!isCloudinaryPublicIdInFolder(req.query.public_id))
+    return res.status(400).json({ error: 'public_id fuera del folder configurado.' });
   try {
     await cloudinary.uploader.destroy(String(req.query.public_id), { resource_type: 'image' });
     auditLog('IMAGE_DELETE', {
@@ -1493,6 +1570,41 @@ function sanitizeProductImage(value) {
   return cleanText(image, 16) || '📦';
 }
 
+function sanitizeHttpsUrl(value, max = 300) {
+  const raw = cleanText(value, max);
+  if (!raw) return '';
+  try {
+    const url = new URL(raw);
+    return url.protocol === 'https:' ? url.href : '';
+  } catch {
+    return '';
+  }
+}
+
+function sanitizeVideoSetting(item) {
+  if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+  const type = cleanText(item.type, 20);
+  const title = cleanText(item.title, 120);
+  const id = cleanText(item.id || crypto.randomUUID(), 80);
+  if (!['youtube', 'local'].includes(type) || !title) return null;
+
+  if (type === 'youtube') {
+    const youtubeId = cleanText(item.youtubeId, 40);
+    if (!/^[A-Za-z0-9_-]{11}$/.test(youtubeId)) return null;
+    return { id, type, title, youtubeId };
+  }
+
+  const url = cleanText(item.url, 500);
+  const localUpload = localUploadPathFromUrl(url);
+  const cloudUpload = isCloudinaryUrl(url);
+  if (!localUpload && !cloudUpload) return null;
+  if (localUpload && !fs.existsSync(localUpload)) return null;
+  const publicId = item.publicId && isCloudinaryPublicIdInFolder(item.publicId)
+    ? String(item.publicId)
+    : '';
+  return { id, type, title, url, publicId };
+}
+
 function sanitizeProduct(body) {
   const p = {};
   for (const key of PRODUCT_FIELDS) {
@@ -1593,13 +1705,20 @@ app.put('/api/settings', authenticate, async (req, res) => {
     const body    = req.body;
     const current = await db.getSettings();
     const allowed = { ...current };
-    if (Array.isArray(body.videos)) allowed.videos = body.videos.slice(0, 20);
+    if (Array.isArray(body.videos))
+      allowed.videos = body.videos.map(sanitizeVideoSetting).filter(Boolean).slice(0, 20);
     if (body.socialMedia && typeof body.socialMedia === 'object' && !Array.isArray(body.socialMedia)) {
       const SM_KEYS = ['facebook','instagram','twitter','tiktok','youtube','whatsapp'];
       allowed.socialMedia = { ...(allowed.socialMedia || {}) };
       for (const k of SM_KEYS) {
-        if (body.socialMedia[k] !== undefined)
-          allowed.socialMedia[k] = String(body.socialMedia[k]).substring(0, 200);
+        if (body.socialMedia[k] !== undefined) {
+          if (k === 'whatsapp') {
+            const digits = String(body.socialMedia[k] || '').replace(/\D/g, '').slice(0, 20);
+            allowed.socialMedia[k] = digits ? `https://wa.me/${digits}` : '';
+          } else {
+            allowed.socialMedia[k] = sanitizeHttpsUrl(body.socialMedia[k], 200);
+          }
+        }
       }
     }
     await db.saveSettings(allowed);

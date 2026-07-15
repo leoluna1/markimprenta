@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel Admin — Mark Publicidad</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="/admin/styles.css?v=20260702-pricing-ux">
+  <link rel="stylesheet" href="/admin/styles.css?v=20260714-session-guard">
 </head>
 
 <body>
@@ -26,16 +26,14 @@
       <h1>Mark Publicidad</h1>
       <p>Panel de administración</p>
       <div class="login-error" id="login-error">Correo o contraseña incorrectos</div>
-      <input type="email" id="login-email" placeholder="Correo de administrador" autocomplete="username"
-        onkeydown="if(event.key==='Enter')doLogin()">
+      <input type="email" id="login-email" placeholder="Correo de administrador" autocomplete="username" data-enter-action="doLogin">
       <div class="pw-wrap">
-        <input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password"
-          onkeydown="if(event.key==='Enter')doLogin()">
-        <button class="pw-eye" type="button" onclick="togglePw('login-pass',this)" tabindex="-1"><i
+        <input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password" data-enter-action="doLogin">
+        <button class="pw-eye" type="button" data-action="togglePw" data-target="login-pass" tabindex="-1"><i
             class="fas fa-eye"></i></button>
       </div>
-      <button class="btn-login" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> Ingresar</button>
-      <button class="btn-forgot" onclick="showLoginCard('forgot-form')">¿Olvidaste la contraseña?</button>
+      <button class="btn-login" data-action="doLogin"><i class="fas fa-sign-in-alt"></i> Ingresar</button>
+      <button class="btn-forgot" data-action="showLoginCard" data-card="forgot-form">¿Olvidaste la contraseña?</button>
     </div>
 
     <!-- Tarjeta: recuperar contraseña -->
@@ -56,12 +54,11 @@
       </div>
       <!-- Acciones principales -->
       <div id="forgot-actions">
-        <input type="email" id="forgot-email" placeholder="Correo del usuario" autocomplete="email"
-          onkeydown="if(event.key==='Enter')sendResetLink()">
-        <button class="btn-login" id="btn-send-link" onclick="sendResetLink()"><i class="fas fa-paper-plane"></i> Enviar
+        <input type="email" id="forgot-email" placeholder="Correo del usuario" autocomplete="email" data-enter-action="sendResetLink">
+        <button class="btn-login" id="btn-send-link" data-action="sendResetLink"><i class="fas fa-paper-plane"></i> Enviar
           enlace</button>
       </div>
-      <button class="btn-forgot" onclick="showLoginCard('login-form')">← Volver al login</button>
+      <button class="btn-forgot" data-action="showLoginCard" data-card="login-form">← Volver al login</button>
     </div>
 
     <!-- Paso 2: verificación 2FA -->
@@ -71,10 +68,9 @@
       <p>Ingresa el código de 6 dígitos de tu aplicación autenticadora</p>
       <div class="login-error" id="totp-error">Código incorrecto o expirado</div>
       <input type="text" id="totp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
-        placeholder="000 000" style="text-align:center;font-size:1.5rem;letter-spacing:.25em;"
-        onkeydown="if(event.key==='Enter')doTotpVerify()">
-      <button class="btn-login" onclick="doTotpVerify()"><i class="fas fa-check-circle"></i> Verificar</button>
-      <button class="btn-forgot" onclick="showLoginCard('login-form')">← Cancelar y volver</button>
+        placeholder="000 000" style="text-align:center;font-size:1.5rem;letter-spacing:.25em;" data-enter-action="doTotpVerify">
+      <button class="btn-login" data-action="doTotpVerify"><i class="fas fa-check-circle"></i> Verificar</button>
+      <button class="btn-forgot" data-action="showLoginCard" data-card="login-form">← Cancelar y volver</button>
     </div>
 
     <!-- Formulario de reset de contraseña (aparece con ?reset_token=...) -->
@@ -85,9 +81,8 @@
       <div class="login-error" id="reset-error"></div>
       <div class="login-success" id="reset-success"></div>
       <div class="pw-wrap">
-        <input type="password" id="reset-new" placeholder="Nueva contraseña (mín. 8 caracteres)"
-          oninput="checkStrength(this.value,'reset-strength-fill','reset-strength-label')">
-        <button class="pw-eye" type="button" onclick="togglePw('reset-new',this)" tabindex="-1"><i
+        <input type="password" id="reset-new" placeholder="Nueva contraseña (mín. 8 caracteres)" data-input-action="checkStrength" data-fill="reset-strength-fill" data-label="reset-strength-label">
+        <button class="pw-eye" type="button" data-action="togglePw" data-target="reset-new" tabindex="-1"><i
             class="fas fa-eye"></i></button>
       </div>
       <div class="strength-track">
@@ -95,19 +90,18 @@
       </div>
       <div class="strength-label" id="reset-strength-label"></div>
       <div class="pw-wrap" style="margin-top:.75rem;">
-        <input type="password" id="reset-confirm" placeholder="Confirmar contraseña"
-          onkeydown="if(event.key==='Enter')doResetPassword()">
-        <button class="pw-eye" type="button" onclick="togglePw('reset-confirm',this)" tabindex="-1"><i
+        <input type="password" id="reset-confirm" placeholder="Confirmar contraseña" data-enter-action="doResetPassword">
+        <button class="pw-eye" type="button" data-action="togglePw" data-target="reset-confirm" tabindex="-1"><i
             class="fas fa-eye"></i></button>
       </div>
-      <button class="btn-login" onclick="doResetPassword()"><i class="fas fa-lock"></i> Guardar contraseña</button>
+      <button class="btn-login" data-action="doResetPassword"><i class="fas fa-lock"></i> Guardar contraseña</button>
     </div>
 
   </div>
 
   <!-- ══════════ APP ══════════ -->
   <div id="app">
-    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+    <div class="sidebar-overlay" id="sidebar-overlay" data-action="closeSidebar"></div>
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="logo">
@@ -162,7 +156,7 @@
         </div>
       </nav>
       <div class="sidebar-footer">
-        <button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
+        <button class="btn-logout" data-action="logout"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
       </div>
     </aside>
 
@@ -170,7 +164,7 @@
 
       <!-- Mobile header -->
       <div class="mob-header">
-        <button class="mob-ham" onclick="toggleSidebar()" aria-label="Menú"><i class="fas fa-bars"></i></button>
+        <button class="mob-ham" data-action="toggleSidebar" aria-label="Menú"><i class="fas fa-bars"></i></button>
         <img class="mob-logo" src="/images/logo.png" alt="Marka Publicidad">
         <span class="mob-title">Mark Publicidad · Admin</span>
       </div>
@@ -336,15 +330,15 @@
         </div>
         <div class="toolbar">
           <div class="search-box"><i class="fas fa-search"></i><input type="text" id="search-input"
-              placeholder="Buscar producto..." oninput="renderTable()"></div>
-          <select class="filter-select" id="cat-filter" onchange="renderTable()">
+              placeholder="Buscar producto..." data-input-action="renderTable"></div>
+          <select class="filter-select" id="cat-filter" data-change-action="renderTable">
             <option value="">Todas las categorías</option>
             <option value="impresion">Impresión</option>
             <option value="promocional">Promocional</option>
             <option value="packaging">Packaging</option>
             <option value="gran-formato">Gran Formato</option>
           </select>
-          <button class="btn-add" onclick="openModal()"><i class="fas fa-plus"></i> Nuevo producto</button>
+          <button class="btn-add" data-action="openModal"><i class="fas fa-plus"></i> Nuevo producto</button>
         </div>
         <div class="table-card">
           <table>
@@ -373,7 +367,7 @@
           <label
             style="display:flex;align-items:center;gap:.5rem;padding:.5rem 1.25rem;background:var(--blue);color:white;border-radius:var(--radius-sm);cursor:pointer;font-size:.9rem;font-weight:500;">
             <i class="fas fa-upload"></i> Subir imagen
-            <input type="file" accept="image/*,.pdf,.svg" style="display:none" onchange="uploadFromGallery(this)">
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none" data-change-action="uploadFromGallery">
           </label>
         </div>
         <div class="gallery-grid" id="gallery-grid">
@@ -389,7 +383,7 @@
             <h2>Precios del Cotizador</h2>
             <div class="sub">Edita los precios del cotizador. Al guardar, se aplican automáticamente al sitio web.</div>
           </div>
-          <button type="button" class="btn-add pricing-refresh-btn" onclick="loadPricing()">
+          <button type="button" class="btn-add pricing-refresh-btn" data-action="loadPricing">
             <i class="fas fa-sync-alt"></i> Recargar
           </button>
         </div>
@@ -417,23 +411,23 @@
         </div>
 
         <div class="pricing-tabs" id="pricing-tabs-bar">
-          <button type="button" class="pricing-tab active" onclick="switchPricingTab('volantes',this)"><i
+          <button type="button" class="pricing-tab active" data-action="switchPricingTab" data-tab="volantes"><i
               class="fas fa-file-alt"></i> Volantes</button>
-          <button type="button" class="pricing-tab" onclick="switchPricingTab('tarjetas',this)"><i
+          <button type="button" class="pricing-tab" data-action="switchPricingTab" data-tab="tarjetas"><i
               class="fas fa-id-card"></i> Tarjetas</button>
-          <button type="button" class="pricing-tab" onclick="switchPricingTab('tazas',this)"><i
+          <button type="button" class="pricing-tab" data-action="switchPricingTab" data-tab="tazas"><i
               class="fas fa-mug-hot"></i> Tazas</button>
-          <button type="button" class="pricing-tab" onclick="switchPricingTab('granformato',this)"><i
+          <button type="button" class="pricing-tab" data-action="switchPricingTab" data-tab="granformato"><i
               class="fas fa-image"></i> Gran Formato</button>
-          <button type="button" class="pricing-tab" onclick="switchPricingTab('pop',this)"><i class="fas fa-gift"></i>
+          <button type="button" class="pricing-tab" data-action="switchPricingTab" data-tab="pop"><i class="fas fa-gift"></i>
             Material POP</button>
-          <button type="button" class="pricing-tab" onclick="switchPricingTab('etiquetas',this)"><i
+          <button type="button" class="pricing-tab" data-action="switchPricingTab" data-tab="etiquetas"><i
               class="fas fa-tags"></i> Etiquetas</button>
-          <button type="button" class="pricing-tab" onclick="switchPricingTab('packaging',this)"><i
+          <button type="button" class="pricing-tab" data-action="switchPricingTab" data-tab="packaging"><i
               class="fas fa-box"></i> Packaging</button>
-          <button type="button" class="pricing-tab" onclick="switchPricingTab('diseno',this)"><i
+          <button type="button" class="pricing-tab" data-action="switchPricingTab" data-tab="diseno"><i
               class="fas fa-palette"></i> Diseño</button>
-          <button type="button" class="pricing-tab" onclick="switchPricingTab('tiempos',this)"><i
+          <button type="button" class="pricing-tab" data-action="switchPricingTab" data-tab="tiempos"><i
               class="fas fa-clock"></i> Tiempos</button>
         </div>
 
@@ -454,7 +448,7 @@
             <button type="button" class="btn-preview-pricing" id="btn-preview-pricing">
               <i class="fas fa-external-link-alt"></i> Ver cotizador
             </button>
-            <button type="button" class="btn-save-pricing is-idle" id="btn-save-pricing" onclick="savePricing()"
+            <button type="button" class="btn-save-pricing is-idle" id="btn-save-pricing" data-action="savePricing"
               disabled>
               <i class="fas fa-save"></i> Guardar precios
             </button>
@@ -469,7 +463,7 @@
             <h2>Videos de YouTube</h2>
             <div class="sub">Gestiona los videos que se muestran en el sitio web</div>
           </div>
-          <button class="btn-add" onclick="openVideoModal()"><i class="fas fa-plus"></i> Agregar video</button>
+          <button class="btn-add" data-action="openVideoModal"><i class="fas fa-plus"></i> Agregar video</button>
         </div>
 
         <div
@@ -540,7 +534,7 @@
         <div class="save-social-bar">
           <p><i class="fas fa-info-circle"></i> Al guardar, los enlaces se actualizan en el sitio web automáticamente.
           </p>
-          <button class="btn-save-pricing" onclick="saveSocialMedia()"><i class="fas fa-save"></i> Guardar
+          <button class="btn-save-pricing" data-action="saveSocialMedia"><i class="fas fa-save"></i> Guardar
             redes</button>
         </div>
       </div>
@@ -551,7 +545,7 @@
             <h2>Mensajes de Contacto</h2>
             <div class="sub">Mensajes recibidos desde el formulario del sitio web</div>
           </div>
-          <button class="btn-save-pricing" onclick="loadContacts()" style="min-width:auto;padding:.5rem 1rem;"><i
+          <button class="btn-save-pricing" data-action="loadContacts" style="min-width:auto;padding:.5rem 1rem;"><i
               class="fas fa-sync-alt"></i> Actualizar</button>
         </div>
         <div id="contacts-list" style="display:flex;flex-direction:column;gap:.75rem;margin-top:1rem;"></div>
@@ -595,15 +589,14 @@
               <label
                 style="display:flex;align-items:center;gap:.4rem;padding:.65rem 1rem;background:var(--blue);color:white;border-radius:var(--radius-sm);cursor:pointer;font-size:.85rem;font-weight:500;white-space:nowrap;">
                 <i class="fas fa-upload"></i> Subir
-                <input type="file" accept="image/*,.pdf,.svg" style="display:none"
-                  onchange="uploadPortfolioImage(this)">
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none" data-change-action="uploadPortfolioImage">
               </label>
             </div>
             <div id="pf-preview" style="margin-top:.75rem;display:none;"><img id="pf-preview-img"
                 style="height:80px;border-radius:8px;object-fit:cover;border:1px solid var(--border);"></div>
           </div>
           <div class="paf-full" style="display:flex;justify-content:flex-end;">
-            <button onclick="addPortfolioItem()"
+            <button data-action="addPortfolioItem"
               style="padding:.65rem 1.5rem;background:var(--blue);color:white;border:none;border-radius:var(--radius-sm);font-size:.9rem;font-weight:500;cursor:pointer;"><i
                 class="fas fa-plus"></i> Agregar al portfolio</button>
           </div>
@@ -622,7 +615,7 @@
             <h2>Reseñas de clientes</h2>
             <div class="sub">Aprueba o elimina las reseñas enviadas desde el sitio web</div>
           </div>
-          <button class="btn-save-pricing" onclick="loadReviewsAdmin()" style="min-width:auto;padding:.5rem 1rem;"><i
+          <button class="btn-save-pricing" data-action="loadReviewsAdmin" style="min-width:auto;padding:.5rem 1rem;"><i
               class="fas fa-sync-alt"></i> Actualizar</button>
         </div>
         <div id="reviews-admin-list" style="display:flex;flex-direction:column;gap:.75rem;margin-top:1rem;"></div>
@@ -653,14 +646,13 @@
               <div class="pw-wrap" style="margin-bottom:0;">
                 <input type="password" id="sec-current" placeholder="Contraseña actual para confirmar"
                   autocomplete="current-password" style="font-size:.95rem;">
-                <button class="pw-eye" type="button" onclick="togglePw('sec-current',this)" tabindex="-1"><i
+                <button class="pw-eye" type="button" data-action="togglePw" data-target="sec-current" tabindex="-1"><i
                     class="fas fa-eye"></i></button>
               </div>
               <div class="pw-wrap" style="margin-bottom:0;">
                 <input type="password" id="sec-new" placeholder="Nueva contraseña opcional (mín. 8 caracteres)"
-                  autocomplete="new-password" style="font-size:.95rem;"
-                  oninput="checkStrength(this.value,'sec-strength-fill','sec-strength-label')">
-                <button class="pw-eye" type="button" onclick="togglePw('sec-new',this)" tabindex="-1"><i
+                  autocomplete="new-password" style="font-size:.95rem;" data-input-action="checkStrength" data-fill="sec-strength-fill" data-label="sec-strength-label">
+                <button class="pw-eye" type="button" data-action="togglePw" data-target="sec-new" tabindex="-1"><i
                     class="fas fa-eye"></i></button>
               </div>
               <div class="strength-track" style="margin-top:-.5rem;">
@@ -670,11 +662,11 @@
               <div class="pw-wrap" style="margin-bottom:0;">
                 <input type="password" id="sec-confirm" placeholder="Confirmar nueva contraseña"
                   style="font-size:.95rem;">
-                <button class="pw-eye" type="button" onclick="togglePw('sec-confirm',this)" tabindex="-1"><i
+                <button class="pw-eye" type="button" data-action="togglePw" data-target="sec-confirm" tabindex="-1"><i
                     class="fas fa-eye"></i></button>
               </div>
               <div id="sec-msg" style="font-size:.85rem;display:none;padding:.5rem .75rem;border-radius:6px;"></div>
-              <button onclick="changePassword()"
+              <button data-action="changePassword"
                 style="padding:.75rem 1.5rem;background:var(--blue);color:white;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:500;cursor:pointer;align-self:flex-start;">
                 <i class="fas fa-save"></i> Guardar acceso
               </button>
@@ -694,7 +686,7 @@
             <div id="twofa-setup-section" style="width:100%;display:none;flex-direction:column;gap:1rem;">
               <p style="font-size:.9rem;color:var(--muted);">Usa Google Authenticator, Authy o cualquier app TOTP para
                 proteger tu cuenta.</p>
-              <button onclick="initTwoFaSetup()"
+              <button data-action="initTwoFaSetup"
                 style="padding:.75rem 1.5rem;background:var(--purple);color:white;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:500;cursor:pointer;align-self:flex-start;">
                 <i class="fas fa-qrcode"></i> Activar verificación en 2 pasos
               </button>
@@ -711,15 +703,14 @@
                 id="twofa-secret-text"></div>
               <input type="text" id="twofa-verify-code" inputmode="numeric" maxlength="6"
                 placeholder="Código de 6 dígitos"
-                style="width:100%;padding:.75rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:1.2rem;text-align:center;letter-spacing:.2em;outline:none;"
-                onkeydown="if(event.key==='Enter')confirmTwoFa()">
+                style="width:100%;padding:.75rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:1.2rem;text-align:center;letter-spacing:.2em;outline:none;" data-enter-action="confirmTwoFa">
               <div id="twofa-verify-msg"
                 style="font-size:.85rem;display:none;padding:.5rem .75rem;border-radius:6px;width:100%;"></div>
-              <button onclick="confirmTwoFa()"
+              <button data-action="confirmTwoFa"
                 style="padding:.75rem 1.5rem;background:var(--green);color:white;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:500;cursor:pointer;">
                 <i class="fas fa-check-circle"></i> Confirmar y activar
               </button>
-              <button onclick="cancelTwoFaSetup()"
+              <button data-action="cancelTwoFaSetup"
                 style="background:none;border:none;color:var(--muted);font-size:.85rem;cursor:pointer;text-decoration:underline;">Cancelar</button>
             </div>
             <!-- Estado: habilitado -->
@@ -731,12 +722,12 @@
               <div class="pw-wrap" style="margin-bottom:0;">
                 <input type="password" id="twofa-disable-pass" placeholder="Contraseña actual para desactivar"
                   style="font-size:.95rem;">
-                <button class="pw-eye" type="button" onclick="togglePw('twofa-disable-pass',this)" tabindex="-1"><i
+                <button class="pw-eye" type="button" data-action="togglePw" data-target="twofa-disable-pass" tabindex="-1"><i
                     class="fas fa-eye"></i></button>
               </div>
               <div id="twofa-disable-msg" style="font-size:.85rem;display:none;padding:.5rem .75rem;border-radius:6px;">
               </div>
-              <button onclick="disableTwoFa()"
+              <button data-action="disableTwoFa"
                 style="padding:.75rem 1.5rem;background:var(--red-light);color:var(--red);border:1px solid var(--red);border-radius:var(--radius-sm);font-size:.95rem;font-weight:500;cursor:pointer;align-self:flex-start;">
                 <i class="fas fa-times-circle"></i> Desactivar 2FA
               </button>
@@ -753,7 +744,7 @@
             <h2>Usuarios del admin</h2>
             <div class="sub">Crea accesos separados y controla quién puede entrar al panel</div>
           </div>
-          <button class="btn-add" onclick="loadAdminUsers()"><i class="fas fa-sync-alt"></i> Actualizar</button>
+          <button class="btn-add" data-action="loadAdminUsers"><i class="fas fa-sync-alt"></i> Actualizar</button>
         </div>
 
         <div class="admin-grid-2">
@@ -771,11 +762,11 @@
               <div class="audit-muted">Los usuarios nuevos se crean como editores y no ven Usuarios ni Historial.</div>
               <div class="pw-wrap" style="margin-bottom:0;">
                 <input type="password" id="user-password" placeholder="Contraseña inicial">
-                <button class="pw-eye" type="button" onclick="togglePw('user-password',this)" tabindex="-1"><i
+                <button class="pw-eye" type="button" data-action="togglePw" data-target="user-password" tabindex="-1"><i
                     class="fas fa-eye"></i></button>
               </div>
               <div id="users-msg" class="admin-inline-msg"></div>
-              <button class="btn-add" onclick="createAdminUser()" style="align-self:flex-start;"><i
+              <button class="btn-add" data-action="createAdminUser" style="align-self:flex-start;"><i
                   class="fas fa-plus"></i> Crear usuario</button>
             </div>
           </div>
@@ -799,7 +790,7 @@
             <h2>Historial de cambios</h2>
             <div class="sub">Registro de usuario, fecha, hora y acción realizada</div>
           </div>
-          <button class="btn-add" onclick="loadAuditLog()"><i class="fas fa-sync-alt"></i> Actualizar</button>
+          <button class="btn-add" data-action="loadAuditLog"><i class="fas fa-sync-alt"></i> Actualizar</button>
         </div>
         <div class="table-card">
           <table class="audit-table">
@@ -827,11 +818,11 @@
 
 
   <!-- ══════════ MODAL PRODUCTO ══════════ -->
-  <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal-overlay" id="modal-overlay">
     <div class="modal">
       <div class="modal-header">
         <h3 id="modal-title">Nuevo producto</h3>
-        <button class="btn-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+        <button class="btn-close" data-action="closeModal"><i class="fas fa-times"></i></button>
       </div>
       <div class="modal-body">
         <div class="form-grid">
@@ -894,19 +885,18 @@
           <div class="form-group form-full img-section">
             <label>Imagen del producto</label>
             <div class="img-tabs">
-              <button type="button" class="img-tab active" onclick="switchImgTab('upload', this)"><i
+              <button type="button" class="img-tab active" data-action="switchImgTab" data-tab="upload"><i
                   class="fas fa-upload"></i> Subir imagen</button>
-              <button type="button" class="img-tab" onclick="switchImgTab('gallery', this)"><i
+              <button type="button" class="img-tab" data-action="switchImgTab" data-tab="gallery"><i
                   class="fas fa-images"></i> Desde galería</button>
-              <button type="button" class="img-tab" onclick="switchImgTab('emoji', this)"><i class="fas fa-smile"></i>
+              <button type="button" class="img-tab" data-action="switchImgTab" data-tab="emoji"><i class="fas fa-smile"></i>
                 Emoji</button>
             </div>
 
             <!-- Tab: subir -->
             <div id="img-tab-upload">
-              <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
-                ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
-                <input type="file" id="file-input" accept="image/*,.pdf,.svg" onchange="onFileSelected(this)">
+              <div class="drop-zone" id="drop-zone" data-action="clickFile" data-target="file-input">
+                <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp,image/gif" data-change-action="onFileSelected">
                 <div class="dz-prompt" id="dz-prompt">
                   <div class="dz-icon"><i class="fas fa-cloud-upload-alt"></i></div>
                   <div class="dz-text">Arrastra una imagen aquí o haz clic para seleccionar</div>
@@ -932,7 +922,7 @@
             <div id="img-tab-emoji" style="display:none;">
               <div class="emoji-row">
                 <div class="emoji-big-preview" id="emoji-preview">🖨️</div>
-                <input type="text" id="f-emoji" placeholder="🎯 Pega un emoji" oninput="updateEmojiPreview()"
+                <input type="text" id="f-emoji" placeholder="🎯 Pega un emoji" data-input-action="updateEmojiPreview"
                   maxlength="8">
               </div>
             </div>
@@ -942,7 +932,7 @@
               style="display:none; align-items:center; gap:.75rem; padding:.75rem; background:var(--green-light); border-radius:var(--radius-sm); font-size:.85rem; color:#1d7a3a; margin-top:.5rem;">
               <i class="fas fa-check-circle"></i>
               <span id="current-img-label">Imagen seleccionada</span>
-              <button type="button" onclick="clearImage()"
+              <button type="button" data-action="clearImage"
                 style="margin-left:auto; background:none; border:none; color:#1d7a3a; cursor:pointer; font-size:.85rem;">✕
                 Quitar</button>
             </div>
@@ -952,15 +942,15 @@
           <div class="form-group form-full">
             <label>Características</label>
             <div class="features-list" id="features-list"></div>
-            <button type="button" class="btn-add-feature" onclick="addFeatureRow()"><i class="fas fa-plus"></i> Agregar
+            <button type="button" class="btn-add-feature" data-action="addFeatureRow"><i class="fas fa-plus"></i> Agregar
               característica</button>
           </div>
 
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
-        <button class="btn-save" id="btn-save" onclick="saveProduct()"><i class="fas fa-save"></i> <span
+        <button class="btn-cancel" data-action="closeModal">Cancelar</button>
+        <button class="btn-save" id="btn-save" data-action="saveProduct"><i class="fas fa-save"></i> <span
             id="save-label">Guardar</span></button>
       </div>
     </div>
@@ -973,8 +963,8 @@
       <h4>¿Eliminar producto?</h4>
       <p id="confirm-text">Esta acción no se puede deshacer.</p>
       <div class="confirm-btns">
-        <button class="btn-confirm-cancel" onclick="closeConfirm()">Cancelar</button>
-        <button class="btn-confirm-delete" onclick="confirmDelete()">Eliminar</button>
+        <button class="btn-confirm-cancel" data-action="closeConfirm">Cancelar</button>
+        <button class="btn-confirm-delete" data-action="confirmDelete">Eliminar</button>
       </div>
     </div>
   </div>
@@ -982,7 +972,7 @@
   <div class="toast" id="toast"></div>
 
   <!-- ══════════ MODAL VIDEO ══════════ -->
-  <div class="video-modal-overlay" id="video-modal-overlay" onclick="handleVideoOverlayClick(event)">
+  <div class="video-modal-overlay" id="video-modal-overlay">
     <div class="video-modal">
       <h3 id="video-modal-title">Agregar video</h3>
 
@@ -990,11 +980,11 @@
       <div class="vform-group">
         <label>Tipo de video</label>
         <div style="display:flex;gap:.5rem;">
-          <button type="button" id="vtype-youtube" onclick="setVideoType('youtube')"
+          <button type="button" id="vtype-youtube" data-action="setVideoType" data-type="youtube"
             style="flex:1;padding:.6rem;border-radius:8px;border:2px solid var(--blue);background:var(--blue-light);color:var(--blue);font-weight:600;cursor:pointer;font-family:inherit;">
             <i class="fab fa-youtube"></i> YouTube
           </button>
-          <button type="button" id="vtype-local" onclick="setVideoType('local')"
+          <button type="button" id="vtype-local" data-action="setVideoType" data-type="local"
             style="flex:1;padding:.6rem;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--muted);font-weight:600;cursor:pointer;font-family:inherit;">
             <i class="fas fa-upload"></i> Video local
           </button>
@@ -1005,8 +995,7 @@
       <div id="vf-youtube-section">
         <div class="vform-group">
           <label>URL o ID del video de YouTube <span style="color:var(--red)">*</span></label>
-          <input type="text" id="vf-yt-url" placeholder="Ej: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-            oninput="previewYtThumb()">
+          <input type="text" id="vf-yt-url" placeholder="Ej: https://www.youtube.com/watch?v=dQw4w9WgXcQ" data-input-action="previewYtThumb">
           <div class="yt-preview" id="yt-preview">
             <img id="yt-thumb-img" src="" alt="Vista previa">
           </div>
@@ -1023,8 +1012,7 @@
         <div class="vform-group">
           <label>Archivo de video <span style="color:var(--red)">*</span></label>
           <input type="file" id="vf-video-file" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
-            style="width:100%;padding:.5rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-family:inherit;"
-            onchange="previewLocalVideo()">
+            style="width:100%;padding:.5rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-family:inherit;" data-change-action="previewLocalVideo">
           <div class="hint" style="font-size:.75rem;color:var(--muted);margin-top:.35rem;">MP4, WEBM, MOV, AVI · Máx
             500MB</div>
           <div id="vf-local-preview" style="display:none;margin-top:.75rem;">
@@ -1082,13 +1070,13 @@
       </div>
 
       <div class="vform-actions">
-        <button class="btn-logout" onclick="closeVideoModal()" style="width:auto;">Cancelar</button>
-        <button class="btn-add" onclick="saveVideo()"><i class="fas fa-save"></i> Guardar video</button>
+        <button class="btn-logout" data-action="closeVideoModal" style="width:auto;">Cancelar</button>
+        <button class="btn-add" data-action="saveVideo"><i class="fas fa-save"></i> Guardar video</button>
       </div>
     </div>
   </div>
 
-  <script src="/admin/admin.js?v=20260702-pricing-ux"></script>
+  <script src="/admin/admin.js?v=20260714-publish-hardening"></script>
 </body>
 
 </html>

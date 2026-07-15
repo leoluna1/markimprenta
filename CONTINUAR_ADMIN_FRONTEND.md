@@ -179,3 +179,60 @@ Fecha: 2026-07-02
   - Usuario temporal nuevo pudo recibir token local, cambiar contraseña y hacer login con la nueva clave.
   - La contraseña anterior dejó de funcionar.
   - UI de recuperación muestra advertencia y botón `Abrir enlace local` en entorno local.
+
+## Ajuste 2026-07-14 - Sesión admin al refrescar
+
+- Se corrigió el flujo de sesión del admin:
+  - `showApp()` ahora valida primero `/api/auth/profile`.
+  - Si la sesión no es válida, vuelve limpiamente al login.
+  - `loadAdminProfile()` devuelve `true/false` y limpia `currentAdminUser` si falla.
+  - El polling de notificaciones se inicia una sola vez y se limpia al cerrar sesión.
+- Se actualizó el cache-buster del admin:
+  - `/admin/styles.css?v=20260714-session-guard`
+  - `/admin/admin.js?v=20260714-session-guard`
+- Verificación:
+  - `node --check admin/admin.js`, `server.js`, `db/db.js`, `lib/jwt-session.js`, `whatsapp-widget.js` y `scripts/qa-browser.js` pasaron correctamente.
+  - `npm audit --audit-level=moderate` devolvió `0 vulnerabilities`.
+  - `QA_BASE_URL=http://localhost:3001 npm run qa:browser` pasó correctamente.
+  - Prueba autenticada con Playwright: login admin + refresh de `/admin` conserva el dashboard visible.
+
+## Ajuste 2026-07-14 - Hardening de seguridad inicial
+
+- Se agregó CSRF obligatorio para toda mutación bajo `/api`.
+- El panel admin ahora envía `x-csrf-token` en contactos, reseñas, portfolio, productos, precios, settings y uploads.
+- `/api/auth/2fa/setup` pasó de `GET` con efecto lateral a `POST` protegido.
+- Upload de imágenes ya no acepta PDF/SVG desde UI ni backend; solo JPG, PNG, WEBP y GIF.
+- Borrados Cloudinary se restringen al `CLOUDINARY_FOLDER` configurado.
+- Settings sanitiza URLs sociales, WhatsApp y videos antes de persistir.
+- Se actualizó el cache-buster del admin:
+  - `/admin/admin.js?v=20260714-security-hardening`
+- Verificación:
+  - `node --check server.js` y `node --check admin/admin.js` pasaron correctamente.
+  - `npm audit --audit-level=moderate` devolvió `0 vulnerabilities`.
+  - Prueba API: login sin CSRF devuelve `403`; login con cookie/header CSRF devuelve sesión válida.
+  - `QA_BASE_URL=http://localhost:3001 npm run qa:browser` pasó correctamente.
+  - Prueba autenticada con Playwright: refresh de `/admin` conserva dashboard visible.
+
+## Ajuste 2026-07-14 - Hardening pre-publicación
+
+- Sesiones admin:
+  - JWT ahora incluye `jti` y `session_version`.
+  - `admin_users.session_version` persiste en PostgreSQL/fallback JSON.
+  - Logout registra revocación persistente en `admin_session_revocations`.
+  - Cambios/restablecimientos de contraseña incrementan la versión de sesión del usuario afectado.
+- Roles:
+  - Solo `owner` puede cambiar roles.
+  - No se permite desactivar/degradar el último `owner` activo.
+- CSP admin:
+  - Se eliminaron handlers inline del HTML y de plantillas dinámicas.
+  - El admin usa delegación por `data-action`.
+  - CSP admin ahora usa `script-src-attr 'none'`.
+- Uploads:
+  - Además de mimetype/extensión, se validan magic bytes para imágenes y videos.
+  - Un PNG falso con mimetype `image/png` devuelve `400`; un PNG real mínimo devuelve `200`.
+- Verificación:
+  - `node --check server.js`, `admin/admin.js`, `db/db.js` y `lib/jwt-session.js` pasaron.
+  - `npm audit --audit-level=moderate` devolvió `0 vulnerabilities`.
+  - `QA_BASE_URL=http://localhost:3001 npm run qa:browser` pasó correctamente.
+  - Prueba logout: profile `200` antes, logout `200`, profile `401` con el mismo token.
+  - Prueba Playwright autenticada: panel admin sin errores de consola y CSP con `script-src-attr 'none'`.

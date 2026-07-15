@@ -10,6 +10,7 @@ let selectedImageUrl = '';   // URL final que se guardará en el producto
 let uploadedImages = [];     // cache de galería
 let _challengeToken = null; // token temporal para verificación 2FA
 let currentAdminUser = null;
+let notificationPollTimer = null;
 
 function setupIconFallback() {
   document.documentElement.classList.remove('fa-fallback');
@@ -83,8 +84,8 @@ async function loadContacts() {
           <div style="display:flex;gap:.5rem;flex-shrink:0;flex-wrap:wrap;align-items:center;">
             ${c.phone ? `<a href="https://wa.me/${esc(c.phone.replace(/\D/g, ''))}" target="_blank" rel="noopener noreferrer" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid #25d366;border-radius:6px;background:transparent;cursor:pointer;color:#25d366;text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : ''}
             <a href="mailto:${esc(c.email)}" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid var(--blue);border-radius:6px;background:transparent;color:var(--blue);text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;"><i class="fas fa-reply"></i> Email</a>
-            ${!c.read ? `<button onclick="markRead(${c.id})" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid var(--border);border-radius:6px;background:transparent;cursor:pointer;color:var(--text);font-family:inherit;"><i class="fas fa-check"></i> Leído</button>` : ''}
-            <button onclick="deleteContact(${c.id})" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid #fca5a5;border-radius:6px;background:transparent;cursor:pointer;color:#dc2626;font-family:inherit;"><i class="fas fa-trash"></i></button>
+            ${!c.read ? `<button data-action="markRead" data-id="${c.id}" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid var(--border);border-radius:6px;background:transparent;cursor:pointer;color:var(--text);font-family:inherit;"><i class="fas fa-check"></i> Leído</button>` : ''}
+            <button data-action="deleteContact" data-id="${c.id}" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid #fca5a5;border-radius:6px;background:transparent;cursor:pointer;color:#dc2626;font-family:inherit;"><i class="fas fa-trash"></i></button>
           </div>
         </div>
         <div style="margin:1rem 0 0;padding:1rem;background:var(--bg);border-radius:8px;font-size:.9rem;line-height:1.65;white-space:pre-wrap;color:var(--text);">${esc(c.message)}</div>
@@ -96,13 +97,13 @@ async function loadContacts() {
 }
 
 async function markRead(id) {
-  await fetch(`/api/contacts/${id}/read`, { method: 'PATCH', headers: { 'x-admin-token': token } });
+  await fetch(`/api/contacts/${id}/read`, { method: 'PATCH', headers: { 'x-admin-token': token, ...csrfH() } });
   loadContacts();
 }
 
 async function deleteContact(id) {
   if (!confirm('¿Eliminar este mensaje?')) return;
-  await fetch(`/api/contacts/${id}`, { method: 'DELETE', headers: { 'x-admin-token': token } });
+  await fetch(`/api/contacts/${id}`, { method: 'DELETE', headers: { 'x-admin-token': token, ...csrfH() } });
   document.getElementById(`contact-${id}`)?.remove();
 }
 
@@ -122,6 +123,140 @@ function cleanEmail(value) {
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(cleanEmail(value));
+}
+
+function runAdminAction(action, el, event) {
+  const id = el.dataset.id ? parseInt(el.dataset.id, 10) : null;
+  switch (action) {
+    case 'doLogin': return doLogin();
+    case 'doTotpVerify': return doTotpVerify();
+    case 'logout': return logout();
+    case 'sendResetLink': return sendResetLink();
+    case 'doResetPassword': return doResetPassword();
+    case 'showLoginCard': return showLoginCard(el.dataset.card);
+    case 'togglePw': return togglePw(el.dataset.target, el);
+    case 'toggleSidebar': return toggleSidebar();
+    case 'closeSidebar': return closeSidebar();
+    case 'openModal': return openModal();
+    case 'openEditModal': return openEditModal(id);
+    case 'closeModal': return closeModal();
+    case 'saveProduct': return saveProduct();
+    case 'askDelete': return askDelete(id);
+    case 'closeConfirm': return closeConfirm();
+    case 'confirmDelete': return confirmDelete();
+    case 'markRead': return markRead(id);
+    case 'deleteContact': return deleteContact(id);
+    case 'addPortfolioItem': return addPortfolioItem();
+    case 'deletePortfolioItem': return deletePortfolioItem(id);
+    case 'approveReview': return approveReview(id);
+    case 'deleteReview': return deleteReview(id);
+    case 'switchPricingTab': return switchPricingTab(el.dataset.tab, el);
+    case 'savePricing': return savePricing();
+    case 'loadPricing': return loadPricing();
+    case 'addTierRow': return addTierRow(el.dataset.path);
+    case 'removeTierRow': return removeTierRow(el);
+    case 'openVideoModal': return openVideoModal();
+    case 'closeVideoModal': return closeVideoModal();
+    case 'setVideoType': return setVideoType(el.dataset.type);
+    case 'saveVideo': return saveVideo();
+    case 'editVideo': return editVideo(id);
+    case 'deleteVideo': return deleteVideo(id);
+    case 'moveVideoUp': return moveVideoUp(id);
+    case 'moveVideoDown': return moveVideoDown(id);
+    case 'saveSocialMedia': return saveSocialMedia();
+    case 'loadContacts': return loadContacts();
+    case 'loadReviewsAdmin': return loadReviewsAdmin();
+    case 'changePassword': return changePassword();
+    case 'initTwoFaSetup': return initTwoFaSetup();
+    case 'confirmTwoFa': return confirmTwoFa();
+    case 'cancelTwoFaSetup': return cancelTwoFaSetup();
+    case 'disableTwoFa': return disableTwoFa();
+    case 'loadAdminUsers': return loadAdminUsers();
+    case 'createAdminUser': return createAdminUser();
+    case 'toggleAdminUser': return toggleAdminUser(id, el.dataset.active === 'true');
+    case 'resetAdminUserPassword': return resetAdminUserPassword(id, el.dataset.email || '');
+    case 'sendUserResetLink': return sendUserResetLink(el.dataset.email || '');
+    case 'loadAuditLog': return loadAuditLog();
+    case 'switchImgTab': return switchImgTab(el.dataset.tab, el);
+    case 'clearDropZone': return clearDropZone(event);
+    case 'clearImage': return clearImage();
+    case 'selectFromGallery': return selectFromGallery(el.dataset.url || '', el);
+    case 'deleteImage': return deleteImage(el.dataset.id || '', event);
+    case 'updateEmojiPreview': return updateEmojiPreview();
+    case 'previewYtThumb': return previewYtThumb();
+    case 'renderTable': return renderTable();
+    case 'addFeatureRow': return addFeatureRow();
+    case 'removeFeatureRow':
+      return el.closest('.feature-row')?.remove();
+    case 'clickFile':
+      event.preventDefault();
+      return document.getElementById(el.dataset.target)?.click();
+    default:
+      return undefined;
+  }
+}
+
+function bindCspSafeEvents() {
+  if (window.__adminCspEventsBound) return;
+  window.__adminCspEventsBound = true;
+
+  document.addEventListener('click', event => {
+    const el = event.target.closest('[data-action]');
+    if (!el) return;
+    runAdminAction(el.dataset.action, el, event);
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    const el = event.target.closest('[data-enter-action]');
+    if (!el) return;
+    event.preventDefault();
+    runAdminAction(el.dataset.enterAction, el, event);
+  });
+
+  document.addEventListener('input', event => {
+    const el = event.target.closest('[data-input-action]');
+    if (!el) return;
+    if (el.dataset.inputAction === 'checkStrength') {
+      checkStrength(el.value, el.dataset.fill, el.dataset.label);
+      return;
+    }
+    runAdminAction(el.dataset.inputAction, el, event);
+  });
+
+  document.addEventListener('change', event => {
+    const el = event.target.closest('[data-change-action]');
+    if (!el) return;
+    const action = el.dataset.changeAction;
+    if (action === 'renderTable') return renderTable();
+    if (action === 'uploadFromGallery') return uploadFromGallery(el);
+    if (action === 'uploadPortfolioImage') return uploadPortfolioImage(el);
+    if (action === 'onFileSelected') return onFileSelected(el);
+    if (action === 'previewLocalVideo') return previewLocalVideo();
+    runAdminAction(action, el, event);
+  });
+
+  document.addEventListener('error', event => {
+    const img = event.target;
+    if (!(img instanceof HTMLImageElement)) return;
+    if (img.dataset.fallbackEmoji && img.parentElement) {
+      img.parentElement.innerHTML = `<span class="emoji">${escHtml(img.dataset.fallbackEmoji)}</span>`;
+    } else if (img.dataset.fallbackSrc) {
+      const fallbackSrc = img.dataset.fallbackSrc;
+      img.removeAttribute('data-fallback-src');
+      img.src = fallbackSrc;
+    }
+  }, true);
+
+  const dropZone = document.getElementById('drop-zone');
+  if (dropZone) {
+    dropZone.addEventListener('dragover', onDragOver);
+    dropZone.addEventListener('dragleave', onDragLeave);
+    dropZone.addEventListener('drop', onDrop);
+  }
+
+  document.getElementById('modal-overlay')?.addEventListener('click', handleOverlayClick);
+  document.getElementById('video-modal-overlay')?.addEventListener('click', handleVideoOverlayClick);
 }
 
 async function doLogin() {
@@ -161,6 +296,7 @@ async function doLogin() {
 
 // Vinculación de eventos por JS (se ejecuta en DOMContentLoaded)
 document.addEventListener('DOMContentLoaded', () => {
+  bindCspSafeEvents();
   const savedEmail = sessionStorage.getItem('adminEmail') || '';
   if (savedEmail) document.getElementById('login-email').value = savedEmail;
   document.getElementById('login-email')?.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
@@ -202,16 +338,38 @@ async function logout() {
   showLoginCard('login-form');
 }
 
+function showLogin() {
+  currentAdminUser = null;
+  token = '';
+  if (notificationPollTimer) {
+    clearInterval(notificationPollTimer);
+    notificationPollTimer = null;
+  }
+  const appEl = document.getElementById('app');
+  const loginEl = document.getElementById('login-screen');
+  if (appEl) appEl.style.display = 'none';
+  if (loginEl) loginEl.style.display = 'flex';
+}
+
 async function showApp() {
+  const profileLoaded = await loadAdminProfile();
+  if (!profileLoaded) {
+    showLogin();
+    showLoginCard('login-form');
+    return false;
+  }
+
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  await loadAdminProfile();
   applyAdminPermissions();
   await loadDashboard();
   loadProducts();
   loadGallery();
   pollNotifications();
-  setInterval(pollNotifications, 60000);
+  if (!notificationPollTimer) {
+    notificationPollTimer = setInterval(pollNotifications, 60000);
+  }
+  return true;
 }
 
 // ── Hamburger sidebar (mobile) ──────────────────
@@ -260,8 +418,8 @@ async function loadPortfolioAdmin() {
       const card = document.createElement('div');
       card.className = 'portfolio-admin-card';
       card.innerHTML = `
-        <img src="${esc(item.image)}" alt="${esc(item.title)}" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'180\' height=\'140\'><rect fill=\'%23f3f4f6\' width=\'180\' height=\'140\'/></svg>'">
-        <button class="pa-del" onclick="deletePortfolioItem(${item.id})" title="Eliminar"><i class="fas fa-trash"></i></button>
+        <img src="${esc(item.image)}" alt="${esc(item.title)}" data-fallback-src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='140'%3E%3Crect fill='%23f3f4f6' width='180' height='140'/%3E%3C/svg%3E">
+        <button class="pa-del" data-action="deletePortfolioItem" data-id="${item.id}" title="Eliminar"><i class="fas fa-trash"></i></button>
         <div class="pa-info">
           <div class="pa-title">${esc(item.title)}</div>
           <div class="pa-cat">${catLabels[item.category] || item.category}</div>
@@ -281,7 +439,7 @@ async function addPortfolioItem() {
   try {
     const res = await fetch('/api/portfolio', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
       body: JSON.stringify({ title, category, image }),
     });
     if (!res.ok) throw new Error();
@@ -295,7 +453,7 @@ async function addPortfolioItem() {
 
 async function deletePortfolioItem(id) {
   if (!confirm('¿Eliminar este trabajo del portfolio?')) return;
-  await fetch('/api/portfolio/' + id, { method: 'DELETE', headers: { 'x-admin-token': token } });
+  await fetch('/api/portfolio/' + id, { method: 'DELETE', headers: { 'x-admin-token': token, ...csrfH() } });
   loadPortfolioAdmin();
 }
 
@@ -304,7 +462,7 @@ async function uploadPortfolioImage(input) {
   const fd = new FormData();
   fd.append('image', input.files[0]);
   try {
-    const res = await fetch('/api/upload', { method: 'POST', headers: { 'x-admin-token': token }, body: fd });
+    const res = await fetch('/api/upload', { method: 'POST', headers: { 'x-admin-token': token, ...csrfH() }, body: fd });
     const data = await res.json();
     if (data.url) {
       document.getElementById('pf-image').value = data.url;
@@ -406,8 +564,8 @@ async function loadReviewsAdmin() {
             <div style="font-size:.8rem;color:var(--muted);margin-top:3px;">${new Date(r.date).toLocaleString('es-EC')}</div>
           </div>
           <div style="display:flex;gap:.5rem;flex-shrink:0;">
-            ${!r.approved ? '<button onclick="approveReview(' + r.id + ')" style="font-size:.75rem;padding:.35rem .85rem;border:1px solid var(--green);border-radius:6px;background:transparent;cursor:pointer;color:var(--green);font-family:inherit;"><i class=\'fas fa-check\'></i> Aprobar</button>' : ''}
-            <button onclick="deleteReview(${r.id})" style="font-size:.75rem;padding:.35rem .85rem;border:1px solid #fca5a5;border-radius:6px;background:transparent;cursor:pointer;color:#dc2626;font-family:inherit;"><i class="fas fa-trash"></i></button>
+            ${!r.approved ? '<button data-action="approveReview" data-id="' + r.id + '" style="font-size:.75rem;padding:.35rem .85rem;border:1px solid var(--green);border-radius:6px;background:transparent;cursor:pointer;color:var(--green);font-family:inherit;"><i class=\'fas fa-check\'></i> Aprobar</button>' : ''}
+            <button data-action="deleteReview" data-id="${r.id}" style="font-size:.75rem;padding:.35rem .85rem;border:1px solid #fca5a5;border-radius:6px;background:transparent;cursor:pointer;color:#dc2626;font-family:inherit;"><i class="fas fa-trash"></i></button>
           </div>
         </div>
         <div style="margin:.75rem 0 0;padding:1rem;background:var(--bg);border-radius:8px;font-size:.9rem;line-height:1.65;white-space:pre-wrap;font-style:italic;color:var(--text);">"${esc(r.comment)}"</div>
@@ -419,13 +577,13 @@ async function loadReviewsAdmin() {
 }
 
 async function approveReview(id) {
-  await fetch('/api/reviews/' + id + '/approve', { method: 'PATCH', headers: { 'x-admin-token': token } });
+  await fetch('/api/reviews/' + id + '/approve', { method: 'PATCH', headers: { 'x-admin-token': token, ...csrfH() } });
   loadReviewsAdmin();
 }
 
 async function deleteReview(id) {
   if (!confirm('¿Eliminar esta reseña?')) return;
-  await fetch('/api/reviews/' + id, { method: 'DELETE', headers: { 'x-admin-token': token } });
+  await fetch('/api/reviews/' + id, { method: 'DELETE', headers: { 'x-admin-token': token, ...csrfH() } });
   loadReviewsAdmin();
 }
 
@@ -588,7 +746,7 @@ function renderTable() {
         <div class="product-cell">
           <div class="product-thumb">
             ${isImg(p.image)
-      ? `<img src="${escHtml(p.image)}" alt="${escHtml(p.name)}" onerror="this.parentElement.innerHTML='<span class=emoji>📦</span>'">`
+      ? `<img src="${escHtml(p.image)}" alt="${escHtml(p.name)}" data-fallback-emoji="📦">`
       : `<span class="emoji">${escHtml(p.image || '📦')}</span>`}
           </div>
           <div><div class="product-name">${escHtml(p.name)}</div><div class="product-id">#${p.id}</div></div>
@@ -599,8 +757,8 @@ function renderTable() {
       <td>${p.minQuantity || 1}</td>
       <td><span class="popular-dot ${p.popular ? 'yes' : 'no'}">${p.popular ? 'Sí' : 'No'}</span></td>
       <td><div class="actions">
-        <button class="btn-icon edit" onclick="openEditModal(${p.id})" title="Editar"><i class="fas fa-pen"></i></button>
-        <button class="btn-icon del"  onclick="askDelete(${p.id})"    title="Eliminar"><i class="fas fa-trash"></i></button>
+        <button class="btn-icon edit" data-action="openEditModal" data-id="${p.id}" title="Editar"><i class="fas fa-pen"></i></button>
+        <button class="btn-icon del" data-action="askDelete" data-id="${p.id}" title="Eliminar"><i class="fas fa-trash"></i></button>
       </div></td>
     </tr>`).join('');
 }
@@ -694,10 +852,10 @@ function showDropPreview(src) {
   const dz = document.getElementById('drop-zone');
   dz.classList.add('has-image');
   dz.innerHTML = `
-    <input type="file" id="file-input" accept="image/*,.pdf,.svg" onchange="onFileSelected(this)" style="display:none">
+    <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp,image/gif" data-change-action="onFileSelected" style="display:none">
     <div class="dz-preview">
       <img src="${src}" alt="preview">
-      <button class="dz-remove" onclick="clearDropZone(event)" title="Quitar"><i class="fas fa-times"></i></button>
+      <button class="dz-remove" data-action="clearDropZone" title="Quitar"><i class="fas fa-times"></i></button>
     </div>`;
 }
 
@@ -706,7 +864,7 @@ function clearDropZone(e) {
   const dz = document.getElementById('drop-zone');
   dz.classList.remove('has-image');
   dz.innerHTML = `
-    <input type="file" id="file-input" accept="image/*,.pdf,.svg" onchange="onFileSelected(this)" style="display:none">
+    <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp,image/gif" data-change-action="onFileSelected" style="display:none">
     <div class="dz-prompt" id="dz-prompt">
       <div class="dz-icon"><i class="fas fa-cloud-upload-alt"></i></div>
       <div class="dz-text">Arrastra una imagen aquí o haz clic para seleccionar</div>
@@ -738,7 +896,7 @@ async function uploadFile(file) {
     formData.append('image', file);
     const r = await fetch(API + '/api/upload', {
       method: 'POST',
-      headers: { 'x-admin-token': token },
+      headers: { 'x-admin-token': token, ...csrfH() },
       body: formData
     });
     clearInterval(interval);
@@ -785,7 +943,7 @@ async function renderModalGallery() {
     return;
   }
   container.innerHTML = uploadedImages.map(img => `
-    <div class="gs-item ${selectedImageUrl === img.url ? 'selected' : ''}" onclick="selectFromGallery(${jsStr(img.url)}, this)">
+    <div class="gs-item ${selectedImageUrl === img.url ? 'selected' : ''}" data-action="selectFromGallery" data-url="${esc(img.url)}">
       <img src="${esc(img.url)}" alt="${esc(img.filename)}" loading="lazy">
     </div>`).join('');
 }
@@ -817,7 +975,7 @@ function renderGallery() {
       <img src="${esc(img.url)}" alt="${esc(img.filename)}" loading="lazy">
       <div class="gallery-item-info">
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${esc(img.filename)}</span>
-        <button class="gallery-item-del" onclick="deleteImage(${jsStr(img.deleteId || img.filename)}, event)" title="Eliminar"><i class="fas fa-trash"></i></button>
+        <button class="gallery-item-del" data-action="deleteImage" data-id="${esc(img.deleteId || img.filename)}" title="Eliminar"><i class="fas fa-trash"></i></button>
       </div>
     </div>`).join('');
 }
@@ -830,7 +988,7 @@ async function uploadFromGallery(input) {
   try {
     const r = await fetch(API + '/api/upload', {
       method: 'POST',
-      headers: { 'x-admin-token': token },
+      headers: { 'x-admin-token': token, ...csrfH() },
       body: formData
     });
     if (!r.ok) throw new Error();
@@ -848,7 +1006,7 @@ async function deleteImage(filename, e) {
     const url = id.includes('/')
       ? `${API}/api/upload/cloudinary?public_id=${encodeURIComponent(id)}`
       : `${API}/api/upload/${encodeURIComponent(id)}`;
-    await fetch(url, { method: 'DELETE', headers: { 'x-admin-token': token } });
+    await fetch(url, { method: 'DELETE', headers: { 'x-admin-token': token, ...csrfH() } });
     uploadedImages = uploadedImages.filter(i => (i.deleteId || i.filename) !== id);
     renderGallery();
     toast('Imagen eliminada', 'success');
@@ -871,7 +1029,7 @@ function addFeatureRow(value = '') {
   row.className = 'feature-row';
   row.innerHTML = `
     <input type="text" placeholder="Ej: Impresión a full color" value="${escHtml(value)}">
-    <button class="btn-rm-feature" onclick="this.parentElement.remove()"><i class="fas fa-minus"></i></button>`;
+    <button class="btn-rm-feature" data-action="removeFeatureRow"><i class="fas fa-minus"></i></button>`;
   list.appendChild(row);
   row.querySelector('input').focus();
 }
@@ -911,7 +1069,7 @@ async function saveProduct() {
     const method = editingId ? 'PUT' : 'POST';
     const r = await fetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
       body: JSON.stringify(payload)
     });
     if (!r.ok) throw new Error();
@@ -934,7 +1092,7 @@ function closeConfirm() { document.getElementById('confirm-overlay').classList.r
 async function confirmDelete() {
   if (!deletingId) return;
   try {
-    await fetch(`${API}/api/products/${deletingId}`, { method: 'DELETE', headers: { 'x-admin-token': token } });
+    await fetch(`${API}/api/products/${deletingId}`, { method: 'DELETE', headers: { 'x-admin-token': token, ...csrfH() } });
     closeConfirm();
     await loadProducts();
     toast('Producto eliminado', 'success');
@@ -994,7 +1152,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (approveId) {
       fetch('/api/reviews/' + approveId + '/approve', {
         method: 'PATCH',
-        headers: { 'x-admin-token': token },
+        headers: { 'x-admin-token': token, ...csrfH() },
       }).then(loadDashboard);
     }
   });
@@ -1201,11 +1359,11 @@ function renderPricingForms() {
       ${(cat.tiers || []).map((t, i) => `<div class="tier-row">
         <input type="number" class="price-input" step="1" min="1" data-key="pricing.pop.${key}.tiers.${i}.qty" value="${t.qty}">
         <input type="number" class="price-input" step="0.01" min="0" data-key="pricing.pop.${key}.tiers.${i}.ppu" value="${t.ppu}">
-        <button class="btn-icon del" onclick="removeTierRow(this)" title="Eliminar"><i class="fas fa-minus"></i></button>
+        <button class="btn-icon del" data-action="removeTierRow" title="Eliminar"><i class="fas fa-minus"></i></button>
       </div>`).join('')}
       </div>
       <div style="padding:.5rem 1.25rem;">
-        <button class="btn-add-feature" onclick="addTierRow('pricing.pop.${key}.tiers')"><i class="fas fa-plus"></i> Agregar nivel de precio</button>
+        <button class="btn-add-feature" data-action="addTierRow" data-path="pricing.pop.${key}.tiers"><i class="fas fa-plus"></i> Agregar nivel de precio</button>
       </div>
     </div>`).join('');
   }
@@ -1220,11 +1378,11 @@ function renderPricingForms() {
       ${(cat.tiers || []).map((t, i) => `<div class="tier-row">
         <input type="number" class="price-input" step="1" min="1" data-key="pricing.etiquetas.${key}.tiers.${i}.qty" value="${t.qty}">
         <input type="number" class="price-input" step="0.001" min="0" data-key="pricing.etiquetas.${key}.tiers.${i}.ppu" value="${t.ppu}">
-        <button class="btn-icon del" onclick="removeTierRow(this)" title="Eliminar"><i class="fas fa-minus"></i></button>
+        <button class="btn-icon del" data-action="removeTierRow" title="Eliminar"><i class="fas fa-minus"></i></button>
       </div>`).join('')}
       </div>
       <div style="padding:.5rem 1.25rem;">
-        <button class="btn-add-feature" onclick="addTierRow('pricing.etiquetas.${key}.tiers')"><i class="fas fa-plus"></i> Agregar nivel de precio</button>
+        <button class="btn-add-feature" data-action="addTierRow" data-path="pricing.etiquetas.${key}.tiers"><i class="fas fa-plus"></i> Agregar nivel de precio</button>
       </div>
     </div>`).join('');
   }
@@ -1239,11 +1397,11 @@ function renderPricingForms() {
       ${(cat.tiers || []).map((t, i) => `<div class="tier-row">
         <input type="number" class="price-input" step="1" min="1" data-key="pricing.packaging.${key}.tiers.${i}.qty" value="${t.qty}">
         <input type="number" class="price-input" step="0.01" min="0" data-key="pricing.packaging.${key}.tiers.${i}.ppu" value="${t.ppu}">
-        <button class="btn-icon del" onclick="removeTierRow(this)" title="Eliminar"><i class="fas fa-minus"></i></button>
+        <button class="btn-icon del" data-action="removeTierRow" title="Eliminar"><i class="fas fa-minus"></i></button>
       </div>`).join('')}
       </div>
       <div style="padding:.5rem 1.25rem;">
-        <button class="btn-add-feature" onclick="addTierRow('pricing.packaging.${key}.tiers')"><i class="fas fa-plus"></i> Agregar nivel de precio</button>
+        <button class="btn-add-feature" data-action="addTierRow" data-path="pricing.packaging.${key}.tiers"><i class="fas fa-plus"></i> Agregar nivel de precio</button>
       </div>
     </div>`).join('');
   }
@@ -1314,7 +1472,7 @@ async function savePricing() {
   try {
     const r = await fetch(API + '/api/pricing', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
       body: JSON.stringify(updated)
     });
     if (!r.ok) throw new Error();
@@ -1350,7 +1508,7 @@ function addTierRow(basePath) {
   row.innerHTML = `
     <input type="number" class="price-input" step="1" min="1" data-key="${basePath}.${newIdx}.qty" placeholder="Cantidad" value="1000">
     <input type="number" class="price-input" step="0.01" min="0" data-key="${basePath}.${newIdx}.ppu" placeholder="Precio" value="0.00">
-    <button class="btn-icon del" onclick="removeTierRow(this)" title="Eliminar"><i class="fas fa-minus"></i></button>
+    <button class="btn-icon del" data-action="removeTierRow" title="Eliminar"><i class="fas fa-minus"></i></button>
   `;
   container.appendChild(row);
   setPricingDirty(true);
@@ -1413,10 +1571,10 @@ function renderVideosAdmin() {
       </div>
       <span class="badge ${v.active ? 'active' : 'inactive'}">${v.active ? 'Visible' : 'Oculto'}</span>
       <div class="video-admin-actions">
-        <button class="btn-icon" onclick="moveVideoUp(${v.id})" title="Subir" style="color:var(--muted)"><i class="fas fa-chevron-up"></i></button>
-        <button class="btn-icon" onclick="moveVideoDown(${v.id})" title="Bajar" style="color:var(--muted)"><i class="fas fa-chevron-down"></i></button>
-        <button class="btn-icon edit" onclick="editVideo(${v.id})" title="Editar"><i class="fas fa-edit"></i></button>
-        <button class="btn-icon del" onclick="deleteVideo(${v.id})" title="Eliminar"><i class="fas fa-trash"></i></button>
+        <button class="btn-icon" data-action="moveVideoUp" data-id="${v.id}" title="Subir" style="color:var(--muted)"><i class="fas fa-chevron-up"></i></button>
+        <button class="btn-icon" data-action="moveVideoDown" data-id="${v.id}" title="Bajar" style="color:var(--muted)"><i class="fas fa-chevron-down"></i></button>
+        <button class="btn-icon edit" data-action="editVideo" data-id="${v.id}" title="Editar"><i class="fas fa-edit"></i></button>
+        <button class="btn-icon del" data-action="deleteVideo" data-id="${v.id}" title="Eliminar"><i class="fas fa-trash"></i></button>
       </div>
     </div>`;
   }).join('');
@@ -1613,6 +1771,8 @@ function uploadVideoFile(file) {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', API + '/api/upload/video');
     xhr.setRequestHeader('x-admin-token', token);
+    const csrfToken = getCsrfToken();
+    if (csrfToken) xhr.setRequestHeader('x-csrf-token', csrfToken);
 
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) {
@@ -1656,7 +1816,7 @@ async function deleteVideo(id) {
     const url = v.publicId
       ? API + '/api/upload/video/cloudinary?public_id=' + encodeURIComponent(v.publicId)
       : API + '/api/upload/video/' + encodeURIComponent(filename);
-    fetch(url, { method: 'DELETE', headers: { 'x-admin-token': token } })
+    fetch(url, { method: 'DELETE', headers: { 'x-admin-token': token, ...csrfH() } })
       .catch(() => { });
   }
   renderVideosAdmin();
@@ -1718,7 +1878,7 @@ async function persistSettings() {
     const updated = { ...currentSettings, videos: videosData, socialMedia: socialData };
     const r = await fetch(API + '/api/settings', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
       body: JSON.stringify(updated),
     });
     if (!r.ok) throw new Error();
@@ -1763,7 +1923,7 @@ async function doResetPassword() {
   try {
     const r = await fetch(`${API}/api/auth/reset-password`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...csrfH() },
       body: JSON.stringify({ token: resetToken, newPassword: newPass }),
     });
     const d = await r.json();
@@ -1912,7 +2072,10 @@ async function loadAdminProfile() {
       headers: { 'x-admin-token': token },
       cache: 'no-store',
     });
-    if (!r.ok) return;
+    if (!r.ok) {
+      currentAdminUser = null;
+      return false;
+    }
     const d = await r.json();
     currentAdminUser = d;
     applyAdminPermissions();
@@ -1924,7 +2087,11 @@ async function loadAdminProfile() {
       if (secEmail) secEmail.value = email;
       if (loginEmail) loginEmail.value = email;
     }
-  } catch { }
+    return true;
+  } catch {
+    currentAdminUser = null;
+    return false;
+  }
 }
 
 async function changePassword() {
@@ -2023,11 +2190,11 @@ async function loadAdminUsers() {
           </div>
         </div>
         <div class="admin-user-actions">
-          <button class="btn-mini" onclick="resetAdminUserPassword(${u.id}, ${jsStr(u.email)})"><i class="fas fa-key"></i> Contraseña</button>
+          <button class="btn-mini" data-action="resetAdminUserPassword" data-id="${u.id}" data-email="${esc(u.email)}"><i class="fas fa-key"></i> Contraseña</button>
           ${currentAdminUser && currentAdminUser.id === u.id
         ? '<span class="audit-muted">Tu usuario</span>'
-        : `<button class="btn-mini ${u.active ? 'danger' : 'success'}" onclick="toggleAdminUser(${u.id}, ${!u.active})"><i class="fas ${u.active ? 'fa-ban' : 'fa-check'}"></i> ${u.active ? 'Desactivar' : 'Activar'}</button>`}
-          <button class="btn-mini" onclick="sendUserResetLink(${jsStr(u.email)})"><i class="fas fa-paper-plane"></i> Recuperar</button>
+        : `<button class="btn-mini ${u.active ? 'danger' : 'success'}" data-action="toggleAdminUser" data-id="${u.id}" data-active="${!u.active}"><i class="fas ${u.active ? 'fa-ban' : 'fa-check'}"></i> ${u.active ? 'Desactivar' : 'Activar'}</button>`}
+          <button class="btn-mini" data-action="sendUserResetLink" data-email="${esc(u.email)}"><i class="fas fa-paper-plane"></i> Recuperar</button>
         </div>
       </div>
     `).join('') : '<div class="dash-empty"><i class="fas fa-users-cog"></i><span>No hay usuarios registrados.</span></div>';
@@ -2164,7 +2331,10 @@ function renderTwoFaState(enabled) {
 
 async function initTwoFaSetup() {
   try {
-    const r = await fetch(API + '/api/auth/2fa/setup', { headers: { 'x-admin-token': token } });
+    const r = await fetch(API + '/api/auth/2fa/setup', {
+      method: 'POST',
+      headers: { 'x-admin-token': token, ...csrfH() },
+    });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error);
     document.getElementById('twofa-qr-img').src = d.qrCode;

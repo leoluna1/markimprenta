@@ -29,6 +29,7 @@ const JSON_FILES = {
   auth:      path.join(dataDir, 'auth.json'),
   adminUsers: path.join(dataDir, 'admin-users.json'),
   auditEvents: path.join(dataDir, 'audit-events.json'),
+  adminSessionRevocations: path.join(dataDir, 'admin-session-revocations.json'),
 };
 
 const SEED_FILES = {
@@ -155,9 +156,17 @@ async function createTables() {
       active BOOLEAN NOT NULL DEFAULT TRUE,
       totp_secret VARCHAR(255),
       totp_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+      session_version INTEGER NOT NULL DEFAULT 1,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       last_login_at TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS admin_session_revocations (
+      jti VARCHAR(120) PRIMARY KEY,
+      user_id INTEGER,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS audit_events (
@@ -180,6 +189,7 @@ async function createTables() {
   await pool.query('ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS name VARCHAR(120)');
   await pool.query('ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS role VARCHAR(30) NOT NULL DEFAULT \'admin\'');
   await pool.query('ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE');
+  await pool.query('ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 1');
   await pool.query('ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP');
   logger.info('[DB] Tablas de base de datos verificadas/creadas ✓');
 }
@@ -613,6 +623,7 @@ const mapAdminUserFromDb = (r) => ({
   active: r.active !== false,
   totp_secret: r.totp_secret || null,
   totp_enabled: !!r.totp_enabled,
+  session_version: parseInt(r.session_version, 10) || 1,
   created_at: r.created_at,
   updated_at: r.updated_at,
   last_login_at: r.last_login_at,
@@ -632,6 +643,7 @@ function legacyAdminUser() {
     active: true,
     totp_secret: auth?.totp_secret || null,
     totp_enabled: !!auth?.totp_enabled,
+    session_version: 1,
     created_at: nowIso(),
     updated_at: nowIso(),
     last_login_at: null,
@@ -640,7 +652,16 @@ function legacyAdminUser() {
 
 function readLocalAdminUsers() {
   const users = readLocalJson('adminUsers', null);
-  if (Array.isArray(users) && users.length) return users;
+  if (Array.isArray(users) && users.length) {
+    let changed = false;
+    const normalized = users.map(u => {
+      if (u.session_version) return u;
+      changed = true;
+      return { ...u, session_version: 1 };
+    });
+    if (changed) writeLocalJson('adminUsers', normalized);
+    return normalized;
+  }
   const legacy = legacyAdminUser();
   if (!legacy) return [];
   writeLocalJson('adminUsers', [legacy]);
@@ -678,6 +699,14 @@ async function listAdminUsers() {
   return readLocalAdminUsers().map(publicAdminUser);
 }
 
+async function countActiveOwners() {
+  if (pool) {
+    const res = await pool.query("SELECT COUNT(*) FROM admin_users WHERE active=true AND role='owner'");
+    return parseInt(res.rows[0]?.count, 10) || 0;
+  }
+  return readLocalAdminUsers().filter(u => u.active !== false && u.role === 'owner').length;
+}
+
 async function createAdminUser(user) {
   const cleanEmail = normalizeEmail(user.email);
   if (pool) {
@@ -705,6 +734,7 @@ async function createAdminUser(user) {
     active: true,
     totp_secret: null,
     totp_enabled: false,
+    session_version: 1,
     created_at: nowIso(),
     updated_at: nowIso(),
     last_login_at: null,
@@ -813,6 +843,73 @@ async function markAdminUserLogin(id) {
   user.last_login_at = nowIso();
   writeLocalAdminUsers(users);
   return true;
+}
+
+async function incrementAdminUserSessionVersion(id) {
+  const userId = parseInt(id, 10);
+  if (!Number.isFinite(userId)) return null;
+  if (pool) {
+    const res = await pool.query(
+      `UPDATE admin_users
+       SET session_version = COALESCE(session_version, 1) + 1,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id=$1
+       RETURNING *`,
+      [userId]
+    );
+    return res.rows.length ? mapAdminUserFromDb(res.rows[0]) : null;
+  }
+  const users = readLocalAdminUsers();
+  const idx = users.findIndex(u => parseInt(u.id, 10) === userId);
+  if (idx === -1) return null;
+  users[idx].session_version = (parseInt(users[idx].session_version, 10) || 1) + 1;
+  users[idx].updated_at = nowIso();
+  writeLocalAdminUsers(users);
+  return users[idx];
+}
+
+async function revokeAdminSession(jti, userId, expiresAt) {
+  const tokenId = String(jti || '').trim();
+  if (!tokenId) return false;
+  const exp = expiresAt instanceof Date ? expiresAt : new Date(expiresAt);
+  if (Number.isNaN(exp.getTime())) return false;
+  if (pool) {
+    await pool.query(
+      `INSERT INTO admin_session_revocations (jti, user_id, expires_at)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (jti) DO UPDATE SET expires_at = EXCLUDED.expires_at`,
+      [tokenId, Number.isFinite(parseInt(userId, 10)) ? parseInt(userId, 10) : null, exp]
+    );
+    return true;
+  }
+  const list = readLocalJson('adminSessionRevocations', []);
+  const active = list.filter(x => new Date(x.expires_at).getTime() > Date.now() && x.jti !== tokenId);
+  active.push({
+    jti: tokenId,
+    user_id: Number.isFinite(parseInt(userId, 10)) ? parseInt(userId, 10) : null,
+    expires_at: exp.toISOString(),
+    created_at: nowIso(),
+  });
+  writeLocalJson('adminSessionRevocations', active);
+  return true;
+}
+
+async function isAdminSessionRevoked(jti) {
+  const tokenId = String(jti || '').trim();
+  if (!tokenId) return false;
+  if (pool) {
+    await pool.query('DELETE FROM admin_session_revocations WHERE expires_at <= CURRENT_TIMESTAMP');
+    const res = await pool.query(
+      'SELECT 1 FROM admin_session_revocations WHERE jti=$1 AND expires_at > CURRENT_TIMESTAMP LIMIT 1',
+      [tokenId]
+    );
+    return res.rows.length > 0;
+  }
+  const list = readLocalJson('adminSessionRevocations', []);
+  const now = Date.now();
+  const active = list.filter(x => new Date(x.expires_at).getTime() > now);
+  if (active.length !== list.length) writeLocalJson('adminSessionRevocations', active);
+  return active.some(x => x.jti === tokenId);
 }
 
 async function createAuditEvent(event) {
@@ -955,11 +1052,15 @@ module.exports = {
   getAdminUserByEmail,
   getAdminUserById,
   listAdminUsers,
+  countActiveOwners,
   createAdminUser,
   updateAdminUser,
   updateAdminUserPassword,
   updateAdminUserTotp,
   markAdminUserLogin,
+  incrementAdminUserSessionVersion,
+  revokeAdminSession,
+  isAdminSessionRevoked,
   createAuditEvent,
   listAuditEvents,
   getAuth,

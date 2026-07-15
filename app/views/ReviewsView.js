@@ -114,10 +114,8 @@ export default class ReviewsView extends BaseView {
       const date     = new Date(r.date).toLocaleDateString('es-EC', { year:'numeric', month:'short', day:'numeric' });
 
       const card = document.createElement('div');
-      card.className = 'resena-card';
-      card.style.opacity   = '0';
-      card.style.transform = 'translateY(20px)';
-      card.style.transition = `opacity 0.5s ease ${idx * 0.08}s, transform 0.5s ease ${idx * 0.08}s`;
+      card.className = 'resena-card is-entering';
+      card.style.transitionDelay = `${idx * 0.08}s`;
       card.innerHTML = `
         <div class="resena-stars">${stars}</div>
         <p class="resena-texto">"${this.esc(r.comment)}"</p>
@@ -131,8 +129,8 @@ export default class ReviewsView extends BaseView {
       this._grid.appendChild(card);
       // Doble rAF para que el navegador pinte el estado inicial antes de animar
       requestAnimationFrame(() => requestAnimationFrame(() => {
-        card.style.opacity   = '1';
-        card.style.transform = 'translateY(0)';
+        card.classList.remove('is-entering');
+        card.classList.add('is-visible');
       }));
     });
   }

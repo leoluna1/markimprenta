@@ -1,873 +1,1094 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panel Admin — Mark Publicidad</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="stylesheet" href="/admin/styles.css?v=20260702-pricing-ux">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Admin — Mark Publicidad</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/admin/styles.css?v=20260702-pricing-ux">
 </head>
+
 <body>
 
-<!-- ══ TOAST NOTIFICACIONES ══ -->
-<div id="admin-toast" style="
+  <!-- ══ TOAST NOTIFICACIONES ══ -->
+  <div id="admin-toast" style="
   position:fixed;top:1.25rem;right:1.25rem;z-index:9999;
   display:flex;flex-direction:column;gap:.5rem;pointer-events:none;
 "></div>
 
-<!-- ══════════ LOGIN ══════════ -->
-<div id="login-screen">
+  <!-- ══════════ LOGIN ══════════ -->
+  <div id="login-screen">
 
-  <!-- Formulario normal de login -->
-  <div class="login-card" id="login-form">
-    <div class="brand-icon brand-logo"><img src="/images/logo.png" alt="Marka Publicidad"></div>
-    <h1>Mark Publicidad</h1>
-    <p>Panel de administración</p>
-    <div class="login-error" id="login-error">Correo o contraseña incorrectos</div>
-    <input type="email" id="login-email" placeholder="Correo de administrador" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
-    <div class="pw-wrap">
-      <input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
-      <button class="pw-eye" type="button" onclick="togglePw('login-pass',this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+    <!-- Formulario normal de login -->
+    <div class="login-card" id="login-form">
+      <div class="brand-icon brand-logo"><img src="/images/logo.png" alt="Marka Publicidad"></div>
+      <h1>Mark Publicidad</h1>
+      <p>Panel de administración</p>
+      <div class="login-error" id="login-error">Correo o contraseña incorrectos</div>
+      <input type="email" id="login-email" placeholder="Correo de administrador" autocomplete="username"
+        onkeydown="if(event.key==='Enter')doLogin()">
+      <div class="pw-wrap">
+        <input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')doLogin()">
+        <button class="pw-eye" type="button" onclick="togglePw('login-pass',this)" tabindex="-1"><i
+            class="fas fa-eye"></i></button>
+      </div>
+      <button class="btn-login" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> Ingresar</button>
+      <button class="btn-forgot" onclick="showLoginCard('forgot-form')">¿Olvidaste la contraseña?</button>
     </div>
-    <button class="btn-login" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> Ingresar</button>
-    <button class="btn-forgot" onclick="showLoginCard('forgot-form')">¿Olvidaste la contraseña?</button>
+
+    <!-- Tarjeta: recuperar contraseña -->
+    <div class="login-card" id="forgot-form" style="display:none;">
+      <div class="brand-icon" style="background:var(--blue);"><i class="fas fa-envelope"></i></div>
+      <h1>Recuperar acceso</h1>
+      <p id="forgot-desc">Se enviará un enlace de recuperación al correo del usuario registrado.</p>
+      <div class="login-error" id="forgot-error"></div>
+      <!-- Estado éxito (oculto por defecto) -->
+      <div id="forgot-sent" style="display:none;margin-bottom:1.5rem;">
+        <div class="forgot-sent-icon"><i class="fas fa-check-circle"></i></div>
+        <p style="font-weight:600;color:var(--green);margin-bottom:.4rem;">Solicitud recibida</p>
+        <p id="forgot-sent-text" style="font-size:.85rem;color:var(--muted);">Si el correo coincide con un usuario
+          registrado, recibirás un enlace para restablecer tu contraseña. El enlace expira en 15 minutos.</p>
+        <a id="forgot-dev-link" href="#"
+          style="display:none;margin-top:.9rem;padding:.65rem .9rem;border-radius:8px;background:var(--blue);color:white;text-decoration:none;font-size:.85rem;font-weight:600;">Abrir
+          enlace local</a>
+      </div>
+      <!-- Acciones principales -->
+      <div id="forgot-actions">
+        <input type="email" id="forgot-email" placeholder="Correo del usuario" autocomplete="email"
+          onkeydown="if(event.key==='Enter')sendResetLink()">
+        <button class="btn-login" id="btn-send-link" onclick="sendResetLink()"><i class="fas fa-paper-plane"></i> Enviar
+          enlace</button>
+      </div>
+      <button class="btn-forgot" onclick="showLoginCard('login-form')">← Volver al login</button>
+    </div>
+
+    <!-- Paso 2: verificación 2FA -->
+    <div class="login-card" id="totp-form" style="display:none;">
+      <div class="brand-icon" style="background:var(--purple);"><i class="fas fa-shield-alt"></i></div>
+      <h1>Verificación en 2 pasos</h1>
+      <p>Ingresa el código de 6 dígitos de tu aplicación autenticadora</p>
+      <div class="login-error" id="totp-error">Código incorrecto o expirado</div>
+      <input type="text" id="totp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+        placeholder="000 000" style="text-align:center;font-size:1.5rem;letter-spacing:.25em;"
+        onkeydown="if(event.key==='Enter')doTotpVerify()">
+      <button class="btn-login" onclick="doTotpVerify()"><i class="fas fa-check-circle"></i> Verificar</button>
+      <button class="btn-forgot" onclick="showLoginCard('login-form')">← Cancelar y volver</button>
+    </div>
+
+    <!-- Formulario de reset de contraseña (aparece con ?reset_token=...) -->
+    <div class="login-card" id="reset-form" style="display:none;">
+      <div class="brand-icon" style="background:var(--red);"><i class="fas fa-key"></i></div>
+      <h1>Nueva contraseña</h1>
+      <p>Establece tu nueva contraseña de acceso</p>
+      <div class="login-error" id="reset-error"></div>
+      <div class="login-success" id="reset-success"></div>
+      <div class="pw-wrap">
+        <input type="password" id="reset-new" placeholder="Nueva contraseña (mín. 8 caracteres)"
+          oninput="checkStrength(this.value,'reset-strength-fill','reset-strength-label')">
+        <button class="pw-eye" type="button" onclick="togglePw('reset-new',this)" tabindex="-1"><i
+            class="fas fa-eye"></i></button>
+      </div>
+      <div class="strength-track">
+        <div class="strength-fill" id="reset-strength-fill"></div>
+      </div>
+      <div class="strength-label" id="reset-strength-label"></div>
+      <div class="pw-wrap" style="margin-top:.75rem;">
+        <input type="password" id="reset-confirm" placeholder="Confirmar contraseña"
+          onkeydown="if(event.key==='Enter')doResetPassword()">
+        <button class="pw-eye" type="button" onclick="togglePw('reset-confirm',this)" tabindex="-1"><i
+            class="fas fa-eye"></i></button>
+      </div>
+      <button class="btn-login" onclick="doResetPassword()"><i class="fas fa-lock"></i> Guardar contraseña</button>
+    </div>
+
   </div>
 
-  <!-- Tarjeta: recuperar contraseña -->
-  <div class="login-card" id="forgot-form" style="display:none;">
-    <div class="brand-icon" style="background:var(--blue);"><i class="fas fa-envelope"></i></div>
-    <h1>Recuperar acceso</h1>
-    <p id="forgot-desc">Se enviará un enlace de recuperación al email del administrador registrado.</p>
-    <div class="login-error" id="forgot-error"></div>
-    <!-- Estado éxito (oculto por defecto) -->
-    <div id="forgot-sent" style="display:none;margin-bottom:1.5rem;">
-      <div class="forgot-sent-icon"><i class="fas fa-check-circle"></i></div>
-      <p style="font-weight:600;color:var(--green);margin-bottom:.4rem;">Solicitud recibida</p>
-      <p style="font-size:.85rem;color:var(--muted);">Si el correo coincide con el administrador, recibirás un enlace para restablecer tu contraseña. El enlace expira en 15 minutos.</p>
-    </div>
-    <!-- Acciones principales -->
-    <div id="forgot-actions">
-      <input type="email" id="forgot-email" placeholder="Correo de administrador" autocomplete="email" onkeydown="if(event.key==='Enter')sendResetLink()">
-      <button class="btn-login" id="btn-send-link" onclick="sendResetLink()"><i class="fas fa-paper-plane"></i> Enviar enlace</button>
-    </div>
-    <button class="btn-forgot" onclick="showLoginCard('login-form')">← Volver al login</button>
-  </div>
-
-  <!-- Paso 2: verificación 2FA -->
-  <div class="login-card" id="totp-form" style="display:none;">
-    <div class="brand-icon" style="background:var(--purple);"><i class="fas fa-shield-alt"></i></div>
-    <h1>Verificación en 2 pasos</h1>
-    <p>Ingresa el código de 6 dígitos de tu aplicación autenticadora</p>
-    <div class="login-error" id="totp-error">Código incorrecto o expirado</div>
-    <input type="text" id="totp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000 000" style="text-align:center;font-size:1.5rem;letter-spacing:.25em;" onkeydown="if(event.key==='Enter')doTotpVerify()">
-    <button class="btn-login" onclick="doTotpVerify()"><i class="fas fa-check-circle"></i> Verificar</button>
-    <button class="btn-forgot" onclick="showLoginCard('login-form')">← Cancelar y volver</button>
-  </div>
-
-  <!-- Formulario de reset de contraseña (aparece con ?reset_token=...) -->
-  <div class="login-card" id="reset-form" style="display:none;">
-    <div class="brand-icon" style="background:var(--red);"><i class="fas fa-key"></i></div>
-    <h1>Nueva contraseña</h1>
-    <p>Establece tu nueva contraseña de acceso</p>
-    <div class="login-error" id="reset-error"></div>
-    <div class="login-success" id="reset-success"></div>
-    <div class="pw-wrap">
-      <input type="password" id="reset-new" placeholder="Nueva contraseña (mín. 8 caracteres)" oninput="checkStrength(this.value,'reset-strength-fill','reset-strength-label')">
-      <button class="pw-eye" type="button" onclick="togglePw('reset-new',this)" tabindex="-1"><i class="fas fa-eye"></i></button>
-    </div>
-    <div class="strength-track"><div class="strength-fill" id="reset-strength-fill"></div></div>
-    <div class="strength-label" id="reset-strength-label"></div>
-    <div class="pw-wrap" style="margin-top:.75rem;">
-      <input type="password" id="reset-confirm" placeholder="Confirmar contraseña" onkeydown="if(event.key==='Enter')doResetPassword()">
-      <button class="pw-eye" type="button" onclick="togglePw('reset-confirm',this)" tabindex="-1"><i class="fas fa-eye"></i></button>
-    </div>
-    <button class="btn-login" onclick="doResetPassword()"><i class="fas fa-lock"></i> Guardar contraseña</button>
-  </div>
-
-</div>
-
-<!-- ══════════ APP ══════════ -->
-<div id="app">
-  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <div class="logo">
-        <div class="logo-icon logo-mark"><img src="/images/logo.png" alt="Marka Publicidad"></div>
-        <div><div class="logo-text">MARK PUBLICIDAD</div><div class="logo-sub">Panel Admin</div></div>
-      </div>
-    </div>
-    <nav class="sidebar-nav">
-      <div class="nav-item active" id="nav-dashboard" data-goto="dashboard">
-        <i class="fas fa-chart-bar"></i> Dashboard
-      </div>
-      <div class="nav-item" id="nav-products" data-goto="products">
-        <i class="fas fa-box"></i> Productos
-      </div>
-      <div class="nav-item" id="nav-gallery" data-goto="gallery">
-        <i class="fas fa-images"></i> Imágenes
-      </div>
-      <div class="nav-item" id="nav-pricing" data-goto="pricing">
-        <i class="fas fa-calculator"></i> Cotizador
-      </div>
-      <div class="nav-item" id="nav-videos" data-goto="videos">
-        <i class="fas fa-video"></i> Videos
-      </div>
-      <div class="nav-item" id="nav-social" data-goto="social">
-        <i class="fas fa-share-alt"></i> Redes Sociales
-      </div>
-      <div class="nav-item" id="nav-portfolio" data-goto="portfolio">
-        <i class="fas fa-images"></i> Portfolio
-      </div>
-      <div class="nav-item" id="nav-reviews" data-goto="reviews">
-        <i class="fas fa-star"></i> Reseñas <span id="reviews-badge" style="display:none;margin-left:auto;background:var(--orange);color:white;border-radius:99px;font-size:.7rem;padding:2px 7px;font-weight:600;"></span>
-      </div>
-      <div class="nav-item" id="nav-contacts" data-goto="contacts">
-        <i class="fas fa-envelope"></i> Contactos <span id="contacts-badge" style="display:none;background:#E30613;color:#fff;font-size:.65rem;font-weight:700;border-radius:99px;padding:1px 6px;margin-left:auto;"></span>
-      </div>
-      <div class="nav-item" id="nav-security" data-goto="security">
-        <i class="fas fa-lock"></i> Seguridad
-      </div>
-      <div class="nav-item" id="nav-users" data-goto="users" data-admin-only hidden>
-        <i class="fas fa-users-cog"></i> Usuarios
-      </div>
-      <div class="nav-item" id="nav-audit" data-goto="audit" data-admin-only hidden>
-        <i class="fas fa-clipboard-list"></i> Historial
-      </div>
-      <div class="nav-item" id="nav-view-site">
-        <i class="fas fa-external-link-alt"></i> Ver sitio web
-      </div>
-    </nav>
-    <div class="sidebar-footer">
-      <button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
-    </div>
-  </aside>
-
-  <main class="main-content">
-
-    <!-- Mobile header -->
-    <div class="mob-header">
-      <button class="mob-ham" onclick="toggleSidebar()" aria-label="Menú"><i class="fas fa-bars"></i></button>
-      <img class="mob-logo" src="/images/logo.png" alt="Marka Publicidad">
-      <span class="mob-title">Mark Publicidad · Admin</span>
-    </div>
-
-    <!-- ── SECCIÓN DASHBOARD ── -->
-    <div class="section-panel active" id="section-dashboard">
-      <div class="topbar">
-        <div>
-          <h2 class="dash-title"><span class="dash-title-icon"><i class="fas fa-chart-bar"></i></span>Dashboard</h2>
-          <div class="sub">Resumen general del sitio web</div>
-        </div>
-        <button class="btn-add" id="dash-refresh-btn">
-          <i class="fas fa-sync-alt" id="dash-refresh-icon"></i> Actualizar
-        </button>
-      </div>
-
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon blue"><i class="fas fa-box"></i></div>
-          <div><div class="stat-value" id="dash-products">—</div><div class="stat-label">Productos</div></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon green"><i class="fas fa-star"></i></div>
-          <div><div class="stat-value" id="dash-popular">—</div><div class="stat-label">Populares</div></div>
-        </div>
-        <div class="stat-card" style="cursor:pointer" data-goto="contacts">
-          <div class="stat-icon" style="background:#fff0ef;color:#ff3b30;"><i class="fas fa-envelope"></i></div>
-          <div><div class="stat-value" id="dash-messages">—</div><div class="stat-label">Mensajes sin leer</div></div>
-        </div>
-        <div class="stat-card" style="cursor:pointer" data-goto="reviews">
-          <div class="stat-icon" style="background:var(--orange-light);color:var(--orange);"><i class="fas fa-clock"></i></div>
-          <div><div class="stat-value" id="dash-reviews">—</div><div class="stat-label">Reseñas pendientes</div></div>
-        </div>
-        <div class="stat-card" style="cursor:pointer" data-goto="portfolio">
-          <div class="stat-icon" style="background:var(--purple-light);color:var(--purple);"><i class="fas fa-images"></i></div>
-          <div><div class="stat-value" id="dash-portfolio">—</div><div class="stat-label">Items en portfolio</div></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon" style="background:var(--green-light);color:var(--green);"><i class="fas fa-tags"></i></div>
-          <div><div class="stat-value" id="dash-categories">—</div><div class="stat-label">Categorías</div></div>
-        </div>
-        <div class="stat-card" style="cursor:pointer" data-goto="users" data-admin-only hidden>
-          <div class="stat-icon blue"><i class="fas fa-users-cog"></i></div>
-          <div><div class="stat-value" id="dash-users">—</div><div class="stat-label">Usuarios admin</div></div>
-        </div>
-        <div class="stat-card" style="cursor:pointer" data-goto="audit" data-admin-only hidden>
-          <div class="stat-icon purple"><i class="fas fa-clipboard-list"></i></div>
-          <div><div class="stat-value" id="dash-audit">—</div><div class="stat-label">Cambios recientes</div></div>
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-top:1.5rem;" id="dash-lists-grid">
-        <div class="table-card">
-          <div class="dash-card-head">
-            <strong class="dash-card-title"><span class="dash-head-icon red"><i class="fas fa-envelope"></i></span>Últimos mensajes</strong>
-            <button class="btn-add dash-mini-btn" data-goto="contacts"><i class="fas fa-arrow-right"></i> Ver todos</button>
-          </div>
-          <div id="dash-messages-list"></div>
-        </div>
-        <div class="table-card">
-          <div class="dash-card-head">
-            <strong class="dash-card-title"><span class="dash-head-icon orange"><i class="fas fa-star"></i></span>Reseñas pendientes</strong>
-            <button class="btn-add dash-mini-btn" data-goto="reviews"><i class="fas fa-arrow-right"></i> Ver todas</button>
-          </div>
-          <div id="dash-reviews-list"></div>
-        </div>
-      </div>
-
-      <div style="margin-top:1.5rem;">
-        <div class="dash-actions-title"><span class="dash-head-icon blue"><i class="fas fa-bolt"></i></span>Acciones rápidas</div>
-        <div style="display:flex;flex-wrap:wrap;gap:.6rem;">
-          <button class="btn-add" data-goto="products"><i class="fas fa-box"></i> Productos</button>
-          <button class="btn-add" data-goto="pricing"><i class="fas fa-calculator"></i> Cotizador</button>
-          <button class="btn-add" data-goto="gallery"><i class="fas fa-images"></i> Galería</button>
-          <button class="btn-add" data-goto="portfolio"><i class="fas fa-th"></i> Portfolio</button>
-          <button class="btn-add" data-goto="videos"><i class="fas fa-video"></i> Videos</button>
-          <button class="btn-add" data-goto="users" data-admin-only hidden><i class="fas fa-users-cog"></i> Usuarios</button>
-          <button class="btn-add" data-goto="audit" data-admin-only hidden><i class="fas fa-clipboard-list"></i> Historial</button>
-          <button class="btn-add" id="dash-view-site-btn"><i class="fas fa-external-link-alt"></i> Ver sitio web</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── SECCIÓN PRODUCTOS ── -->
-    <div class="section-panel" id="section-products">
-      <div class="topbar">
-        <div><h2>Catálogo de Productos</h2><div class="sub">Gestiona todos los productos del sitio web</div></div>
-      </div>
-      <div class="stats-grid">
-        <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-box"></i></div><div><div class="stat-value" id="st-total">—</div><div class="stat-label">Total productos</div></div></div>
-        <div class="stat-card"><div class="stat-icon green"><i class="fas fa-star"></i></div><div><div class="stat-value" id="st-popular">—</div><div class="stat-label">Populares</div></div></div>
-        <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-tags"></i></div><div><div class="stat-value" id="st-cats">—</div><div class="stat-label">Categorías</div></div></div>
-        <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-dollar-sign"></i></div><div><div class="stat-value" id="st-avg">—</div><div class="stat-label">Precio promedio</div></div></div>
-        <div class="stat-card"><div class="stat-icon" style="background:#fff0ef;color:#ff3b30;"><i class="fas fa-envelope"></i></div><div><div class="stat-value" id="st-messages">—</div><div class="stat-label">Mensajes nuevos</div></div></div>
-      </div>
-      <div class="toolbar">
-        <div class="search-box"><i class="fas fa-search"></i><input type="text" id="search-input" placeholder="Buscar producto..." oninput="renderTable()"></div>
-        <select class="filter-select" id="cat-filter" onchange="renderTable()">
-          <option value="">Todas las categorías</option>
-          <option value="impresion">Impresión</option>
-          <option value="promocional">Promocional</option>
-          <option value="packaging">Packaging</option>
-          <option value="gran-formato">Gran Formato</option>
-        </select>
-        <button class="btn-add" onclick="openModal()"><i class="fas fa-plus"></i> Nuevo producto</button>
-      </div>
-      <div class="table-card">
-        <table>
-          <thead><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Cant. mín.</th><th>Popular</th><th>Acciones</th></tr></thead>
-          <tbody id="products-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ── SECCIÓN GALERÍA ── -->
-    <div class="section-panel" id="section-gallery">
-      <div class="topbar">
-        <div><h2>Galería de Imágenes</h2><div class="sub">Todas las imágenes subidas al servidor</div></div>
-        <label style="display:flex;align-items:center;gap:.5rem;padding:.5rem 1.25rem;background:var(--blue);color:white;border-radius:var(--radius-sm);cursor:pointer;font-size:.9rem;font-weight:500;">
-          <i class="fas fa-upload"></i> Subir imagen
-          <input type="file" accept="image/*,.pdf,.svg" style="display:none" onchange="uploadFromGallery(this)">
-        </label>
-      </div>
-      <div class="gallery-grid" id="gallery-grid">
-        <div class="gallery-empty"><i class="fas fa-images" style="font-size:2rem;display:block;margin-bottom:1rem;opacity:.3;"></i>No hay imágenes aún</div>
-      </div>
-    </div>
-
-    <!-- ══ SECCIÓN COTIZADOR (precios) ══ -->
-    <div class="section-panel" id="section-pricing">
-      <div class="topbar">
-        <div>
-          <h2>Precios del Cotizador</h2>
-          <div class="sub">Edita los precios del cotizador. Al guardar, se aplican automáticamente al sitio web.</div>
-        </div>
-        <button type="button" class="btn-add pricing-refresh-btn" onclick="loadPricing()">
-          <i class="fas fa-sync-alt"></i> Recargar
-        </button>
-      </div>
-
-      <div class="pricing-overview" id="pricing-overview">
-        <div class="pricing-kpi">
-          <span>Productos</span>
-          <strong id="pricing-kpi-products">—</strong>
-        </div>
-        <div class="pricing-kpi">
-          <span>Niveles de precio</span>
-          <strong id="pricing-kpi-tiers">—</strong>
-        </div>
-        <div class="pricing-kpi">
-          <span>Entrega configurada</span>
-          <strong id="pricing-kpi-delivery">—</strong>
-        </div>
-        <div class="pricing-status clean" id="pricing-status">
-          <i class="fas fa-check-circle"></i>
+  <!-- ══════════ APP ══════════ -->
+  <div id="app">
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <div class="logo-icon logo-mark"><img src="/images/logo.png" alt="Marka Publicidad"></div>
           <div>
-            <strong>Sin cambios pendientes</strong>
-            <span>Los precios cargados coinciden con el servidor.</span>
+            <div class="logo-text">MARK PUBLICIDAD</div>
+            <div class="logo-sub">Panel Admin</div>
           </div>
         </div>
       </div>
+      <nav class="sidebar-nav">
+        <div class="nav-item active" id="nav-dashboard" data-goto="dashboard">
+          <i class="fas fa-chart-bar"></i> Dashboard
+        </div>
+        <div class="nav-item" id="nav-products" data-goto="products">
+          <i class="fas fa-box"></i> Productos
+        </div>
+        <div class="nav-item" id="nav-gallery" data-goto="gallery">
+          <i class="fas fa-images"></i> Imágenes
+        </div>
+        <div class="nav-item" id="nav-pricing" data-goto="pricing">
+          <i class="fas fa-calculator"></i> Cotizador
+        </div>
+        <div class="nav-item" id="nav-videos" data-goto="videos">
+          <i class="fas fa-video"></i> Videos
+        </div>
+        <div class="nav-item" id="nav-social" data-goto="social">
+          <i class="fas fa-share-alt"></i> Redes Sociales
+        </div>
+        <div class="nav-item" id="nav-portfolio" data-goto="portfolio">
+          <i class="fas fa-images"></i> Portfolio
+        </div>
+        <div class="nav-item" id="nav-reviews" data-goto="reviews">
+          <i class="fas fa-star"></i> Reseñas <span id="reviews-badge"
+            style="display:none;margin-left:auto;background:var(--orange);color:white;border-radius:99px;font-size:.7rem;padding:2px 7px;font-weight:600;"></span>
+        </div>
+        <div class="nav-item" id="nav-contacts" data-goto="contacts">
+          <i class="fas fa-envelope"></i> Contactos <span id="contacts-badge"
+            style="display:none;background:#E30613;color:#fff;font-size:.65rem;font-weight:700;border-radius:99px;padding:1px 6px;margin-left:auto;"></span>
+        </div>
+        <div class="nav-item" id="nav-security" data-goto="security">
+          <i class="fas fa-lock"></i> Seguridad
+        </div>
+        <div class="nav-item" id="nav-users" data-goto="users" data-admin-only hidden>
+          <i class="fas fa-users-cog"></i> Usuarios
+        </div>
+        <div class="nav-item" id="nav-audit" data-goto="audit" data-admin-only hidden>
+          <i class="fas fa-clipboard-list"></i> Historial
+        </div>
+        <div class="nav-item" id="nav-view-site">
+          <i class="fas fa-external-link-alt"></i> Ver sitio web
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
+      </div>
+    </aside>
 
-      <div class="pricing-tabs" id="pricing-tabs-bar">
-        <button type="button" class="pricing-tab active" onclick="switchPricingTab('volantes',this)"><i class="fas fa-file-alt"></i> Volantes</button>
-        <button type="button" class="pricing-tab" onclick="switchPricingTab('tarjetas',this)"><i class="fas fa-id-card"></i> Tarjetas</button>
-        <button type="button" class="pricing-tab" onclick="switchPricingTab('tazas',this)"><i class="fas fa-mug-hot"></i> Tazas</button>
-        <button type="button" class="pricing-tab" onclick="switchPricingTab('granformato',this)"><i class="fas fa-image"></i> Gran Formato</button>
-        <button type="button" class="pricing-tab" onclick="switchPricingTab('pop',this)"><i class="fas fa-gift"></i> Material POP</button>
-        <button type="button" class="pricing-tab" onclick="switchPricingTab('etiquetas',this)"><i class="fas fa-tags"></i> Etiquetas</button>
-        <button type="button" class="pricing-tab" onclick="switchPricingTab('packaging',this)"><i class="fas fa-box"></i> Packaging</button>
-        <button type="button" class="pricing-tab" onclick="switchPricingTab('diseno',this)"><i class="fas fa-palette"></i> Diseño</button>
-        <button type="button" class="pricing-tab" onclick="switchPricingTab('tiempos',this)"><i class="fas fa-clock"></i> Tiempos</button>
+    <main class="main-content">
+
+      <!-- Mobile header -->
+      <div class="mob-header">
+        <button class="mob-ham" onclick="toggleSidebar()" aria-label="Menú"><i class="fas fa-bars"></i></button>
+        <img class="mob-logo" src="/images/logo.png" alt="Marka Publicidad">
+        <span class="mob-title">Mark Publicidad · Admin</span>
       </div>
 
-      <div class="pricing-panel active" id="pp-volantes"></div>
-      <div class="pricing-panel" id="pp-tarjetas"></div>
-      <div class="pricing-panel" id="pp-tazas"></div>
-      <div class="pricing-panel" id="pp-granformato"></div>
-      <div class="pricing-panel" id="pp-pop"></div>
-      <div class="pricing-panel" id="pp-etiquetas"></div>
-      <div class="pricing-panel" id="pp-packaging"></div>
-      <div class="pricing-panel" id="pp-diseno"></div>
-      <div class="pricing-panel" id="pp-tiempos"></div>
-
-      <div class="pricing-save-bar">
-        <p><i class="fas fa-info-circle"></i> Revisa cantidades, precio unitario y tiempos antes de guardar. Los cambios se reflejan inmediatamente en el sitio.</p>
-        <div class="pricing-save-actions">
-          <button type="button" class="btn-preview-pricing" id="btn-preview-pricing">
-            <i class="fas fa-external-link-alt"></i> Ver cotizador
+      <!-- ── SECCIÓN DASHBOARD ── -->
+      <div class="section-panel active" id="section-dashboard">
+        <div class="topbar">
+          <div>
+            <h2 class="dash-title"><span class="dash-title-icon"><i class="fas fa-chart-bar"></i></span>Dashboard</h2>
+            <div class="sub">Resumen general del sitio web</div>
+          </div>
+          <button class="btn-add" id="dash-refresh-btn">
+            <i class="fas fa-sync-alt" id="dash-refresh-icon"></i> Actualizar
           </button>
-          <button type="button" class="btn-save-pricing is-idle" id="btn-save-pricing" onclick="savePricing()" disabled>
-            <i class="fas fa-save"></i> Guardar precios
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── SECCIÓN VIDEOS ── -->
-    <div class="section-panel" id="section-videos">
-      <div class="topbar">
-        <div><h2>Videos de YouTube</h2><div class="sub">Gestiona los videos que se muestran en el sitio web</div></div>
-        <button class="btn-add" onclick="openVideoModal()"><i class="fas fa-plus"></i> Agregar video</button>
-      </div>
-
-      <div style="background:var(--blue-light);border:1px solid #c7dafd;border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;gap:.75rem;align-items:flex-start;">
-        <i class="fas fa-info-circle" style="color:var(--blue);margin-top:.15rem;"></i>
-        <div style="font-size:.875rem;color:#1a4a8a;">
-          <strong>¿Cómo agregar un video?</strong><br>
-          Abre el video en YouTube, copia la URL desde la barra de direcciones y pégala directamente en el formulario. El sistema detecta el video automáticamente. También puedes usar URLs cortas (youtu.be/...) o de Shorts.
-        </div>
-      </div>
-
-      <div class="videos-admin-grid" id="videos-admin-list">
-        <div style="text-align:center;padding:3rem;color:var(--muted);">
-          <i class="fas fa-video" style="font-size:2rem;display:block;margin-bottom:1rem;opacity:.3;"></i>
-          Cargando videos...
-        </div>
-      </div>
-    </div>
-
-    <!-- ── SECCIÓN REDES SOCIALES ── -->
-    <div class="section-panel" id="section-social">
-      <div class="topbar">
-        <div><h2>Redes Sociales</h2><div class="sub">Configura los enlaces a tus redes sociales</div></div>
-      </div>
-
-      <div class="social-admin-grid">
-        <div class="social-admin-card">
-          <label><i class="fab fa-youtube social-icon-yt"></i> YouTube</label>
-          <input type="url" id="social-youtube" placeholder="https://www.youtube.com/@tucuenta">
-          <div class="hint">URL de tu canal de YouTube</div>
-        </div>
-        <div class="social-admin-card">
-          <label><i class="fab fa-instagram social-icon-ig"></i> Instagram</label>
-          <input type="url" id="social-instagram" placeholder="https://www.instagram.com/tucuenta">
-          <div class="hint">URL de tu perfil de Instagram</div>
-        </div>
-        <div class="social-admin-card">
-          <label><i class="fab fa-tiktok social-icon-tk"></i> TikTok</label>
-          <input type="url" id="social-tiktok" placeholder="https://www.tiktok.com/@tucuenta">
-          <div class="hint">URL de tu perfil de TikTok</div>
-        </div>
-        <div class="social-admin-card">
-          <label><i class="fab fa-facebook social-icon-fb"></i> Facebook</label>
-          <input type="url" id="social-facebook" placeholder="https://www.facebook.com/tupagina">
-          <div class="hint">URL de tu página de Facebook</div>
-        </div>
-        <div class="social-admin-card">
-          <label><i class="fab fa-whatsapp social-icon-wa"></i> WhatsApp</label>
-          <input type="url" id="social-whatsapp" placeholder="https://wa.me/593XXXXXXXXX">
-          <div class="hint">Ej: https://wa.me/593987654321</div>
-        </div>
-        <div class="social-admin-card">
-          <label><i class="fab fa-twitter social-icon-tw"></i> Twitter / X</label>
-          <input type="url" id="social-twitter" placeholder="https://twitter.com/tucuenta">
-          <div class="hint">URL de tu perfil de Twitter/X</div>
-        </div>
-        <div class="social-admin-card">
-          <label><i class="fab fa-linkedin social-icon-li"></i> LinkedIn</label>
-          <input type="url" id="social-linkedin" placeholder="https://www.linkedin.com/company/tuempresa">
-          <div class="hint">URL de tu página de LinkedIn</div>
-        </div>
-      </div>
-
-      <div class="save-social-bar">
-        <p><i class="fas fa-info-circle"></i> Al guardar, los enlaces se actualizan en el sitio web automáticamente.</p>
-        <button class="btn-save-pricing" onclick="saveSocialMedia()"><i class="fas fa-save"></i> Guardar redes</button>
-      </div>
-    </div>
-
-    <div class="section-panel" id="section-contacts">
-      <div class="topbar">
-        <div><h2>Mensajes de Contacto</h2><div class="sub">Mensajes recibidos desde el formulario del sitio web</div></div>
-        <button class="btn-save-pricing" onclick="loadContacts()" style="min-width:auto;padding:.5rem 1rem;"><i class="fas fa-sync-alt"></i> Actualizar</button>
-      </div>
-      <div id="contacts-list" style="display:flex;flex-direction:column;gap:.75rem;margin-top:1rem;"></div>
-    </div>
-
-    <!-- ── SECCIÓN PORTFOLIO ── -->
-    <div class="section-panel" id="section-portfolio">
-      <div class="topbar">
-        <div><h2>Portfolio de Trabajos</h2><div class="sub">Fotos de trabajos reales que se muestran en el sitio web</div></div>
-      </div>
-
-      <!-- Formulario agregar -->
-      <div class="portfolio-add-form">
-        <div>
-          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Título del trabajo</label>
-          <input type="text" id="pf-title" placeholder="Ej: Flyers para Farmacia Del Sol" style="width:100%;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;font-family:inherit;outline:none;">
-        </div>
-        <div>
-          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Categoría</label>
-          <select id="pf-category" style="width:100%;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;font-family:inherit;outline:none;background:var(--surface);">
-            <option value="impresion">Impresión</option>
-            <option value="gran-formato">Gran formato</option>
-            <option value="packaging">Packaging</option>
-            <option value="pop">Material POP</option>
-            <option value="personalizado">Personalizado</option>
-          </select>
-        </div>
-        <div class="paf-full">
-          <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Imagen <span style="font-weight:400;color:var(--muted);font-size:.8rem;">— sube primero en Imágenes, luego pega la URL</span></label>
-          <div style="display:flex;gap:.75rem;align-items:center;">
-            <input type="text" id="pf-image" placeholder="/uploads/nombre-archivo.jpg" style="flex:1;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;font-family:inherit;outline:none;">
-            <label style="display:flex;align-items:center;gap:.4rem;padding:.65rem 1rem;background:var(--blue);color:white;border-radius:var(--radius-sm);cursor:pointer;font-size:.85rem;font-weight:500;white-space:nowrap;">
-              <i class="fas fa-upload"></i> Subir
-              <input type="file" accept="image/*,.pdf,.svg" style="display:none" onchange="uploadPortfolioImage(this)">
-            </label>
-          </div>
-          <div id="pf-preview" style="margin-top:.75rem;display:none;"><img id="pf-preview-img" style="height:80px;border-radius:8px;object-fit:cover;border:1px solid var(--border);"></div>
-        </div>
-        <div class="paf-full" style="display:flex;justify-content:flex-end;">
-          <button onclick="addPortfolioItem()" style="padding:.65rem 1.5rem;background:var(--blue);color:white;border:none;border-radius:var(--radius-sm);font-size:.9rem;font-weight:500;cursor:pointer;"><i class="fas fa-plus"></i> Agregar al portfolio</button>
-        </div>
-      </div>
-
-      <div class="portfolio-admin-grid" id="portfolio-admin-grid">
-        <div style="grid-column:1/-1;color:var(--muted);text-align:center;padding:2rem;" id="portfolio-admin-empty">No hay trabajos aún. Agrega el primero.</div>
-      </div>
-    </div>
-
-    <!-- ── SECCIÓN RESEÑAS ── -->
-    <div class="section-panel" id="section-reviews">
-      <div class="topbar">
-        <div><h2>Reseñas de clientes</h2><div class="sub">Aprueba o elimina las reseñas enviadas desde el sitio web</div></div>
-        <button class="btn-save-pricing" onclick="loadReviewsAdmin()" style="min-width:auto;padding:.5rem 1rem;"><i class="fas fa-sync-alt"></i> Actualizar</button>
-      </div>
-      <div id="reviews-admin-list" style="display:flex;flex-direction:column;gap:.75rem;margin-top:1rem;"></div>
-    </div>
-
-    <!-- ── SECCIÓN SEGURIDAD ── -->
-    <div class="section-panel" id="section-security">
-      <div class="topbar">
-        <div><h2>Mi acceso</h2><div class="sub">Administra tu correo, contraseña y verificación en 2 pasos</div></div>
-      </div>
-      <div style="max-width:480px;margin-top:1.5rem;display:flex;flex-direction:column;gap:1.5rem;">
-
-        <!-- Acceso administrador -->
-        <div class="stat-card" style="flex-direction:column;align-items:flex-start;gap:1.25rem;">
-          <div style="display:flex;align-items:center;gap:.75rem;">
-            <div class="stat-icon blue"><i class="fas fa-key"></i></div>
-            <div><div style="font-weight:600;">Acceso administrador</div><div style="font-size:.85rem;color:var(--muted);">Correo de ingreso y contraseña segura</div></div>
-          </div>
-          <div style="width:100%;display:flex;flex-direction:column;gap:.75rem;">
-            <input type="email" id="sec-email" placeholder="Correo de administrador" autocomplete="username" style="font-size:.95rem;padding:.875rem 1rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;outline:none;">
-            <div class="pw-wrap" style="margin-bottom:0;">
-              <input type="password" id="sec-current" placeholder="Contraseña actual para confirmar" autocomplete="current-password" style="font-size:.95rem;">
-              <button class="pw-eye" type="button" onclick="togglePw('sec-current',this)" tabindex="-1"><i class="fas fa-eye"></i></button>
-            </div>
-            <div class="pw-wrap" style="margin-bottom:0;">
-              <input type="password" id="sec-new" placeholder="Nueva contraseña opcional (mín. 8 caracteres)" autocomplete="new-password" style="font-size:.95rem;" oninput="checkStrength(this.value,'sec-strength-fill','sec-strength-label')">
-              <button class="pw-eye" type="button" onclick="togglePw('sec-new',this)" tabindex="-1"><i class="fas fa-eye"></i></button>
-            </div>
-            <div class="strength-track" style="margin-top:-.5rem;"><div class="strength-fill" id="sec-strength-fill"></div></div>
-            <div class="strength-label" id="sec-strength-label" style="margin-top:-.25rem;"></div>
-            <div class="pw-wrap" style="margin-bottom:0;">
-              <input type="password" id="sec-confirm" placeholder="Confirmar nueva contraseña" style="font-size:.95rem;">
-              <button class="pw-eye" type="button" onclick="togglePw('sec-confirm',this)" tabindex="-1"><i class="fas fa-eye"></i></button>
-            </div>
-            <div id="sec-msg" style="font-size:.85rem;display:none;padding:.5rem .75rem;border-radius:6px;"></div>
-            <button onclick="changePassword()" style="padding:.75rem 1.5rem;background:var(--blue);color:white;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:500;cursor:pointer;align-self:flex-start;">
-              <i class="fas fa-save"></i> Guardar acceso
-            </button>
-          </div>
         </div>
 
-        <!-- 2FA / TOTP -->
-        <div class="stat-card" style="flex-direction:column;align-items:flex-start;gap:1.25rem;" id="twofa-card">
-          <div style="display:flex;align-items:center;gap:.75rem;">
-            <div class="stat-icon purple"><i class="fas fa-shield-alt"></i></div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon blue"><i class="fas fa-box"></i></div>
             <div>
-              <div style="font-weight:600;">Verificación en 2 pasos (2FA)</div>
-              <div style="font-size:.85rem;color:var(--muted);" id="twofa-status-text">Cargando estado...</div>
+              <div class="stat-value" id="dash-products">—</div>
+              <div class="stat-label">Productos</div>
             </div>
           </div>
-          <!-- Estado: deshabilitado -->
-          <div id="twofa-setup-section" style="width:100%;display:none;flex-direction:column;gap:1rem;">
-            <p style="font-size:.9rem;color:var(--muted);">Usa Google Authenticator, Authy o cualquier app TOTP para proteger tu cuenta.</p>
-            <button onclick="initTwoFaSetup()" style="padding:.75rem 1.5rem;background:var(--purple);color:white;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:500;cursor:pointer;align-self:flex-start;">
-              <i class="fas fa-qrcode"></i> Activar verificación en 2 pasos
-            </button>
-          </div>
-          <!-- QR code para escanear -->
-          <div id="twofa-qr-section" style="width:100%;display:none;flex-direction:column;gap:1rem;align-items:center;">
-            <p style="font-size:.9rem;color:var(--muted);text-align:center;">Escanea este código con tu app autenticadora, luego ingresa el código de 6 dígitos para confirmar.</p>
-            <img id="twofa-qr-img" src="" alt="QR 2FA" style="width:200px;height:200px;border:1px solid var(--border);border-radius:12px;">
-            <div style="font-size:.75rem;color:var(--muted);word-break:break-all;background:var(--bg);padding:.5rem .75rem;border-radius:6px;width:100%;text-align:center;" id="twofa-secret-text"></div>
-            <input type="text" id="twofa-verify-code" inputmode="numeric" maxlength="6" placeholder="Código de 6 dígitos" style="width:100%;padding:.75rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:1.2rem;text-align:center;letter-spacing:.2em;outline:none;" onkeydown="if(event.key==='Enter')confirmTwoFa()">
-            <div id="twofa-verify-msg" style="font-size:.85rem;display:none;padding:.5rem .75rem;border-radius:6px;width:100%;"></div>
-            <button onclick="confirmTwoFa()" style="padding:.75rem 1.5rem;background:var(--green);color:white;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:500;cursor:pointer;">
-              <i class="fas fa-check-circle"></i> Confirmar y activar
-            </button>
-            <button onclick="cancelTwoFaSetup()" style="background:none;border:none;color:var(--muted);font-size:.85rem;cursor:pointer;text-decoration:underline;">Cancelar</button>
-          </div>
-          <!-- Estado: habilitado -->
-          <div id="twofa-enabled-section" style="width:100%;display:none;flex-direction:column;gap:1rem;">
-            <div style="display:flex;align-items:center;gap:.5rem;color:var(--green);font-weight:500;font-size:.95rem;"><i class="fas fa-check-circle"></i> 2FA activado</div>
-            <p style="font-size:.85rem;color:var(--muted);">Tu cuenta está protegida con verificación en 2 pasos.</p>
-            <div class="pw-wrap" style="margin-bottom:0;">
-              <input type="password" id="twofa-disable-pass" placeholder="Contraseña actual para desactivar" style="font-size:.95rem;">
-              <button class="pw-eye" type="button" onclick="togglePw('twofa-disable-pass',this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+          <div class="stat-card">
+            <div class="stat-icon green"><i class="fas fa-star"></i></div>
+            <div>
+              <div class="stat-value" id="dash-popular">—</div>
+              <div class="stat-label">Populares</div>
             </div>
-            <div id="twofa-disable-msg" style="font-size:.85rem;display:none;padding:.5rem .75rem;border-radius:6px;"></div>
-            <button onclick="disableTwoFa()" style="padding:.75rem 1.5rem;background:var(--red-light);color:var(--red);border:1px solid var(--red);border-radius:var(--radius-sm);font-size:.95rem;font-weight:500;cursor:pointer;align-self:flex-start;">
-              <i class="fas fa-times-circle"></i> Desactivar 2FA
-            </button>
           </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- ── SECCIÓN USUARIOS ── -->
-    <div class="section-panel" id="section-users">
-      <div class="topbar">
-        <div><h2>Usuarios del admin</h2><div class="sub">Crea accesos separados y controla quién puede entrar al panel</div></div>
-        <button class="btn-add" onclick="loadAdminUsers()"><i class="fas fa-sync-alt"></i> Actualizar</button>
-      </div>
-
-      <div class="admin-grid-2">
-        <div class="admin-card">
-          <div class="admin-card-head">
-            <span class="dash-head-icon blue"><i class="fas fa-user-plus"></i></span>
-            <div><strong>Nuevo usuario</strong><p>El usuario podrá entrar con su correo y contraseña.</p></div>
-          </div>
-          <div class="admin-form-stack">
-            <input type="text" id="user-name" placeholder="Nombre completo">
-            <input type="email" id="user-email" placeholder="Correo de acceso">
-            <input type="hidden" id="user-role" value="editor">
-            <div class="audit-muted">Los usuarios nuevos se crean como editores y no ven Usuarios ni Historial.</div>
-            <div class="pw-wrap" style="margin-bottom:0;">
-              <input type="password" id="user-password" placeholder="Contraseña inicial">
-              <button class="pw-eye" type="button" onclick="togglePw('user-password',this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+          <div class="stat-card" style="cursor:pointer" data-goto="contacts">
+            <div class="stat-icon" style="background:#fff0ef;color:#ff3b30;"><i class="fas fa-envelope"></i></div>
+            <div>
+              <div class="stat-value" id="dash-messages">—</div>
+              <div class="stat-label">Mensajes sin leer</div>
             </div>
-            <div id="users-msg" class="admin-inline-msg"></div>
-            <button class="btn-add" onclick="createAdminUser()" style="align-self:flex-start;"><i class="fas fa-plus"></i> Crear usuario</button>
+          </div>
+          <div class="stat-card" style="cursor:pointer" data-goto="reviews">
+            <div class="stat-icon" style="background:var(--orange-light);color:var(--orange);"><i
+                class="fas fa-clock"></i></div>
+            <div>
+              <div class="stat-value" id="dash-reviews">—</div>
+              <div class="stat-label">Reseñas pendientes</div>
+            </div>
+          </div>
+          <div class="stat-card" style="cursor:pointer" data-goto="portfolio">
+            <div class="stat-icon" style="background:var(--purple-light);color:var(--purple);"><i
+                class="fas fa-images"></i></div>
+            <div>
+              <div class="stat-value" id="dash-portfolio">—</div>
+              <div class="stat-label">Items en portfolio</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:var(--green-light);color:var(--green);"><i class="fas fa-tags"></i>
+            </div>
+            <div>
+              <div class="stat-value" id="dash-categories">—</div>
+              <div class="stat-label">Categorías</div>
+            </div>
+          </div>
+          <div class="stat-card" style="cursor:pointer" data-goto="users" data-admin-only hidden>
+            <div class="stat-icon blue"><i class="fas fa-users-cog"></i></div>
+            <div>
+              <div class="stat-value" id="dash-users">—</div>
+              <div class="stat-label">Usuarios admin</div>
+            </div>
+          </div>
+          <div class="stat-card" style="cursor:pointer" data-goto="audit" data-admin-only hidden>
+            <div class="stat-icon purple"><i class="fas fa-clipboard-list"></i></div>
+            <div>
+              <div class="stat-value" id="dash-audit">—</div>
+              <div class="stat-label">Cambios recientes</div>
+            </div>
           </div>
         </div>
 
-        <div class="admin-card">
-          <div class="admin-card-head">
-            <span class="dash-head-icon purple"><i class="fas fa-users-cog"></i></span>
-            <div><strong>Usuarios registrados</strong><p>Activa o desactiva accesos sin borrar el historial.</p></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-top:1.5rem;" id="dash-lists-grid">
+          <div class="table-card">
+            <div class="dash-card-head">
+              <strong class="dash-card-title"><span class="dash-head-icon red"><i
+                    class="fas fa-envelope"></i></span>Últimos mensajes</strong>
+              <button class="btn-add dash-mini-btn" data-goto="contacts"><i class="fas fa-arrow-right"></i> Ver
+                todos</button>
+            </div>
+            <div id="dash-messages-list"></div>
           </div>
-          <div id="admin-users-list" class="admin-list"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── SECCIÓN HISTORIAL ── -->
-    <div class="section-panel" id="section-audit">
-      <div class="topbar">
-        <div><h2>Historial de cambios</h2><div class="sub">Registro de usuario, fecha, hora y acción realizada</div></div>
-        <button class="btn-add" onclick="loadAuditLog()"><i class="fas fa-sync-alt"></i> Actualizar</button>
-      </div>
-      <div class="table-card">
-        <table class="audit-table">
-          <thead>
-            <tr>
-              <th>Fecha y hora</th>
-              <th>Usuario</th>
-              <th>Acción</th>
-              <th>Entidad</th>
-              <th>Detalle</th>
-            </tr>
-          </thead>
-          <tbody id="audit-list">
-            <tr><td colspan="5" style="color:var(--muted);">Cargando historial...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-  </main>
-</div>
-
-
-
-<!-- ══════════ MODAL PRODUCTO ══════════ -->
-<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 id="modal-title">Nuevo producto</h3>
-      <button class="btn-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
-    </div>
-    <div class="modal-body">
-      <div class="form-grid">
-
-        <div class="form-group form-full">
-          <label>Nombre del producto</label>
-          <input type="text" id="f-name" placeholder="Ej: Flyers y Volantes">
+          <div class="table-card">
+            <div class="dash-card-head">
+              <strong class="dash-card-title"><span class="dash-head-icon orange"><i
+                    class="fas fa-star"></i></span>Reseñas pendientes</strong>
+              <button class="btn-add dash-mini-btn" data-goto="reviews"><i class="fas fa-arrow-right"></i> Ver
+                todas</button>
+            </div>
+            <div id="dash-reviews-list"></div>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label>Categoría</label>
-          <select id="f-category">
+        <div style="margin-top:1.5rem;">
+          <div class="dash-actions-title"><span class="dash-head-icon blue"><i class="fas fa-bolt"></i></span>Acciones
+            rápidas</div>
+          <div style="display:flex;flex-wrap:wrap;gap:.6rem;">
+            <button class="btn-add" data-goto="products"><i class="fas fa-box"></i> Productos</button>
+            <button class="btn-add" data-goto="pricing"><i class="fas fa-calculator"></i> Cotizador</button>
+            <button class="btn-add" data-goto="gallery"><i class="fas fa-images"></i> Galería</button>
+            <button class="btn-add" data-goto="portfolio"><i class="fas fa-th"></i> Portfolio</button>
+            <button class="btn-add" data-goto="videos"><i class="fas fa-video"></i> Videos</button>
+            <button class="btn-add" data-goto="users" data-admin-only hidden><i class="fas fa-users-cog"></i>
+              Usuarios</button>
+            <button class="btn-add" data-goto="audit" data-admin-only hidden><i class="fas fa-clipboard-list"></i>
+              Historial</button>
+            <button class="btn-add" id="dash-view-site-btn"><i class="fas fa-external-link-alt"></i> Ver sitio
+              web</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SECCIÓN PRODUCTOS ── -->
+      <div class="section-panel" id="section-products">
+        <div class="topbar">
+          <div>
+            <h2>Catálogo de Productos</h2>
+            <div class="sub">Gestiona todos los productos del sitio web</div>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon blue"><i class="fas fa-box"></i></div>
+            <div>
+              <div class="stat-value" id="st-total">—</div>
+              <div class="stat-label">Total productos</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green"><i class="fas fa-star"></i></div>
+            <div>
+              <div class="stat-value" id="st-popular">—</div>
+              <div class="stat-label">Populares</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange"><i class="fas fa-tags"></i></div>
+            <div>
+              <div class="stat-value" id="st-cats">—</div>
+              <div class="stat-label">Categorías</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon purple"><i class="fas fa-dollar-sign"></i></div>
+            <div>
+              <div class="stat-value" id="st-avg">—</div>
+              <div class="stat-label">Precio promedio</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#fff0ef;color:#ff3b30;"><i class="fas fa-envelope"></i></div>
+            <div>
+              <div class="stat-value" id="st-messages">—</div>
+              <div class="stat-label">Mensajes nuevos</div>
+            </div>
+          </div>
+        </div>
+        <div class="toolbar">
+          <div class="search-box"><i class="fas fa-search"></i><input type="text" id="search-input"
+              placeholder="Buscar producto..." oninput="renderTable()"></div>
+          <select class="filter-select" id="cat-filter" onchange="renderTable()">
+            <option value="">Todas las categorías</option>
             <option value="impresion">Impresión</option>
             <option value="promocional">Promocional</option>
             <option value="packaging">Packaging</option>
             <option value="gran-formato">Gran Formato</option>
           </select>
+          <button class="btn-add" onclick="openModal()"><i class="fas fa-plus"></i> Nuevo producto</button>
+        </div>
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Categoría</th>
+                <th>Precio</th>
+                <th>Cant. mín.</th>
+                <th>Popular</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="products-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── SECCIÓN GALERÍA ── -->
+      <div class="section-panel" id="section-gallery">
+        <div class="topbar">
+          <div>
+            <h2>Galería de Imágenes</h2>
+            <div class="sub">Todas las imágenes subidas al servidor</div>
+          </div>
+          <label
+            style="display:flex;align-items:center;gap:.5rem;padding:.5rem 1.25rem;background:var(--blue);color:white;border-radius:var(--radius-sm);cursor:pointer;font-size:.9rem;font-weight:500;">
+            <i class="fas fa-upload"></i> Subir imagen
+            <input type="file" accept="image/*,.pdf,.svg" style="display:none" onchange="uploadFromGallery(this)">
+          </label>
+        </div>
+        <div class="gallery-grid" id="gallery-grid">
+          <div class="gallery-empty"><i class="fas fa-images"
+              style="font-size:2rem;display:block;margin-bottom:1rem;opacity:.3;"></i>No hay imágenes aún</div>
+        </div>
+      </div>
+
+      <!-- ══ SECCIÓN COTIZADOR (precios) ══ -->
+      <div class="section-panel" id="section-pricing">
+        <div class="topbar">
+          <div>
+            <h2>Precios del Cotizador</h2>
+            <div class="sub">Edita los precios del cotizador. Al guardar, se aplican automáticamente al sitio web.</div>
+          </div>
+          <button type="button" class="btn-add pricing-refresh-btn" onclick="loadPricing()">
+            <i class="fas fa-sync-alt"></i> Recargar
+          </button>
         </div>
 
-        <div class="form-group">
-          <label>Precio ($)</label>
-          <input type="number" id="f-price" placeholder="0.00" step="0.01" min="0">
-        </div>
-
-        <div class="form-group">
-          <label>Unidad de precio</label>
-          <input type="text" id="f-priceUnit" placeholder="por unidad">
-        </div>
-
-        <div class="form-group">
-          <label>Cantidad mínima</label>
-          <input type="number" id="f-minQuantity" placeholder="100" min="1">
-        </div>
-
-        <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end;">
-          <div class="toggle-row">
-            <span>Producto popular ⭐</span>
-            <label class="toggle"><input type="checkbox" id="f-popular"><span class="toggle-slider"></span></label>
+        <div class="pricing-overview" id="pricing-overview">
+          <div class="pricing-kpi">
+            <span>Productos</span>
+            <strong id="pricing-kpi-products">—</strong>
+          </div>
+          <div class="pricing-kpi">
+            <span>Niveles de precio</span>
+            <strong id="pricing-kpi-tiers">—</strong>
+          </div>
+          <div class="pricing-kpi">
+            <span>Entrega configurada</span>
+            <strong id="pricing-kpi-delivery">—</strong>
+          </div>
+          <div class="pricing-status clean" id="pricing-status">
+            <i class="fas fa-check-circle"></i>
+            <div>
+              <strong>Sin cambios pendientes</strong>
+              <span>Los precios cargados coinciden con el servidor.</span>
+            </div>
           </div>
         </div>
 
-        <div class="form-group form-full">
-          <label>Descripción</label>
-          <textarea id="f-description" placeholder="Describe el producto..."></textarea>
+        <div class="pricing-tabs" id="pricing-tabs-bar">
+          <button type="button" class="pricing-tab active" onclick="switchPricingTab('volantes',this)"><i
+              class="fas fa-file-alt"></i> Volantes</button>
+          <button type="button" class="pricing-tab" onclick="switchPricingTab('tarjetas',this)"><i
+              class="fas fa-id-card"></i> Tarjetas</button>
+          <button type="button" class="pricing-tab" onclick="switchPricingTab('tazas',this)"><i
+              class="fas fa-mug-hot"></i> Tazas</button>
+          <button type="button" class="pricing-tab" onclick="switchPricingTab('granformato',this)"><i
+              class="fas fa-image"></i> Gran Formato</button>
+          <button type="button" class="pricing-tab" onclick="switchPricingTab('pop',this)"><i class="fas fa-gift"></i>
+            Material POP</button>
+          <button type="button" class="pricing-tab" onclick="switchPricingTab('etiquetas',this)"><i
+              class="fas fa-tags"></i> Etiquetas</button>
+          <button type="button" class="pricing-tab" onclick="switchPricingTab('packaging',this)"><i
+              class="fas fa-box"></i> Packaging</button>
+          <button type="button" class="pricing-tab" onclick="switchPricingTab('diseno',this)"><i
+              class="fas fa-palette"></i> Diseño</button>
+          <button type="button" class="pricing-tab" onclick="switchPricingTab('tiempos',this)"><i
+              class="fas fa-clock"></i> Tiempos</button>
         </div>
 
-        <div class="form-group">
-          <label>Materiales <span style="font-weight:400;color:var(--muted);font-size:.8rem;">(opcional)</span></label>
-          <input type="text" id="f-materials" placeholder="Ej: Papel couché 150gr, plastificado mate">
-        </div>
+        <div class="pricing-panel active" id="pp-volantes"></div>
+        <div class="pricing-panel" id="pp-tarjetas"></div>
+        <div class="pricing-panel" id="pp-tazas"></div>
+        <div class="pricing-panel" id="pp-granformato"></div>
+        <div class="pricing-panel" id="pp-pop"></div>
+        <div class="pricing-panel" id="pp-etiquetas"></div>
+        <div class="pricing-panel" id="pp-packaging"></div>
+        <div class="pricing-panel" id="pp-diseno"></div>
+        <div class="pricing-panel" id="pp-tiempos"></div>
 
-        <div class="form-group">
-          <label>Tiempo de entrega <span style="font-weight:400;color:var(--muted);font-size:.8rem;">(opcional)</span></label>
-          <input type="text" id="f-deliveryTime" placeholder="Ej: 48-72 horas">
-        </div>
-
-        <!-- ── IMAGEN ── -->
-        <div class="form-group form-full img-section">
-          <label>Imagen del producto</label>
-          <div class="img-tabs">
-            <button type="button" class="img-tab active" onclick="switchImgTab('upload', this)"><i class="fas fa-upload"></i> Subir imagen</button>
-            <button type="button" class="img-tab" onclick="switchImgTab('gallery', this)"><i class="fas fa-images"></i> Desde galería</button>
-            <button type="button" class="img-tab" onclick="switchImgTab('emoji', this)"><i class="fas fa-smile"></i> Emoji</button>
+        <div class="pricing-save-bar">
+          <p><i class="fas fa-info-circle"></i> Revisa cantidades, precio unitario y tiempos antes de guardar. Los
+            cambios se reflejan inmediatamente en el sitio.</p>
+          <div class="pricing-save-actions">
+            <button type="button" class="btn-preview-pricing" id="btn-preview-pricing">
+              <i class="fas fa-external-link-alt"></i> Ver cotizador
+            </button>
+            <button type="button" class="btn-save-pricing is-idle" id="btn-save-pricing" onclick="savePricing()"
+              disabled>
+              <i class="fas fa-save"></i> Guardar precios
+            </button>
           </div>
+        </div>
+      </div>
 
-          <!-- Tab: subir -->
-          <div id="img-tab-upload">
-            <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
-              <input type="file" id="file-input" accept="image/*,.pdf,.svg" onchange="onFileSelected(this)">
-              <div class="dz-prompt" id="dz-prompt">
-                <div class="dz-icon"><i class="fas fa-cloud-upload-alt"></i></div>
-                <div class="dz-text">Arrastra una imagen aquí o haz clic para seleccionar</div>
-                <div class="dz-hint">JPG, PNG, WEBP — máx. 5 MB</div>
+      <!-- ── SECCIÓN VIDEOS ── -->
+      <div class="section-panel" id="section-videos">
+        <div class="topbar">
+          <div>
+            <h2>Videos de YouTube</h2>
+            <div class="sub">Gestiona los videos que se muestran en el sitio web</div>
+          </div>
+          <button class="btn-add" onclick="openVideoModal()"><i class="fas fa-plus"></i> Agregar video</button>
+        </div>
+
+        <div
+          style="background:var(--blue-light);border:1px solid #c7dafd;border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;gap:.75rem;align-items:flex-start;">
+          <i class="fas fa-info-circle" style="color:var(--blue);margin-top:.15rem;"></i>
+          <div style="font-size:.875rem;color:#1a4a8a;">
+            <strong>¿Cómo agregar un video?</strong><br>
+            Abre el video en YouTube, copia la URL desde la barra de direcciones y pégala directamente en el formulario.
+            El sistema detecta el video automáticamente. También puedes usar URLs cortas (youtu.be/...) o de Shorts.
+          </div>
+        </div>
+
+        <div class="videos-admin-grid" id="videos-admin-list">
+          <div style="text-align:center;padding:3rem;color:var(--muted);">
+            <i class="fas fa-video" style="font-size:2rem;display:block;margin-bottom:1rem;opacity:.3;"></i>
+            Cargando videos...
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SECCIÓN REDES SOCIALES ── -->
+      <div class="section-panel" id="section-social">
+        <div class="topbar">
+          <div>
+            <h2>Redes Sociales</h2>
+            <div class="sub">Configura los enlaces a tus redes sociales</div>
+          </div>
+        </div>
+
+        <div class="social-admin-grid">
+          <div class="social-admin-card">
+            <label><i class="fab fa-youtube social-icon-yt"></i> YouTube</label>
+            <input type="url" id="social-youtube" placeholder="https://www.youtube.com/@tucuenta">
+            <div class="hint">URL de tu canal de YouTube</div>
+          </div>
+          <div class="social-admin-card">
+            <label><i class="fab fa-instagram social-icon-ig"></i> Instagram</label>
+            <input type="url" id="social-instagram" placeholder="https://www.instagram.com/tucuenta">
+            <div class="hint">URL de tu perfil de Instagram</div>
+          </div>
+          <div class="social-admin-card">
+            <label><i class="fab fa-tiktok social-icon-tk"></i> TikTok</label>
+            <input type="url" id="social-tiktok" placeholder="https://www.tiktok.com/@tucuenta">
+            <div class="hint">URL de tu perfil de TikTok</div>
+          </div>
+          <div class="social-admin-card">
+            <label><i class="fab fa-facebook social-icon-fb"></i> Facebook</label>
+            <input type="url" id="social-facebook" placeholder="https://www.facebook.com/tupagina">
+            <div class="hint">URL de tu página de Facebook</div>
+          </div>
+          <div class="social-admin-card">
+            <label><i class="fab fa-whatsapp social-icon-wa"></i> WhatsApp</label>
+            <input type="url" id="social-whatsapp" placeholder="https://wa.me/593XXXXXXXXX">
+            <div class="hint">Ej: https://wa.me/593987654321</div>
+          </div>
+          <div class="social-admin-card">
+            <label><i class="fab fa-twitter social-icon-tw"></i> Twitter / X</label>
+            <input type="url" id="social-twitter" placeholder="https://twitter.com/tucuenta">
+            <div class="hint">URL de tu perfil de Twitter/X</div>
+          </div>
+          <div class="social-admin-card">
+            <label><i class="fab fa-linkedin social-icon-li"></i> LinkedIn</label>
+            <input type="url" id="social-linkedin" placeholder="https://www.linkedin.com/company/tuempresa">
+            <div class="hint">URL de tu página de LinkedIn</div>
+          </div>
+        </div>
+
+        <div class="save-social-bar">
+          <p><i class="fas fa-info-circle"></i> Al guardar, los enlaces se actualizan en el sitio web automáticamente.
+          </p>
+          <button class="btn-save-pricing" onclick="saveSocialMedia()"><i class="fas fa-save"></i> Guardar
+            redes</button>
+        </div>
+      </div>
+
+      <div class="section-panel" id="section-contacts">
+        <div class="topbar">
+          <div>
+            <h2>Mensajes de Contacto</h2>
+            <div class="sub">Mensajes recibidos desde el formulario del sitio web</div>
+          </div>
+          <button class="btn-save-pricing" onclick="loadContacts()" style="min-width:auto;padding:.5rem 1rem;"><i
+              class="fas fa-sync-alt"></i> Actualizar</button>
+        </div>
+        <div id="contacts-list" style="display:flex;flex-direction:column;gap:.75rem;margin-top:1rem;"></div>
+      </div>
+
+      <!-- ── SECCIÓN PORTFOLIO ── -->
+      <div class="section-panel" id="section-portfolio">
+        <div class="topbar">
+          <div>
+            <h2>Portfolio de Trabajos</h2>
+            <div class="sub">Fotos de trabajos reales que se muestran en el sitio web</div>
+          </div>
+        </div>
+
+        <!-- Formulario agregar -->
+        <div class="portfolio-add-form">
+          <div>
+            <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Título del
+              trabajo</label>
+            <input type="text" id="pf-title" placeholder="Ej: Flyers para Farmacia Del Sol"
+              style="width:100%;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;font-family:inherit;outline:none;">
+          </div>
+          <div>
+            <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Categoría</label>
+            <select id="pf-category"
+              style="width:100%;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;font-family:inherit;outline:none;background:var(--surface);">
+              <option value="impresion">Impresión</option>
+              <option value="gran-formato">Gran formato</option>
+              <option value="packaging">Packaging</option>
+              <option value="pop">Material POP</option>
+              <option value="personalizado">Personalizado</option>
+            </select>
+          </div>
+          <div class="paf-full">
+            <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Imagen <span
+                style="font-weight:400;color:var(--muted);font-size:.8rem;">— sube primero en Imágenes, luego pega la
+                URL</span></label>
+            <div style="display:flex;gap:.75rem;align-items:center;">
+              <input type="text" id="pf-image" placeholder="/uploads/nombre-archivo.jpg"
+                style="flex:1;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;font-family:inherit;outline:none;">
+              <label
+                style="display:flex;align-items:center;gap:.4rem;padding:.65rem 1rem;background:var(--blue);color:white;border-radius:var(--radius-sm);cursor:pointer;font-size:.85rem;font-weight:500;white-space:nowrap;">
+                <i class="fas fa-upload"></i> Subir
+                <input type="file" accept="image/*,.pdf,.svg" style="display:none"
+                  onchange="uploadPortfolioImage(this)">
+              </label>
+            </div>
+            <div id="pf-preview" style="margin-top:.75rem;display:none;"><img id="pf-preview-img"
+                style="height:80px;border-radius:8px;object-fit:cover;border:1px solid var(--border);"></div>
+          </div>
+          <div class="paf-full" style="display:flex;justify-content:flex-end;">
+            <button onclick="addPortfolioItem()"
+              style="padding:.65rem 1.5rem;background:var(--blue);color:white;border:none;border-radius:var(--radius-sm);font-size:.9rem;font-weight:500;cursor:pointer;"><i
+                class="fas fa-plus"></i> Agregar al portfolio</button>
+          </div>
+        </div>
+
+        <div class="portfolio-admin-grid" id="portfolio-admin-grid">
+          <div style="grid-column:1/-1;color:var(--muted);text-align:center;padding:2rem;" id="portfolio-admin-empty">No
+            hay trabajos aún. Agrega el primero.</div>
+        </div>
+      </div>
+
+      <!-- ── SECCIÓN RESEÑAS ── -->
+      <div class="section-panel" id="section-reviews">
+        <div class="topbar">
+          <div>
+            <h2>Reseñas de clientes</h2>
+            <div class="sub">Aprueba o elimina las reseñas enviadas desde el sitio web</div>
+          </div>
+          <button class="btn-save-pricing" onclick="loadReviewsAdmin()" style="min-width:auto;padding:.5rem 1rem;"><i
+              class="fas fa-sync-alt"></i> Actualizar</button>
+        </div>
+        <div id="reviews-admin-list" style="display:flex;flex-direction:column;gap:.75rem;margin-top:1rem;"></div>
+      </div>
+
+      <!-- ── SECCIÓN SEGURIDAD ── -->
+      <div class="section-panel" id="section-security">
+        <div class="topbar">
+          <div>
+            <h2>Mi acceso</h2>
+            <div class="sub">Administra tu correo, contraseña y verificación en 2 pasos</div>
+          </div>
+        </div>
+        <div style="max-width:480px;margin-top:1.5rem;display:flex;flex-direction:column;gap:1.5rem;">
+
+          <!-- Acceso administrador -->
+          <div class="stat-card" style="flex-direction:column;align-items:flex-start;gap:1.25rem;">
+            <div style="display:flex;align-items:center;gap:.75rem;">
+              <div class="stat-icon blue"><i class="fas fa-key"></i></div>
+              <div>
+                <div style="font-weight:600;">Acceso administrador</div>
+                <div style="font-size:.85rem;color:var(--muted);">Correo de ingreso y contraseña segura</div>
               </div>
             </div>
-            <div class="upload-progress" id="upload-progress">
-              <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
-              <span class="progress-text" id="progress-text">Subiendo...</span>
+            <div style="width:100%;display:flex;flex-direction:column;gap:.75rem;">
+              <input type="email" id="sec-email" placeholder="Correo de administrador" autocomplete="username"
+                style="font-size:.95rem;padding:.875rem 1rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;outline:none;">
+              <div class="pw-wrap" style="margin-bottom:0;">
+                <input type="password" id="sec-current" placeholder="Contraseña actual para confirmar"
+                  autocomplete="current-password" style="font-size:.95rem;">
+                <button class="pw-eye" type="button" onclick="togglePw('sec-current',this)" tabindex="-1"><i
+                    class="fas fa-eye"></i></button>
+              </div>
+              <div class="pw-wrap" style="margin-bottom:0;">
+                <input type="password" id="sec-new" placeholder="Nueva contraseña opcional (mín. 8 caracteres)"
+                  autocomplete="new-password" style="font-size:.95rem;"
+                  oninput="checkStrength(this.value,'sec-strength-fill','sec-strength-label')">
+                <button class="pw-eye" type="button" onclick="togglePw('sec-new',this)" tabindex="-1"><i
+                    class="fas fa-eye"></i></button>
+              </div>
+              <div class="strength-track" style="margin-top:-.5rem;">
+                <div class="strength-fill" id="sec-strength-fill"></div>
+              </div>
+              <div class="strength-label" id="sec-strength-label" style="margin-top:-.25rem;"></div>
+              <div class="pw-wrap" style="margin-bottom:0;">
+                <input type="password" id="sec-confirm" placeholder="Confirmar nueva contraseña"
+                  style="font-size:.95rem;">
+                <button class="pw-eye" type="button" onclick="togglePw('sec-confirm',this)" tabindex="-1"><i
+                    class="fas fa-eye"></i></button>
+              </div>
+              <div id="sec-msg" style="font-size:.85rem;display:none;padding:.5rem .75rem;border-radius:6px;"></div>
+              <button onclick="changePassword()"
+                style="padding:.75rem 1.5rem;background:var(--blue);color:white;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:500;cursor:pointer;align-self:flex-start;">
+                <i class="fas fa-save"></i> Guardar acceso
+              </button>
             </div>
           </div>
 
-          <!-- Tab: galería -->
-          <div id="img-tab-gallery" style="display:none;">
-            <div class="gallery-select" id="modal-gallery-select">
-              <div class="gs-empty">Cargando imágenes...</div>
+          <!-- 2FA / TOTP -->
+          <div class="stat-card" style="flex-direction:column;align-items:flex-start;gap:1.25rem;" id="twofa-card">
+            <div style="display:flex;align-items:center;gap:.75rem;">
+              <div class="stat-icon purple"><i class="fas fa-shield-alt"></i></div>
+              <div>
+                <div style="font-weight:600;">Verificación en 2 pasos (2FA)</div>
+                <div style="font-size:.85rem;color:var(--muted);" id="twofa-status-text">Cargando estado...</div>
+              </div>
+            </div>
+            <!-- Estado: deshabilitado -->
+            <div id="twofa-setup-section" style="width:100%;display:none;flex-direction:column;gap:1rem;">
+              <p style="font-size:.9rem;color:var(--muted);">Usa Google Authenticator, Authy o cualquier app TOTP para
+                proteger tu cuenta.</p>
+              <button onclick="initTwoFaSetup()"
+                style="padding:.75rem 1.5rem;background:var(--purple);color:white;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:500;cursor:pointer;align-self:flex-start;">
+                <i class="fas fa-qrcode"></i> Activar verificación en 2 pasos
+              </button>
+            </div>
+            <!-- QR code para escanear -->
+            <div id="twofa-qr-section"
+              style="width:100%;display:none;flex-direction:column;gap:1rem;align-items:center;">
+              <p style="font-size:.9rem;color:var(--muted);text-align:center;">Escanea este código con tu app
+                autenticadora, luego ingresa el código de 6 dígitos para confirmar.</p>
+              <img id="twofa-qr-img" src="" alt="QR 2FA"
+                style="width:200px;height:200px;border:1px solid var(--border);border-radius:12px;">
+              <div
+                style="font-size:.75rem;color:var(--muted);word-break:break-all;background:var(--bg);padding:.5rem .75rem;border-radius:6px;width:100%;text-align:center;"
+                id="twofa-secret-text"></div>
+              <input type="text" id="twofa-verify-code" inputmode="numeric" maxlength="6"
+                placeholder="Código de 6 dígitos"
+                style="width:100%;padding:.75rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:1.2rem;text-align:center;letter-spacing:.2em;outline:none;"
+                onkeydown="if(event.key==='Enter')confirmTwoFa()">
+              <div id="twofa-verify-msg"
+                style="font-size:.85rem;display:none;padding:.5rem .75rem;border-radius:6px;width:100%;"></div>
+              <button onclick="confirmTwoFa()"
+                style="padding:.75rem 1.5rem;background:var(--green);color:white;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:500;cursor:pointer;">
+                <i class="fas fa-check-circle"></i> Confirmar y activar
+              </button>
+              <button onclick="cancelTwoFaSetup()"
+                style="background:none;border:none;color:var(--muted);font-size:.85rem;cursor:pointer;text-decoration:underline;">Cancelar</button>
+            </div>
+            <!-- Estado: habilitado -->
+            <div id="twofa-enabled-section" style="width:100%;display:none;flex-direction:column;gap:1rem;">
+              <div
+                style="display:flex;align-items:center;gap:.5rem;color:var(--green);font-weight:500;font-size:.95rem;">
+                <i class="fas fa-check-circle"></i> 2FA activado</div>
+              <p style="font-size:.85rem;color:var(--muted);">Tu cuenta está protegida con verificación en 2 pasos.</p>
+              <div class="pw-wrap" style="margin-bottom:0;">
+                <input type="password" id="twofa-disable-pass" placeholder="Contraseña actual para desactivar"
+                  style="font-size:.95rem;">
+                <button class="pw-eye" type="button" onclick="togglePw('twofa-disable-pass',this)" tabindex="-1"><i
+                    class="fas fa-eye"></i></button>
+              </div>
+              <div id="twofa-disable-msg" style="font-size:.85rem;display:none;padding:.5rem .75rem;border-radius:6px;">
+              </div>
+              <button onclick="disableTwoFa()"
+                style="padding:.75rem 1.5rem;background:var(--red-light);color:var(--red);border:1px solid var(--red);border-radius:var(--radius-sm);font-size:.95rem;font-weight:500;cursor:pointer;align-self:flex-start;">
+                <i class="fas fa-times-circle"></i> Desactivar 2FA
+              </button>
             </div>
           </div>
 
-          <!-- Tab: emoji -->
-          <div id="img-tab-emoji" style="display:none;">
-            <div class="emoji-row">
-              <div class="emoji-big-preview" id="emoji-preview">🖨️</div>
-              <input type="text" id="f-emoji" placeholder="🎯 Pega un emoji" oninput="updateEmojiPreview()" maxlength="8">
-            </div>
-          </div>
-
-          <!-- Imagen actual seleccionada -->
-          <div id="current-img-info" style="display:none; align-items:center; gap:.75rem; padding:.75rem; background:var(--green-light); border-radius:var(--radius-sm); font-size:.85rem; color:#1d7a3a; margin-top:.5rem;">
-            <i class="fas fa-check-circle"></i>
-            <span id="current-img-label">Imagen seleccionada</span>
-            <button type="button" onclick="clearImage()" style="margin-left:auto; background:none; border:none; color:#1d7a3a; cursor:pointer; font-size:.85rem;">✕ Quitar</button>
-          </div>
         </div>
-
-        <!-- Características -->
-        <div class="form-group form-full">
-          <label>Características</label>
-          <div class="features-list" id="features-list"></div>
-          <button type="button" class="btn-add-feature" onclick="addFeatureRow()"><i class="fas fa-plus"></i> Agregar característica</button>
-        </div>
-
       </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
-      <button class="btn-save" id="btn-save" onclick="saveProduct()"><i class="fas fa-save"></i> <span id="save-label">Guardar</span></button>
+
+      <!-- ── SECCIÓN USUARIOS ── -->
+      <div class="section-panel" id="section-users">
+        <div class="topbar">
+          <div>
+            <h2>Usuarios del admin</h2>
+            <div class="sub">Crea accesos separados y controla quién puede entrar al panel</div>
+          </div>
+          <button class="btn-add" onclick="loadAdminUsers()"><i class="fas fa-sync-alt"></i> Actualizar</button>
+        </div>
+
+        <div class="admin-grid-2">
+          <div class="admin-card">
+            <div class="admin-card-head">
+              <span class="dash-head-icon blue"><i class="fas fa-user-plus"></i></span>
+              <div><strong>Nuevo usuario</strong>
+                <p>El usuario podrá entrar con su correo y contraseña.</p>
+              </div>
+            </div>
+            <div class="admin-form-stack">
+              <input type="text" id="user-name" placeholder="Nombre completo">
+              <input type="email" id="user-email" placeholder="Correo de acceso">
+              <input type="hidden" id="user-role" value="editor">
+              <div class="audit-muted">Los usuarios nuevos se crean como editores y no ven Usuarios ni Historial.</div>
+              <div class="pw-wrap" style="margin-bottom:0;">
+                <input type="password" id="user-password" placeholder="Contraseña inicial">
+                <button class="pw-eye" type="button" onclick="togglePw('user-password',this)" tabindex="-1"><i
+                    class="fas fa-eye"></i></button>
+              </div>
+              <div id="users-msg" class="admin-inline-msg"></div>
+              <button class="btn-add" onclick="createAdminUser()" style="align-self:flex-start;"><i
+                  class="fas fa-plus"></i> Crear usuario</button>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <div class="admin-card-head">
+              <span class="dash-head-icon purple"><i class="fas fa-users-cog"></i></span>
+              <div><strong>Usuarios registrados</strong>
+                <p>Activa o desactiva accesos sin borrar el historial.</p>
+              </div>
+            </div>
+            <div id="admin-users-list" class="admin-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SECCIÓN HISTORIAL ── -->
+      <div class="section-panel" id="section-audit">
+        <div class="topbar">
+          <div>
+            <h2>Historial de cambios</h2>
+            <div class="sub">Registro de usuario, fecha, hora y acción realizada</div>
+          </div>
+          <button class="btn-add" onclick="loadAuditLog()"><i class="fas fa-sync-alt"></i> Actualizar</button>
+        </div>
+        <div class="table-card">
+          <table class="audit-table">
+            <thead>
+              <tr>
+                <th>Fecha y hora</th>
+                <th>Usuario</th>
+                <th>Acción</th>
+                <th>Entidad</th>
+                <th>Detalle</th>
+              </tr>
+            </thead>
+            <tbody id="audit-list">
+              <tr>
+                <td colspan="5" style="color:var(--muted);">Cargando historial...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+
+
+  <!-- ══════════ MODAL PRODUCTO ══════════ -->
+  <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-title">Nuevo producto</h3>
+        <button class="btn-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+
+          <div class="form-group form-full">
+            <label>Nombre del producto</label>
+            <input type="text" id="f-name" placeholder="Ej: Flyers y Volantes">
+          </div>
+
+          <div class="form-group">
+            <label>Categoría</label>
+            <select id="f-category">
+              <option value="impresion">Impresión</option>
+              <option value="promocional">Promocional</option>
+              <option value="packaging">Packaging</option>
+              <option value="gran-formato">Gran Formato</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Precio ($)</label>
+            <input type="number" id="f-price" placeholder="0.00" step="0.01" min="0">
+          </div>
+
+          <div class="form-group">
+            <label>Unidad de precio</label>
+            <input type="text" id="f-priceUnit" placeholder="por unidad">
+          </div>
+
+          <div class="form-group">
+            <label>Cantidad mínima</label>
+            <input type="number" id="f-minQuantity" placeholder="100" min="1">
+          </div>
+
+          <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end;">
+            <div class="toggle-row">
+              <span>Producto popular ⭐</span>
+              <label class="toggle"><input type="checkbox" id="f-popular"><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+
+          <div class="form-group form-full">
+            <label>Descripción</label>
+            <textarea id="f-description" placeholder="Describe el producto..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Materiales <span
+                style="font-weight:400;color:var(--muted);font-size:.8rem;">(opcional)</span></label>
+            <input type="text" id="f-materials" placeholder="Ej: Papel couché 150gr, plastificado mate">
+          </div>
+
+          <div class="form-group">
+            <label>Tiempo de entrega <span
+                style="font-weight:400;color:var(--muted);font-size:.8rem;">(opcional)</span></label>
+            <input type="text" id="f-deliveryTime" placeholder="Ej: 48-72 horas">
+          </div>
+
+          <!-- ── IMAGEN ── -->
+          <div class="form-group form-full img-section">
+            <label>Imagen del producto</label>
+            <div class="img-tabs">
+              <button type="button" class="img-tab active" onclick="switchImgTab('upload', this)"><i
+                  class="fas fa-upload"></i> Subir imagen</button>
+              <button type="button" class="img-tab" onclick="switchImgTab('gallery', this)"><i
+                  class="fas fa-images"></i> Desde galería</button>
+              <button type="button" class="img-tab" onclick="switchImgTab('emoji', this)"><i class="fas fa-smile"></i>
+                Emoji</button>
+            </div>
+
+            <!-- Tab: subir -->
+            <div id="img-tab-upload">
+              <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+                ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+                <input type="file" id="file-input" accept="image/*,.pdf,.svg" onchange="onFileSelected(this)">
+                <div class="dz-prompt" id="dz-prompt">
+                  <div class="dz-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                  <div class="dz-text">Arrastra una imagen aquí o haz clic para seleccionar</div>
+                  <div class="dz-hint">JPG, PNG, WEBP — máx. 5 MB</div>
+                </div>
+              </div>
+              <div class="upload-progress" id="upload-progress">
+                <div class="progress-bar-wrap">
+                  <div class="progress-bar" id="progress-bar"></div>
+                </div>
+                <span class="progress-text" id="progress-text">Subiendo...</span>
+              </div>
+            </div>
+
+            <!-- Tab: galería -->
+            <div id="img-tab-gallery" style="display:none;">
+              <div class="gallery-select" id="modal-gallery-select">
+                <div class="gs-empty">Cargando imágenes...</div>
+              </div>
+            </div>
+
+            <!-- Tab: emoji -->
+            <div id="img-tab-emoji" style="display:none;">
+              <div class="emoji-row">
+                <div class="emoji-big-preview" id="emoji-preview">🖨️</div>
+                <input type="text" id="f-emoji" placeholder="🎯 Pega un emoji" oninput="updateEmojiPreview()"
+                  maxlength="8">
+              </div>
+            </div>
+
+            <!-- Imagen actual seleccionada -->
+            <div id="current-img-info"
+              style="display:none; align-items:center; gap:.75rem; padding:.75rem; background:var(--green-light); border-radius:var(--radius-sm); font-size:.85rem; color:#1d7a3a; margin-top:.5rem;">
+              <i class="fas fa-check-circle"></i>
+              <span id="current-img-label">Imagen seleccionada</span>
+              <button type="button" onclick="clearImage()"
+                style="margin-left:auto; background:none; border:none; color:#1d7a3a; cursor:pointer; font-size:.85rem;">✕
+                Quitar</button>
+            </div>
+          </div>
+
+          <!-- Características -->
+          <div class="form-group form-full">
+            <label>Características</label>
+            <div class="features-list" id="features-list"></div>
+            <button type="button" class="btn-add-feature" onclick="addFeatureRow()"><i class="fas fa-plus"></i> Agregar
+              característica</button>
+          </div>
+
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+        <button class="btn-save" id="btn-save" onclick="saveProduct()"><i class="fas fa-save"></i> <span
+            id="save-label">Guardar</span></button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- ══════════ CONFIRM ══════════ -->
-<div class="confirm-overlay" id="confirm-overlay">
-  <div class="confirm-box">
-    <div class="confirm-icon"><i class="fas fa-trash"></i></div>
-    <h4>¿Eliminar producto?</h4>
-    <p id="confirm-text">Esta acción no se puede deshacer.</p>
-    <div class="confirm-btns">
-      <button class="btn-confirm-cancel" onclick="closeConfirm()">Cancelar</button>
-      <button class="btn-confirm-delete" onclick="confirmDelete()">Eliminar</button>
+  <!-- ══════════ CONFIRM ══════════ -->
+  <div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-box">
+      <div class="confirm-icon"><i class="fas fa-trash"></i></div>
+      <h4>¿Eliminar producto?</h4>
+      <p id="confirm-text">Esta acción no se puede deshacer.</p>
+      <div class="confirm-btns">
+        <button class="btn-confirm-cancel" onclick="closeConfirm()">Cancelar</button>
+        <button class="btn-confirm-delete" onclick="confirmDelete()">Eliminar</button>
+      </div>
     </div>
   </div>
-</div>
 
-<div class="toast" id="toast"></div>
+  <div class="toast" id="toast"></div>
 
-<!-- ══════════ MODAL VIDEO ══════════ -->
-<div class="video-modal-overlay" id="video-modal-overlay" onclick="handleVideoOverlayClick(event)">
-  <div class="video-modal">
-    <h3 id="video-modal-title">Agregar video</h3>
+  <!-- ══════════ MODAL VIDEO ══════════ -->
+  <div class="video-modal-overlay" id="video-modal-overlay" onclick="handleVideoOverlayClick(event)">
+    <div class="video-modal">
+      <h3 id="video-modal-title">Agregar video</h3>
 
-    <!-- Selector de tipo -->
-    <div class="vform-group">
-      <label>Tipo de video</label>
-      <div style="display:flex;gap:.5rem;">
-        <button type="button" id="vtype-youtube" onclick="setVideoType('youtube')"
-          style="flex:1;padding:.6rem;border-radius:8px;border:2px solid var(--blue);background:var(--blue-light);color:var(--blue);font-weight:600;cursor:pointer;font-family:inherit;">
-          <i class="fab fa-youtube"></i> YouTube
-        </button>
-        <button type="button" id="vtype-local" onclick="setVideoType('local')"
-          style="flex:1;padding:.6rem;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--muted);font-weight:600;cursor:pointer;font-family:inherit;">
-          <i class="fas fa-upload"></i> Video local
-        </button>
-      </div>
-    </div>
-
-    <!-- YouTube -->
-    <div id="vf-youtube-section">
+      <!-- Selector de tipo -->
       <div class="vform-group">
-        <label>URL o ID del video de YouTube <span style="color:var(--red)">*</span></label>
-        <input type="text" id="vf-yt-url" placeholder="Ej: https://www.youtube.com/watch?v=dQw4w9WgXcQ" oninput="previewYtThumb()">
-        <div class="yt-preview" id="yt-preview">
-          <img id="yt-thumb-img" src="" alt="Vista previa">
+        <label>Tipo de video</label>
+        <div style="display:flex;gap:.5rem;">
+          <button type="button" id="vtype-youtube" onclick="setVideoType('youtube')"
+            style="flex:1;padding:.6rem;border-radius:8px;border:2px solid var(--blue);background:var(--blue-light);color:var(--blue);font-weight:600;cursor:pointer;font-family:inherit;">
+            <i class="fab fa-youtube"></i> YouTube
+          </button>
+          <button type="button" id="vtype-local" onclick="setVideoType('local')"
+            style="flex:1;padding:.6rem;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--muted);font-weight:600;cursor:pointer;font-family:inherit;">
+            <i class="fas fa-upload"></i> Video local
+          </button>
         </div>
-        <div id="yt-id-detected" style="font-size:.78rem;color:var(--green);margin-top:.3rem;display:none;">
-          <i class="fas fa-check-circle"></i> ID detectado: <strong id="yt-id-val"></strong>
-        </div>
-        <div class="hint" style="font-size:.75rem;color:var(--muted);margin-top:.35rem;">Pega la URL completa de YouTube o solo el código del video</div>
       </div>
-    </div>
 
-    <!-- Video local -->
-    <div id="vf-local-section" style="display:none;">
-      <div class="vform-group">
-        <label>Archivo de video <span style="color:var(--red)">*</span></label>
-        <input type="file" id="vf-video-file" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
-          style="width:100%;padding:.5rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-family:inherit;"
-          onchange="previewLocalVideo()">
-        <div class="hint" style="font-size:.75rem;color:var(--muted);margin-top:.35rem;">MP4, WEBM, MOV, AVI · Máx 500MB</div>
-        <div id="vf-local-preview" style="display:none;margin-top:.75rem;">
-          <video id="vf-local-video-el" controls style="width:100%;border-radius:8px;max-height:180px;background:#000;"></video>
+      <!-- YouTube -->
+      <div id="vf-youtube-section">
+        <div class="vform-group">
+          <label>URL o ID del video de YouTube <span style="color:var(--red)">*</span></label>
+          <input type="text" id="vf-yt-url" placeholder="Ej: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+            oninput="previewYtThumb()">
+          <div class="yt-preview" id="yt-preview">
+            <img id="yt-thumb-img" src="" alt="Vista previa">
+          </div>
+          <div id="yt-id-detected" style="font-size:.78rem;color:var(--green);margin-top:.3rem;display:none;">
+            <i class="fas fa-check-circle"></i> ID detectado: <strong id="yt-id-val"></strong>
+          </div>
+          <div class="hint" style="font-size:.75rem;color:var(--muted);margin-top:.35rem;">Pega la URL completa de
+            YouTube o solo el código del video</div>
         </div>
-        <div id="vf-local-existing" style="display:none;font-size:.8rem;color:var(--muted);margin-top:.5rem;"></div>
-        <div id="vf-upload-progress" style="display:none;margin-top:.75rem;">
-          <div style="font-size:.82rem;color:var(--muted);margin-bottom:.3rem;">Subiendo video...</div>
-          <div style="background:var(--border);border-radius:99px;height:6px;">
-            <div id="vf-progress-bar" style="background:var(--blue);height:6px;border-radius:99px;width:0%;transition:width .2s;"></div>
+      </div>
+
+      <!-- Video local -->
+      <div id="vf-local-section" style="display:none;">
+        <div class="vform-group">
+          <label>Archivo de video <span style="color:var(--red)">*</span></label>
+          <input type="file" id="vf-video-file" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
+            style="width:100%;padding:.5rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-family:inherit;"
+            onchange="previewLocalVideo()">
+          <div class="hint" style="font-size:.75rem;color:var(--muted);margin-top:.35rem;">MP4, WEBM, MOV, AVI · Máx
+            500MB</div>
+          <div id="vf-local-preview" style="display:none;margin-top:.75rem;">
+            <video id="vf-local-video-el" controls
+              style="width:100%;border-radius:8px;max-height:180px;background:#000;"></video>
+          </div>
+          <div id="vf-local-existing" style="display:none;font-size:.8rem;color:var(--muted);margin-top:.5rem;"></div>
+          <div id="vf-upload-progress" style="display:none;margin-top:.75rem;">
+            <div style="font-size:.82rem;color:var(--muted);margin-bottom:.3rem;">Subiendo video...</div>
+            <div style="background:var(--border);border-radius:99px;height:6px;">
+              <div id="vf-progress-bar"
+                style="background:var(--blue);height:6px;border-radius:99px;width:0%;transition:width .2s;"></div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="vform-group">
-      <label>Título del video <span style="color:var(--red)">*</span></label>
-      <input type="text" id="vf-title" placeholder="Ej: Proceso de fabricación de cajas" maxlength="80">
-    </div>
-
-    <div class="vform-group">
-      <label>Descripción</label>
-      <textarea id="vf-desc" placeholder="Breve descripción del video..." maxlength="200"></textarea>
-    </div>
-
-    <div class="vform-row">
       <div class="vform-group">
-        <label>Etiqueta (categoría)</label>
-        <input type="text" id="vf-tag" placeholder="Ej: Packaging" maxlength="30">
+        <label>Título del video <span style="color:var(--red)">*</span></label>
+        <input type="text" id="vf-title" placeholder="Ej: Proceso de fabricación de cajas" maxlength="80">
       </div>
+
       <div class="vform-group">
-        <label>Ícono de etiqueta</label>
-        <select id="vf-icon">
-          <option value="fa-box">📦 Packaging</option>
-          <option value="fa-print">🖨️ Impresión</option>
-          <option value="fa-tags">🏷️ Etiquetas</option>
-          <option value="fa-mug-hot">☕ Tazas</option>
-          <option value="fa-image">🖼️ Gran Formato</option>
-          <option value="fa-gift">🎁 Material POP</option>
-          <option value="fa-palette">🎨 Diseño</option>
-          <option value="fa-star">⭐ Destacado</option>
-          <option value="fa-video">🎬 Video</option>
+        <label>Descripción</label>
+        <textarea id="vf-desc" placeholder="Breve descripción del video..." maxlength="200"></textarea>
+      </div>
+
+      <div class="vform-row">
+        <div class="vform-group">
+          <label>Etiqueta (categoría)</label>
+          <input type="text" id="vf-tag" placeholder="Ej: Packaging" maxlength="30">
+        </div>
+        <div class="vform-group">
+          <label>Ícono de etiqueta</label>
+          <select id="vf-icon">
+            <option value="fa-box">📦 Packaging</option>
+            <option value="fa-print">🖨️ Impresión</option>
+            <option value="fa-tags">🏷️ Etiquetas</option>
+            <option value="fa-mug-hot">☕ Tazas</option>
+            <option value="fa-image">🖼️ Gran Formato</option>
+            <option value="fa-gift">🎁 Material POP</option>
+            <option value="fa-palette">🎨 Diseño</option>
+            <option value="fa-star">⭐ Destacado</option>
+            <option value="fa-video">🎬 Video</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="vform-group">
+        <label>Estado</label>
+        <select id="vf-active">
+          <option value="true">✅ Visible en el sitio</option>
+          <option value="false">⏸️ Oculto</option>
         </select>
       </div>
-    </div>
 
-    <div class="vform-group">
-      <label>Estado</label>
-      <select id="vf-active">
-        <option value="true">✅ Visible en el sitio</option>
-        <option value="false">⏸️ Oculto</option>
-      </select>
-    </div>
-
-    <div class="vform-actions">
-      <button class="btn-logout" onclick="closeVideoModal()" style="width:auto;">Cancelar</button>
-      <button class="btn-add" onclick="saveVideo()"><i class="fas fa-save"></i> Guardar video</button>
+      <div class="vform-actions">
+        <button class="btn-logout" onclick="closeVideoModal()" style="width:auto;">Cancelar</button>
+        <button class="btn-add" onclick="saveVideo()"><i class="fas fa-save"></i> Guardar video</button>
+      </div>
     </div>
   </div>
-</div>
 
-<script src="/admin/admin.js?v=20260702-pricing-ux"></script>
+  <script src="/admin/admin.js?v=20260702-pricing-ux"></script>
 </body>
+
 </html>

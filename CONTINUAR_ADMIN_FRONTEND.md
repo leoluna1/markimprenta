@@ -165,3 +165,17 @@ Fecha: 2026-07-02
   - Admin principal ve `Usuarios` e `Historial`.
   - Usuario temporal `editor` no vio esas opciones y recibió `403` al intentar acceder a auditoría.
   - Se limpiaron los usuarios/eventos temporales de prueba.
+
+## Ajuste 2026-07-12 - Recuperación de contraseña multiusuario
+
+- La recuperación de contraseña funciona por correo de cualquier `admin_user` activo, no solo el admin principal.
+- Textos del formulario cambiados a "usuario registrado".
+- En la lista de `Usuarios`, se agregó acción `Recuperar` para enviar enlace al usuario seleccionado.
+- Si Gmail falla por credenciales (`535 BadCredentials`) o no está configurado:
+  - En producción devuelve advertencia/error claro.
+  - En local/desarrollo devuelve `devResetLink` para probar el flujo sin depender de Gmail.
+- Verificación:
+  - `POST /api/auth/forgot` para admin devuelve respuesta controlada aunque Gmail rechace credenciales.
+  - Usuario temporal nuevo pudo recibir token local, cambiar contraseña y hacer login con la nueva clave.
+  - La contraseña anterior dejó de funcionar.
+  - UI de recuperación muestra advertencia y botón `Abrir enlace local` en entorno local.

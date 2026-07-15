@@ -36,6 +36,20 @@ const SEED_FILES = {
   settings: path.join(__dirname, 'seeds', 'settings.json'),
 };
 
+function stripHtml(value) {
+  return String(value ?? '').replace(/<[^>]*>/g, '');
+}
+
+function sanitizePricingData(value) {
+  if (Array.isArray(value)) return value.map(sanitizePricingData);
+  if (!value || typeof value !== 'object') return typeof value === 'string' ? stripHtml(value) : value;
+  const out = {};
+  for (const [key, entry] of Object.entries(value)) {
+    out[key] = sanitizePricingData(entry);
+  }
+  return out;
+}
+
 /** Inicializa la conexión y crea las tablas si es necesario. Se ejecuta al arrancar el servidor. */
 async function connectDb() {
   if (!DATABASE_URL) {
@@ -422,14 +436,15 @@ async function getPricing() {
 }
 
 async function savePricing(data) {
+  const cleanData = sanitizePricingData(data);
   if (pool) {
     await pool.query(
       'INSERT INTO pricing (id, data) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data',
-      [data]
+      [cleanData]
     );
     return true;
   }
-  writeLocalJson('pricing', data);
+  writeLocalJson('pricing', cleanData);
   return true;
 }
 

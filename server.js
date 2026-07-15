@@ -302,16 +302,40 @@ const videoUpload = multer({
 });
 
 // ── Nodemailer ────────────────────────────────
+function normalizeMailPassword(value) {
+  return String(value || '').replace(/\s/g, '');
+}
+
+function getMailFromAddress() {
+  return process.env.MAIL_FROM || process.env.GMAIL_USER || process.env.ADMIN_EMAIL || '';
+}
+
 function createMailTransport() {
+  const smtpHost = String(process.env.MAIL_HOST || '').trim();
+  const smtpUser = String(process.env.MAIL_USER || '').trim();
+  const smtpPass = normalizeMailPassword(process.env.MAIL_PASS);
+  const smtpPort = parseInt(process.env.MAIL_PORT || '0', 10);
+  const smtpSecure = String(process.env.MAIL_SECURE || '').toLowerCase();
+
+  if (smtpHost && smtpUser && smtpPass && !smtpPass.includes('xxxx')) {
+    return nodemailer.createTransport({
+      host: smtpHost,
+      port: Number.isFinite(smtpPort) && smtpPort > 0 ? smtpPort : 587,
+      secure: smtpSecure === 'true' ? true : smtpSecure === 'false' ? false : (smtpPort === 465),
+      auth: { user: smtpUser, pass: smtpPass },
+    });
+  }
+
   if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS ||
       process.env.GMAIL_PASS.includes('xxxx')) {
     return null;
   }
+
   return nodemailer.createTransport({
     service: 'gmail',
     auth: {
       user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_PASS.replace(/\s/g, ''),
+      pass: normalizeMailPassword(process.env.GMAIL_PASS),
     },
   });
 }
@@ -325,6 +349,10 @@ function canExposeResetLink(req) {
   return !IS_PRODUCTION && isLocalRequest(req);
 }
 
+function shouldBypassRateLimit(req) {
+  return !IS_PRODUCTION && isLocalRequest(req);
+}
+
 // ── Rate limiters ─────────────────────────────
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -332,6 +360,7 @@ const authLimiter = rateLimit({
   message: { error: 'Demasiados intentos. Espera 15 minutos.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: shouldBypassRateLimit,
 });
 const contactLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -339,6 +368,7 @@ const contactLimiter = rateLimit({
   message: { error: 'Demasiados mensajes enviados. Intenta más tarde.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: shouldBypassRateLimit,
 });
 const reviewLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000,
@@ -346,6 +376,7 @@ const reviewLimiter = rateLimit({
   message: { error: 'Ya enviaste el máximo de reseñas por hoy. Intenta mañana.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: shouldBypassRateLimit,
 });
 const forgotLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -353,6 +384,7 @@ const forgotLimiter = rateLimit({
   message: { error: 'Demasiados intentos. Espera 1 hora.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: shouldBypassRateLimit,
 });
 const resetLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -360,6 +392,7 @@ const resetLimiter = rateLimit({
   message: { error: 'Demasiados intentos. Espera 15 minutos.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: shouldBypassRateLimit,
 });
 
 // ── Helpers ───────────────────────────────────
@@ -506,7 +539,7 @@ const globalLimiter = rateLimit({
   message: { error: 'Demasiadas solicitudes. Intenta de nuevo en unos minutos.' },
   skip: (req) => (
     (req.method === 'GET' && req.path.startsWith('/uploads/')) ||
-    (!IS_PRODUCTION && req.headers['x-qa-browser'] === '1')
+    (!IS_PRODUCTION && (req.headers['x-qa-browser'] === '1' || isLocalRequest(req)))
   ),
 });
 app.use(globalLimiter);
@@ -640,7 +673,7 @@ app.post('/api/auth/forgot', forgotLimiter, async (req, res) => {
   const { email } = req.body || {};
   const genericOk = {
     success: true,
-    message: 'Si el correo coincide con el administrador, se enviará un enlace de recuperación.',
+    message: 'Si el correo coincide con un usuario registrado, se enviará un enlace de recuperación.',
   };
   const user = await db.getAdminUserByEmail(email);
 
@@ -649,16 +682,23 @@ app.post('/api/auth/forgot', forgotLimiter, async (req, res) => {
     return res.json(genericOk);
   }
 
-  const transport = createMailTransport();
-  if (!transport) return res.status(503).json({ error: 'Email no configurado en el servidor.' });
-
   const token    = createResetToken(user);
   const siteUrl  = process.env.SITE_URL || `http://localhost:${PORT}`;
   const resetLink = `${siteUrl}/admin?reset_token=${token}`;
+  const devPayload = canExposeResetLink(req) ? { devResetLink: resetLink } : {};
+  const transport = createMailTransport();
+  if (!transport) {
+    auditLog('PASSWORD_RESET_EMAIL_NOT_CONFIGURED', { summary: 'Email de recuperacion no configurado' }, req, user);
+    return res.status(canExposeResetLink(req) ? 200 : 503).json({
+      ...genericOk,
+      ...devPayload,
+      warning: 'Email no configurado. Configura MAIL_HOST/MAIL_USER/MAIL_PASS o GMAIL_USER/GMAIL_PASS.',
+    });
+  }
 
   try {
     await transport.sendMail({
-      from:    `"Mark Publicidad Admin" <${process.env.GMAIL_USER}>`,
+      from:    `"Mark Publicidad Admin" <${getMailFromAddress()}>`,
       to:      user.email,
       subject: 'Recuperación de contraseña — Mark Publicidad',
       html: `
@@ -680,7 +720,13 @@ app.post('/api/auth/forgot', forgotLimiter, async (req, res) => {
     res.json(genericOk);
   } catch (e) {
     logger.error('[Auth] Error enviando email de recuperación', { err: e.message });
-    res.status(500).json({ error: 'Error enviando el email.' });
+    auditLog('PASSWORD_RESET_EMAIL_FAILED', { summary: 'Error enviando email de recuperacion' }, req, user);
+    res.status(canExposeResetLink(req) ? 200 : 502).json({
+      ...genericOk,
+      ...devPayload,
+      warning: 'No se pudo enviar el email. Revisa SMTP o usa una contraseña de aplicación en GMAIL_PASS.',
+      error: canExposeResetLink(req) ? undefined : 'No se pudo enviar el email de recuperación.',
+    });
   }
 });
 
@@ -957,8 +1003,8 @@ app.post('/api/contact', contactLimiter, csrfProtect, contactValidators, async (
   if (transport) {
     try {
       await transport.sendMail({
-        from:    `"Mark Publicidad Web" <${process.env.GMAIL_USER}>`,
-        to:      process.env.CONTACT_EMAIL || process.env.GMAIL_USER,
+        from:    `"Mark Publicidad Web" <${getMailFromAddress()}>`,
+        to:      process.env.CONTACT_EMAIL || getMailFromAddress(),
         replyTo: email,
         subject: `Nuevo mensaje de ${name} — Mark Publicidad`,
         html: `
@@ -991,7 +1037,7 @@ app.post('/api/contact', contactLimiter, csrfProtect, contactValidators, async (
 
   if (transport && emailOk) {
     transport.sendMail({
-      from:    `"Mark Publicidad Impresa" <${process.env.GMAIL_USER}>`,
+      from:    `"Mark Publicidad Impresa" <${getMailFromAddress()}>`,
       to:      email,
       subject: `Recibimos tu mensaje — Mark Publicidad`,
       html: `
@@ -1579,6 +1625,7 @@ app.listen(PORT, async () => {
   const authConfig = await getAuthData();
 
   const emailOk    = process.env.GMAIL_USER && process.env.GMAIL_PASS && !process.env.GMAIL_PASS.includes('xxxx');
+  const smtpOk     = process.env.MAIL_HOST && process.env.MAIL_USER && process.env.MAIL_PASS && !String(process.env.MAIL_PASS).includes('xxxx');
   const jwtOk      = !!process.env.JWT_SECRET;
   const passwordOk = !!(authConfig && authConfig.password);
   const adminEmailOk = !!(authConfig && authConfig.email);
@@ -1626,9 +1673,11 @@ app.listen(PORT, async () => {
     }
   }
 
-  const emailDisplay = emailOk
-    ? 'OK (' + maskEmail(process.env.GMAIL_USER) + ')'
-    : 'PENDIENTE — configura GMAIL_USER y GMAIL_PASS en .env';
+  const emailDisplay = smtpOk
+    ? 'OK (SMTP ' + String(process.env.MAIL_HOST).trim() + ')'
+    : emailOk
+      ? 'OK (' + maskEmail(process.env.GMAIL_USER) + ')'
+      : 'PENDIENTE — configura MAIL_HOST/MAIL_USER/MAIL_PASS o GMAIL_USER/GMAIL_PASS en .env';
   const adminEmailDisplay = adminEmailOk
     ? 'OK (' + maskEmail(authConfig.email) + ')'
     : 'FALTA ADMIN_EMAIL o email guardado en credenciales';

@@ -87,7 +87,8 @@ offset/
    - `ADMIN_EMAIL` (Correo con el que ingresa el administrador; si no existe usa `GMAIL_USER`)
    - `ADMIN_PASSWORD` (Contraseña de administrador)
    - `JWT_SECRET` (Secreto para firmar sesiones)
-   - `GMAIL_USER` y `GMAIL_PASS` (necesarios para recuperación de contraseña y formularios de contacto)
+   - `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS` y `MAIL_FROM` para usar un SMTP dedicado para recuperación y contacto
+   - `GMAIL_USER` y `GMAIL_PASS` como alternativa si prefieres seguir usando Gmail; en Gmail usa una contraseña de aplicación, no la contraseña normal de la cuenta
 4. Inicia el servidor en modo desarrollo:
    ```bash
    npm run dev
@@ -107,4 +108,5 @@ offset/
 - [ ] Ajustar la lista de precios en la sección del Cotizador.
 - [ ] Subir al menos 10 productos reales con sus respectivas imágenes.
 - [ ] Validar el correcto funcionamiento de correos para formularios de contacto.
+- [ ] Validar recuperación de contraseña para admin y usuarios nuevos.
 - [ ] Cambiar la contraseña admin antes de publicar y activar 2FA.

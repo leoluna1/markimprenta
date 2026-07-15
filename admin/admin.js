@@ -32,7 +32,7 @@ if (document.body) {
 
 // ── Utilidad: escapar HTML para prevenir XSS ───
 function esc(str) {
-  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function jsStr(value) {
@@ -55,10 +55,10 @@ function applyAdminPermissions() {
 
 // ── Contactos ──────────────────────────────────
 async function loadContacts() {
-  const list  = document.getElementById('contacts-list');
+  const list = document.getElementById('contacts-list');
   const badge = document.getElementById('contacts-badge');
   try {
-    const res  = await fetch('/api/contacts', { headers: { 'x-admin-token': token } });
+    const res = await fetch('/api/contacts', { headers: { 'x-admin-token': token } });
     const data = await res.json();
     if (!Array.isArray(data)) { list.innerHTML = '<p style="color:var(--muted)">Error al cargar mensajes.</p>'; return; }
     if (data.length === 0) { list.innerHTML = '<p style="color:var(--muted);padding:2rem;text-align:center;">No hay mensajes aún.</p>'; return; }
@@ -81,7 +81,7 @@ async function loadContacts() {
             </div>
           </div>
           <div style="display:flex;gap:.5rem;flex-shrink:0;flex-wrap:wrap;align-items:center;">
-            ${c.phone ? `<a href="https://wa.me/${esc(c.phone.replace(/\D/g,''))}" target="_blank" rel="noopener noreferrer" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid #25d366;border-radius:6px;background:transparent;cursor:pointer;color:#25d366;text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : ''}
+            ${c.phone ? `<a href="https://wa.me/${esc(c.phone.replace(/\D/g, ''))}" target="_blank" rel="noopener noreferrer" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid #25d366;border-radius:6px;background:transparent;cursor:pointer;color:#25d366;text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : ''}
             <a href="mailto:${esc(c.email)}" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid var(--blue);border-radius:6px;background:transparent;color:var(--blue);text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;"><i class="fas fa-reply"></i> Email</a>
             ${!c.read ? `<button onclick="markRead(${c.id})" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid var(--border);border-radius:6px;background:transparent;cursor:pointer;color:var(--text);font-family:inherit;"><i class="fas fa-check"></i> Leído</button>` : ''}
             <button onclick="deleteContact(${c.id})" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid #fca5a5;border-radius:6px;background:transparent;cursor:pointer;color:#dc2626;font-family:inherit;"><i class="fas fa-trash"></i></button>
@@ -139,9 +139,9 @@ async function doLogin() {
 
   try {
     const r = await fetch(API + '/api/auth', {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json', ...csrfH() },
-      body:    JSON.stringify({ email, password: pass }),
+      body: JSON.stringify({ email, password: pass }),
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Error');
@@ -173,9 +173,9 @@ async function doTotpVerify() {
   document.getElementById('totp-error').style.display = 'none';
   try {
     const r = await fetch(API + '/api/auth/2fa/challenge', {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json', ...csrfH() },
-      body:    JSON.stringify({ challengeToken: _challengeToken, totpCode: code }),
+      body: JSON.stringify({ challengeToken: _challengeToken, totpCode: code }),
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Error');
@@ -191,10 +191,10 @@ async function doTotpVerify() {
 async function logout() {
   try {
     await fetch(API + '/api/auth/logout', {
-      method:  'POST',
+      method: 'POST',
       headers: { 'x-admin-token': token, ...csrfH() },
     });
-  } catch {}
+  } catch { }
   token = '';
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
@@ -237,16 +237,16 @@ async function loadContactsStats() {
     if (el) el.textContent = unread;
     const badge = document.getElementById('contacts-badge');
     if (badge) { badge.textContent = unread || ''; badge.style.display = unread ? 'inline' : 'none'; }
-  } catch {}
+  } catch { }
 }
 
 // ── Portfolio ─────────────────────────────────
 async function loadPortfolioAdmin() {
-  const grid  = document.getElementById('portfolio-admin-grid');
+  const grid = document.getElementById('portfolio-admin-grid');
   const empty = document.getElementById('portfolio-admin-empty');
   if (!grid) return;
   try {
-    const res  = await fetch('/api/portfolio', { headers: { 'x-admin-token': token } });
+    const res = await fetch('/api/portfolio', { headers: { 'x-admin-token': token } });
     const items = await res.json();
     if (!Array.isArray(items) || !items.length) {
       if (empty) empty.style.display = 'block';
@@ -255,7 +255,7 @@ async function loadPortfolioAdmin() {
     }
     if (empty) empty.style.display = 'none';
     grid.querySelectorAll('.portfolio-admin-card').forEach(c => c.remove());
-    const catLabels = { impresion:'Impresión', 'gran-formato':'Gran formato', packaging:'Packaging', pop:'Material POP', personalizado:'Personalizado' };
+    const catLabels = { impresion: 'Impresión', 'gran-formato': 'Gran formato', packaging: 'Packaging', pop: 'Material POP', personalizado: 'Personalizado' };
     items.forEach(item => {
       const card = document.createElement('div');
       card.className = 'portfolio-admin-card';
@@ -268,20 +268,20 @@ async function loadPortfolioAdmin() {
         </div>`;
       grid.appendChild(card);
     });
-  } catch(e) {
+  } catch (e) {
     if (grid) grid.innerHTML = '<div style="color:var(--muted);padding:2rem;text-align:center;">Error al cargar.</div>';
   }
 }
 
 async function addPortfolioItem() {
-  const title    = document.getElementById('pf-title').value.trim();
+  const title = document.getElementById('pf-title').value.trim();
   const category = document.getElementById('pf-category').value;
-  const image    = document.getElementById('pf-image').value.trim();
+  const image = document.getElementById('pf-image').value.trim();
   if (!title || !image) return showToast('Completa título e imagen.', 'orange');
   try {
     const res = await fetch('/api/portfolio', {
       method: 'POST',
-      headers: { 'Content-Type':'application/json', 'x-admin-token': token },
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
       body: JSON.stringify({ title, category, image }),
     });
     if (!res.ok) throw new Error();
@@ -304,7 +304,7 @@ async function uploadPortfolioImage(input) {
   const fd = new FormData();
   fd.append('image', input.files[0]);
   try {
-    const res  = await fetch('/api/upload', { method:'POST', headers:{'x-admin-token':token}, body:fd });
+    const res = await fetch('/api/upload', { method: 'POST', headers: { 'x-admin-token': token }, body: fd });
     const data = await res.json();
     if (data.url) {
       document.getElementById('pf-image').value = data.url;
@@ -319,14 +319,14 @@ async function uploadPortfolioImage(input) {
 function showToast(msg, type = 'blue', icon = null) {
   const container = document.getElementById('admin-toast');
   if (!container) return;
-  const icons = { green:'fa-check-circle', blue:'fa-bell', orange:'fa-exclamation-circle' };
+  const icons = { green: 'fa-check-circle', blue: 'fa-bell', orange: 'fa-exclamation-circle' };
   const el = document.createElement('div');
   el.className = `admin-toast-item toast-${type === 'green' ? 'success' : 'info'}`;
   el.innerHTML = `
     <div class="t-icon ${type}"><i class="fas ${icon || icons[type] || 'fa-bell'}"></i></div>
     <div class="t-body"><strong>${msg}</strong></div>`;
   container.appendChild(el);
-  setTimeout(() => { el.style.transition='opacity .4s'; el.style.opacity='0'; setTimeout(()=>el.remove(), 400); }, 4000);
+  setTimeout(() => { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 400); }, 4000);
 }
 
 // ── Auto-polling notificaciones ────────────────
@@ -337,16 +337,16 @@ async function pollNotifications() {
   if (!token) return;
   try {
     const [rC, rR] = await Promise.all([
-      fetch('/api/contacts',     { headers: { 'x-admin-token': token } }),
-      fetch('/api/reviews/all',  { headers: { 'x-admin-token': token } }),
+      fetch('/api/contacts', { headers: { 'x-admin-token': token } }),
+      fetch('/api/reviews/all', { headers: { 'x-admin-token': token } }),
     ]);
     const contacts = await rC.json();
-    const reviews  = await rR.json();
+    const reviews = await rR.json();
 
     if (Array.isArray(contacts)) {
       const unread = contacts.filter(c => !c.read).length;
-      const badge  = document.getElementById('contacts-badge');
-      const stEl   = document.getElementById('st-messages');
+      const badge = document.getElementById('contacts-badge');
+      const stEl = document.getElementById('st-messages');
       if (badge) { badge.textContent = unread || ''; badge.style.display = unread ? 'inline' : 'none'; }
       if (stEl) stEl.textContent = unread;
       if (_lastUnreadContacts >= 0 && unread > _lastUnreadContacts) {
@@ -357,14 +357,14 @@ async function pollNotifications() {
 
     if (Array.isArray(reviews)) {
       const pending = reviews.filter(r => !r.approved).length;
-      const badge   = document.getElementById('reviews-badge');
+      const badge = document.getElementById('reviews-badge');
       if (badge) { badge.textContent = pending || ''; badge.style.display = pending ? 'inline' : 'none'; }
       if (_lastPendingReviews >= 0 && pending > _lastPendingReviews) {
         showToast(`${pending - _lastPendingReviews} nueva${pending - _lastPendingReviews > 1 ? 's' : ''} reseña${pending - _lastPendingReviews > 1 ? 's' : ''} pendiente${pending - _lastPendingReviews > 1 ? 's' : ''}`, 'orange', 'fa-star');
       }
       _lastPendingReviews = pending;
     }
-  } catch {}
+  } catch { }
 }
 
 async function loadReviewsBadge() {
@@ -375,15 +375,15 @@ async function loadReviewsBadge() {
     const pending = data.filter(x => !x.approved).length;
     const badge = document.getElementById('reviews-badge');
     if (badge) { badge.textContent = pending || ''; badge.style.display = pending ? 'inline' : 'none'; }
-  } catch(e) {}
+  } catch (e) { }
 }
 
 async function loadReviewsAdmin() {
-  const list  = document.getElementById('reviews-admin-list');
+  const list = document.getElementById('reviews-admin-list');
   const badge = document.getElementById('reviews-badge');
   if (!list) return;
   try {
-    const res  = await fetch('/api/reviews/all', { headers: { 'x-admin-token': token } });
+    const res = await fetch('/api/reviews/all', { headers: { 'x-admin-token': token } });
     const data = await res.json();
     if (!Array.isArray(data)) { list.innerHTML = '<p style="color:var(--muted)">Error al cargar reseñas.</p>'; return; }
     if (data.length === 0) { list.innerHTML = '<p style="color:var(--muted);padding:2rem;text-align:center;">No hay reseñas aún.</p>'; return; }
@@ -400,8 +400,8 @@ async function loadReviewsAdmin() {
               <strong style="font-size:.95rem;">${esc(r.name)}</strong>
               <span style="color:#f9a825;letter-spacing:1px;">${stars(r.rating)}</span>
               ${!r.approved
-                ? '<span style="background:var(--orange);color:#fff;font-size:.62rem;font-weight:700;border-radius:99px;padding:1px 7px;">PENDIENTE</span>'
-                : '<span style="background:var(--green);color:#fff;font-size:.62rem;font-weight:700;border-radius:99px;padding:1px 7px;">APROBADA</span>'}
+        ? '<span style="background:var(--orange);color:#fff;font-size:.62rem;font-weight:700;border-radius:99px;padding:1px 7px;">PENDIENTE</span>'
+        : '<span style="background:var(--green);color:#fff;font-size:.62rem;font-weight:700;border-radius:99px;padding:1px 7px;">APROBADA</span>'}
             </div>
             <div style="font-size:.8rem;color:var(--muted);margin-top:3px;">${new Date(r.date).toLocaleString('es-EC')}</div>
           </div>
@@ -413,7 +413,7 @@ async function loadReviewsAdmin() {
         <div style="margin:.75rem 0 0;padding:1rem;background:var(--bg);border-radius:8px;font-size:.9rem;line-height:1.65;white-space:pre-wrap;font-style:italic;color:var(--text);">"${esc(r.comment)}"</div>
       </div>
     `).join('');
-  } catch(e) {
+  } catch (e) {
     list.innerHTML = '<p style="color:var(--muted)">Error: ' + e.message + '</p>';
   }
 }
@@ -438,12 +438,12 @@ function showSection(name) {
   if (panel) panel.classList.add('active');
   if (nav) nav.classList.add('active');
   if (name === 'dashboard') loadDashboard();
-  if (name === 'gallery')   loadGallery();
-  if (name === 'pricing')   loadPricing();
-  if (name === 'videos')    loadVideos();
-  if (name === 'social')    loadSocialMedia();
-  if (name === 'reviews')   loadReviewsAdmin();
-  if (name === 'contacts')  loadContacts();
+  if (name === 'gallery') loadGallery();
+  if (name === 'pricing') loadPricing();
+  if (name === 'videos') loadVideos();
+  if (name === 'social') loadSocialMedia();
+  if (name === 'reviews') loadReviewsAdmin();
+  if (name === 'contacts') loadContacts();
   if (name === 'portfolio') loadPortfolioAdmin();
   if (name === 'users') {
     if (!canManageAdmin()) return showSection('dashboard');
@@ -467,10 +467,10 @@ async function loadDashboard() {
   try {
     const adminAllowed = canManageAdmin();
     const [rP, rC, rR, rPort, rUsers, rAudit] = await Promise.all([
-      fetch('/api/products',    { headers: { 'x-admin-token': token } }),
-      fetch('/api/contacts',    { headers: { 'x-admin-token': token } }),
+      fetch('/api/products', { headers: { 'x-admin-token': token } }),
+      fetch('/api/contacts', { headers: { 'x-admin-token': token } }),
       fetch('/api/reviews/all', { headers: { 'x-admin-token': token } }),
-      fetch('/api/portfolio',   { headers: { 'x-admin-token': token } }),
+      fetch('/api/portfolio', { headers: { 'x-admin-token': token } }),
       adminAllowed ? fetch('/api/admin/users', { headers: { 'x-admin-token': token } }) : Promise.resolve({ json: async () => [] }),
       adminAllowed ? fetch('/api/admin/audit?limit=50', { headers: { 'x-admin-token': token } }) : Promise.resolve({ json: async () => [] }),
     ]);
@@ -483,17 +483,17 @@ async function loadDashboard() {
       safeJson(rP), safeJson(rC), safeJson(rR), safeJson(rPort), safeJson(rUsers), safeJson(rAudit),
     ]);
 
-    const unread  = contacts.filter(c => !c.read).length;
+    const unread = contacts.filter(c => !c.read).length;
     const pending = reviews.filter(r => !r.approved).length;
     const popular = prods.filter(p => p.popular).length;
-    const cats    = new Set(prods.map(p => p.category)).size;
+    const cats = new Set(prods.map(p => p.category)).size;
 
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    set('dash-products',   prods.length);
-    set('dash-popular',    popular);
-    set('dash-messages',   unread);
-    set('dash-reviews',    pending);
-    set('dash-portfolio',  Array.isArray(portfolio) ? portfolio.length : '—');
+    set('dash-products', prods.length);
+    set('dash-popular', popular);
+    set('dash-messages', unread);
+    set('dash-reviews', pending);
+    set('dash-portfolio', Array.isArray(portfolio) ? portfolio.length : '—');
     set('dash-categories', cats);
     set('dash-users', users.filter(u => u.active !== false).length || '—');
     set('dash-audit', audit.length || 0);
@@ -508,7 +508,7 @@ async function loadDashboard() {
             <div class="dash-row-icon ${c.read ? '' : 'unread'}"><i class="fas fa-envelope"></i></div>
             <div style="flex:1;min-width:0;">
               <div style="font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.name)}</div>
-              <div style="font-size:.75rem;color:var(--muted);">${new Date(c.date||c.createdAt).toLocaleDateString('es-EC',{day:'numeric',month:'short'})}</div>
+              <div style="font-size:.75rem;color:var(--muted);">${new Date(c.date || c.createdAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })}</div>
             </div>
             ${!c.read ? '<span class="badge" style="background:#fff0ef;color:#ff3b30;flex-shrink:0;">Nuevo</span>' : ''}
           </div>`).join('')
@@ -525,7 +525,7 @@ async function loadDashboard() {
             <div class="dash-row-icon pending"><i class="fas fa-star"></i></div>
             <div style="flex:1;min-width:0;">
               <div style="font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.name)}</div>
-              <div style="font-size:.75rem;color:var(--muted);">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
+              <div style="font-size:.75rem;color:var(--muted);">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
             </div>
             <button data-approve="${r.id}" class="dash-approve-btn">
               <i class="fas fa-check"></i> Aprobar
@@ -533,7 +533,7 @@ async function loadDashboard() {
           </div>`).join('')
         : '<div class="dash-empty"><i class="fas fa-star"></i><span>Sin reseñas pendientes</span></div>';
     }
-  } catch(e) {
+  } catch (e) {
     showToast('Error cargando el dashboard: ' + (e.message || e), 'orange');
   } finally {
     if (icon) icon.classList.remove('fa-spin');
@@ -551,16 +551,16 @@ async function loadProducts() {
 }
 
 function renderStats() {
-  const total   = products.length;
+  const total = products.length;
   const popular = products.filter(p => p.popular).length;
-  const cats    = new Set(products.map(p => p.category)).size;
-  const avg     = products.length
+  const cats = new Set(products.map(p => p.category)).size;
+  const avg = products.length
     ? (products.reduce((s, p) => s + (p.price || 0), 0) / products.length).toFixed(2)
     : '0.00';
-  document.getElementById('st-total').textContent   = total;
+  document.getElementById('st-total').textContent = total;
   document.getElementById('st-popular').textContent = popular;
-  document.getElementById('st-cats').textContent    = cats;
-  document.getElementById('st-avg').textContent     = '$' + avg;
+  document.getElementById('st-cats').textContent = cats;
+  document.getElementById('st-avg').textContent = '$' + avg;
 }
 
 function isImg(val) {
@@ -569,14 +569,14 @@ function isImg(val) {
 }
 
 function renderTable() {
-  const q   = document.getElementById('search-input').value.toLowerCase();
+  const q = document.getElementById('search-input').value.toLowerCase();
   const cat = document.getElementById('cat-filter').value;
   const filtered = products.filter(p => {
-    const matchQ   = !q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
+    const matchQ = !q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
     const matchCat = !cat || p.category === cat;
     return matchQ && matchCat;
   });
-  const catLabel = { impresion:'Impresión', promocional:'Promocional', packaging:'Packaging', 'gran-formato':'Gran Formato' };
+  const catLabel = { impresion: 'Impresión', promocional: 'Promocional', packaging: 'Packaging', 'gran-formato': 'Gran Formato' };
   const tbody = document.getElementById('products-tbody');
   if (filtered.length === 0) {
     tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><i class="fas fa-box-open"></i>No se encontraron productos</div></td></tr>`;
@@ -588,16 +588,16 @@ function renderTable() {
         <div class="product-cell">
           <div class="product-thumb">
             ${isImg(p.image)
-              ? `<img src="${escHtml(p.image)}" alt="${escHtml(p.name)}" onerror="this.parentElement.innerHTML='<span class=emoji>📦</span>'">`
-              : `<span class="emoji">${escHtml(p.image || '📦')}</span>`}
+      ? `<img src="${escHtml(p.image)}" alt="${escHtml(p.name)}" onerror="this.parentElement.innerHTML='<span class=emoji>📦</span>'">`
+      : `<span class="emoji">${escHtml(p.image || '📦')}</span>`}
           </div>
           <div><div class="product-name">${escHtml(p.name)}</div><div class="product-id">#${p.id}</div></div>
         </div>
       </td>
       <td><span class="badge badge-${p.category}">${catLabel[p.category] || p.category}</span></td>
-      <td>$${(p.price||0).toFixed(2)} <small style="color:var(--muted)">${escHtml(p.priceUnit||'')}</small></td>
+      <td>$${(p.price || 0).toFixed(2)} <small style="color:var(--muted)">${escHtml(p.priceUnit || '')}</small></td>
       <td>${p.minQuantity || 1}</td>
-      <td><span class="popular-dot ${p.popular?'yes':'no'}">${p.popular?'Sí':'No'}</span></td>
+      <td><span class="popular-dot ${p.popular ? 'yes' : 'no'}">${p.popular ? 'Sí' : 'No'}</span></td>
       <td><div class="actions">
         <button class="btn-icon edit" onclick="openEditModal(${p.id})" title="Editar"><i class="fas fa-pen"></i></button>
         <button class="btn-icon del"  onclick="askDelete(${p.id})"    title="Eliminar"><i class="fas fa-trash"></i></button>
@@ -610,17 +610,17 @@ function openModal(product = null) {
   editingId = product ? product.id : null;
   selectedImageUrl = '';
   document.getElementById('modal-title').textContent = product ? 'Editar producto' : 'Nuevo producto';
-  document.getElementById('save-label').textContent  = product ? 'Actualizar' : 'Guardar';
-  document.getElementById('f-name').value        = product?.name        || '';
-  document.getElementById('f-category').value    = product?.category    || 'impresion';
-  document.getElementById('f-price').value       = product?.price       || '';
-  document.getElementById('f-priceUnit').value   = product?.priceUnit   || 'por unidad';
-  document.getElementById('f-description').value  = product?.description  || '';
-  document.getElementById('f-minQuantity').value  = product?.minQuantity  || 100;
-  document.getElementById('f-popular').checked    = product?.popular      || false;
-  document.getElementById('f-materials').value    = product?.materials    || '';
+  document.getElementById('save-label').textContent = product ? 'Actualizar' : 'Guardar';
+  document.getElementById('f-name').value = product?.name || '';
+  document.getElementById('f-category').value = product?.category || 'impresion';
+  document.getElementById('f-price').value = product?.price || '';
+  document.getElementById('f-priceUnit').value = product?.priceUnit || 'por unidad';
+  document.getElementById('f-description').value = product?.description || '';
+  document.getElementById('f-minQuantity').value = product?.minQuantity || 100;
+  document.getElementById('f-popular').checked = product?.popular || false;
+  document.getElementById('f-materials').value = product?.materials || '';
   document.getElementById('f-deliveryTime').value = product?.deliveryTime || '';
-  document.getElementById('f-emoji').value       = isImg(product?.image) ? '' : (product?.image || '');
+  document.getElementById('f-emoji').value = isImg(product?.image) ? '' : (product?.image || '');
   updateEmojiPreview();
 
   // Imagen actual
@@ -666,15 +666,15 @@ function handleOverlayClick(e) {
 function switchImgTab(name, btn) {
   document.querySelectorAll('.img-tab').forEach(t => t.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  document.getElementById('img-tab-upload').style.display  = name === 'upload'  ? 'block' : 'none';
+  document.getElementById('img-tab-upload').style.display = name === 'upload' ? 'block' : 'none';
   document.getElementById('img-tab-gallery').style.display = name === 'gallery' ? 'block' : 'none';
-  document.getElementById('img-tab-emoji').style.display   = name === 'emoji'   ? 'block' : 'none';
+  document.getElementById('img-tab-emoji').style.display = name === 'emoji' ? 'block' : 'none';
   if (name === 'gallery') renderModalGallery();
 }
 
 // ── Drop zone ──────────────────────────────────
 function onDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('dragover'); }
-function onDragLeave()  { document.getElementById('drop-zone').classList.remove('dragover'); }
+function onDragLeave() { document.getElementById('drop-zone').classList.remove('dragover'); }
 function onDrop(e) {
   e.preventDefault();
   document.getElementById('drop-zone').classList.remove('dragover');
@@ -721,8 +721,8 @@ function clearDropZone(e) {
 
 async function uploadFile(file) {
   const progress = document.getElementById('upload-progress');
-  const bar      = document.getElementById('progress-bar');
-  const txt      = document.getElementById('progress-text');
+  const bar = document.getElementById('progress-bar');
+  const txt = document.getElementById('progress-text');
   progress.classList.add('show');
   bar.style.width = '0%';
   txt.textContent = 'Subiendo...';
@@ -867,7 +867,7 @@ function updateEmojiPreview() {
 function addFeatureRow(value = '') {
   const list = document.getElementById('features-list');
   if (!list) return;
-  const row  = document.createElement('div');
+  const row = document.createElement('div');
   row.className = 'feature-row';
   row.innerHTML = `
     <input type="text" placeholder="Ej: Impresión a full color" value="${escHtml(value)}">
@@ -891,15 +891,15 @@ async function saveProduct() {
   }
 
   const payload = {
-    name:        document.getElementById('f-name').value.trim(),
-    category:    document.getElementById('f-category').value,
-    image:       finalImage,
-    price:       parseFloat(document.getElementById('f-price').value) || 0,
-    priceUnit:   document.getElementById('f-priceUnit').value.trim() || 'por unidad',
-    description:  document.getElementById('f-description').value.trim(),
-    minQuantity:  parseInt(document.getElementById('f-minQuantity').value) || 1,
-    popular:      document.getElementById('f-popular').checked,
-    materials:    document.getElementById('f-materials').value.trim()    || undefined,
+    name: document.getElementById('f-name').value.trim(),
+    category: document.getElementById('f-category').value,
+    image: finalImage,
+    price: parseFloat(document.getElementById('f-price').value) || 0,
+    priceUnit: document.getElementById('f-priceUnit').value.trim() || 'por unidad',
+    description: document.getElementById('f-description').value.trim(),
+    minQuantity: parseInt(document.getElementById('f-minQuantity').value) || 1,
+    popular: document.getElementById('f-popular').checked,
+    materials: document.getElementById('f-materials').value.trim() || undefined,
     deliveryTime: document.getElementById('f-deliveryTime').value.trim() || undefined,
     features
   };
@@ -907,7 +907,7 @@ async function saveProduct() {
   if (!payload.name) { toast('El nombre es obligatorio', 'error'); btn.disabled = false; return; }
 
   try {
-    const url    = editingId ? `${API}/api/products/${editingId}` : `${API}/api/products`;
+    const url = editingId ? `${API}/api/products/${editingId}` : `${API}/api/products`;
     const method = editingId ? 'PUT' : 'POST';
     const r = await fetch(url, {
       method,
@@ -945,14 +945,14 @@ async function confirmDelete() {
 let toastTimer;
 function toast(msg, type = 'success') {
   const el = document.getElementById('toast');
-  el.innerHTML = `<i class="fas fa-${type==='success'?'check-circle':'exclamation-circle'}"></i> ${msg}`;
+  el.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${msg}`;
   el.className = `toast ${type} show`;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
 }
 
 function escHtml(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 // ── Auto-login + Dashboard event delegation (CSP-safe) ─────────────────────
@@ -962,7 +962,7 @@ window.addEventListener('DOMContentLoaded', () => {
     .then(r => {
       if (r.ok) showApp();
     })
-    .catch(() => {});
+    .catch(() => { });
 
   // Nav sidebar delegation — todos los items usan data-goto (CSP-safe)
   document.querySelector('.sidebar-nav')?.addEventListener('click', e => {
@@ -1000,7 +1000,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   // Portfolio image preview listener
-  document.getElementById('pf-image')?.addEventListener('input', function() {
+  document.getElementById('pf-image')?.addEventListener('input', function () {
     const prev = document.getElementById('pf-preview');
     if (this.value) {
       document.getElementById('pf-preview-img').src = this.value;
@@ -1129,7 +1129,7 @@ function renderPricingForms() {
         </div>`).join('')}
       </div>`;
     });
-    const per1kRows = ['a5-1c','a5-2c','a4-1c','a4-2c'].map(key => {
+    const per1kRows = ['a5-1c', 'a5-2c', 'a4-1c', 'a4-2c'].map(key => {
       const m = p.volantes[key];
       if (!m || m.type !== 'per1k') return '';
       return `<div class="perunit-row">
@@ -1270,12 +1270,12 @@ function renderPricingForms() {
       <div class="pricing-card-header"><i class="fas fa-clock"></i> Tiempos de entrega por categoría</div>
       <div class="pricing-delivery-list">
         ${[
-          ['volantes','Volantes / Flyers'],
-          ['tarjetas','Tarjetas de presentación'],
-          ['tazas','Tazas personalizadas'],
-          ['etiquetas','Etiquetas'],
-          ['packaging','Packaging'],
-        ].map(([key, label]) => `<div class="pricing-delivery-row">
+        ['volantes', 'Volantes / Flyers'],
+        ['tarjetas', 'Tarjetas de presentación'],
+        ['tazas', 'Tazas personalizadas'],
+        ['etiquetas', 'Etiquetas'],
+        ['packaging', 'Packaging'],
+      ].map(([key, label]) => `<div class="pricing-delivery-row">
           <div class="pricing-label">${label}</div>
           <input type="text" class="price-input" placeholder="Ej: 3-5 días hábiles" data-key="delivery.${key}" value="${escHtml(d[key] || '')}">
         </div>`).join('')}
@@ -1396,10 +1396,10 @@ function renderVideosAdmin() {
     return;
   }
   container.innerHTML = videosData.map(v => {
-    const isLocal  = v.type === 'local';
-    const hasYtId  = !isLocal && v.youtubeId && !v.youtubeId.startsWith('REEMPLAZA');
+    const isLocal = v.type === 'local';
+    const hasYtId = !isLocal && v.youtubeId && !v.youtubeId.startsWith('REEMPLAZA');
     const thumbSrc = hasYtId ? `https://img.youtube.com/vi/${v.youtubeId}/mqdefault.jpg` : '';
-    const thumbEl  = isLocal
+    const thumbEl = isLocal
       ? `<div class="video-thumb-placeholder" style="background:#1a1a2e;"><i class="fas fa-film" style="color:#6366f1;"></i></div>`
       : (hasYtId ? `<img class="video-thumb-preview" src="${thumbSrc}" alt="thumb">` : `<div class="video-thumb-placeholder"><i class="fas fa-play-circle"></i></div>`);
     const metaText = isLocal
@@ -1424,28 +1424,28 @@ function renderVideosAdmin() {
 
 function setVideoType(type) {
   _currentVideoType = type;
-  const ytBtn    = document.getElementById('vtype-youtube');
+  const ytBtn = document.getElementById('vtype-youtube');
   const localBtn = document.getElementById('vtype-local');
-  const ytSec    = document.getElementById('vf-youtube-section');
+  const ytSec = document.getElementById('vf-youtube-section');
   const localSec = document.getElementById('vf-local-section');
 
   if (type === 'local') {
-    ytBtn.style.border    = '2px solid var(--border)';
+    ytBtn.style.border = '2px solid var(--border)';
     ytBtn.style.background = 'transparent';
-    ytBtn.style.color      = 'var(--muted)';
-    localBtn.style.border    = '2px solid var(--blue)';
+    ytBtn.style.color = 'var(--muted)';
+    localBtn.style.border = '2px solid var(--blue)';
     localBtn.style.background = 'var(--blue-light)';
-    localBtn.style.color      = 'var(--blue)';
-    ytSec.style.display    = 'none';
+    localBtn.style.color = 'var(--blue)';
+    ytSec.style.display = 'none';
     localSec.style.display = 'block';
   } else {
-    ytBtn.style.border    = '2px solid var(--blue)';
+    ytBtn.style.border = '2px solid var(--blue)';
     ytBtn.style.background = 'var(--blue-light)';
-    ytBtn.style.color      = 'var(--blue)';
-    localBtn.style.border    = '2px solid var(--border)';
+    ytBtn.style.color = 'var(--blue)';
+    localBtn.style.border = '2px solid var(--border)';
     localBtn.style.background = 'transparent';
-    localBtn.style.color      = 'var(--muted)';
-    ytSec.style.display    = 'block';
+    localBtn.style.color = 'var(--muted)';
+    ytSec.style.display = 'block';
     localSec.style.display = 'none';
   }
 }
@@ -1467,13 +1467,13 @@ function openVideoModal(id) {
   const modal = document.getElementById('video-modal-overlay');
   document.getElementById('video-modal-title').textContent = id ? 'Editar video' : 'Agregar video';
 
-  document.getElementById('vf-title').value  = '';
-  document.getElementById('vf-desc').value   = '';
-  document.getElementById('vf-tag').value    = '';
-  document.getElementById('vf-icon').value   = 'fa-video';
+  document.getElementById('vf-title').value = '';
+  document.getElementById('vf-desc').value = '';
+  document.getElementById('vf-tag').value = '';
+  document.getElementById('vf-icon').value = 'fa-video';
   document.getElementById('vf-active').value = 'true';
   document.getElementById('vf-video-file').value = '';
-  document.getElementById('vf-local-preview').style.display  = 'none';
+  document.getElementById('vf-local-preview').style.display = 'none';
   document.getElementById('vf-local-existing').style.display = 'none';
   document.getElementById('vf-upload-progress').style.display = 'none';
   document.getElementById('vf-yt-url').value = '';
@@ -1481,10 +1481,10 @@ function openVideoModal(id) {
   if (id) {
     const v = videosData.find(x => x.id === id);
     if (!v) return;
-    document.getElementById('vf-title').value  = v.title || '';
-    document.getElementById('vf-desc').value   = v.description || '';
-    document.getElementById('vf-tag').value    = v.tag || '';
-    document.getElementById('vf-icon').value   = v.tagIcon || 'fa-video';
+    document.getElementById('vf-title').value = v.title || '';
+    document.getElementById('vf-desc').value = v.description || '';
+    document.getElementById('vf-tag').value = v.tag || '';
+    document.getElementById('vf-icon').value = v.tagIcon || 'fa-video';
     document.getElementById('vf-active').value = String(v.active !== false);
 
     if (v.type === 'local') {
@@ -1555,12 +1555,12 @@ async function saveVideo() {
   if (!title) { toast('Ingresa el título del video', 'error'); return; }
 
   let videoObj = {
-    id:      editingVideoId || Date.now(),
+    id: editingVideoId || Date.now(),
     title,
     description: document.getElementById('vf-desc').value.trim(),
-    tag:         document.getElementById('vf-tag').value.trim(),
-    tagIcon:     document.getElementById('vf-icon').value,
-    active:      document.getElementById('vf-active').value === 'true',
+    tag: document.getElementById('vf-tag').value.trim(),
+    tagIcon: document.getElementById('vf-icon').value,
+    active: document.getElementById('vf-active').value === 'true',
   };
 
   if (_currentVideoType === 'local') {
@@ -1572,18 +1572,18 @@ async function saveVideo() {
       const uploaded = await uploadVideoFile(file);
       if (!uploaded?.url) return;
       videoObj.type = 'local';
-      videoObj.url  = uploaded.url;
+      videoObj.url = uploaded.url;
       if (uploaded.publicId) videoObj.publicId = uploaded.publicId;
     } else {
       videoObj.type = 'local';
-      videoObj.url  = _existingLocalUrl;
+      videoObj.url = _existingLocalUrl;
       if (_existingLocalPublicId) videoObj.publicId = _existingLocalPublicId;
     }
   } else {
     const rawUrl = document.getElementById('vf-yt-url').value.trim();
-    const ytId   = extractYoutubeId(rawUrl);
+    const ytId = extractYoutubeId(rawUrl);
     if (!ytId) { toast('URL de YouTube inválida. Pega la URL completa del video.', 'error'); return; }
-    videoObj.type      = 'youtube';
+    videoObj.type = 'youtube';
     videoObj.youtubeId = ytId;
   }
 
@@ -1603,9 +1603,9 @@ async function saveVideo() {
 function uploadVideoFile(file) {
   return new Promise((resolve) => {
     const progressWrap = document.getElementById('vf-upload-progress');
-    const progressBar  = document.getElementById('vf-progress-bar');
+    const progressBar = document.getElementById('vf-progress-bar');
     progressWrap.style.display = 'block';
-    progressBar.style.width    = '0%';
+    progressBar.style.width = '0%';
 
     const formData = new FormData();
     formData.append('video', file);
@@ -1657,7 +1657,7 @@ async function deleteVideo(id) {
       ? API + '/api/upload/video/cloudinary?public_id=' + encodeURIComponent(v.publicId)
       : API + '/api/upload/video/' + encodeURIComponent(filename);
     fetch(url, { method: 'DELETE', headers: { 'x-admin-token': token } })
-      .catch(() => {});
+      .catch(() => { });
   }
   renderVideosAdmin();
   toast('Video eliminado', 'success');
@@ -1736,29 +1736,29 @@ async function persistSettings() {
     const r = await fetch(`${API}/api/auth/reset-token?token=${encodeURIComponent(resetToken)}`);
     const d = await r.json();
     if (d.valid) {
-      document.getElementById('login-form').style.display  = 'none';
-      document.getElementById('reset-form').style.display  = 'block';
+      document.getElementById('login-form').style.display = 'none';
+      document.getElementById('reset-form').style.display = 'block';
     } else {
       const err = document.getElementById('login-error');
-      err.textContent    = 'El enlace de recuperación expiró o ya fue usado. Solicita uno nuevo.';
-      err.style.display  = 'block';
+      err.textContent = 'El enlace de recuperación expiró o ya fue usado. Solicita uno nuevo.';
+      err.style.display = 'block';
     }
-  } catch {}
+  } catch { }
 })();
 
 async function doResetPassword() {
-  const params     = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(window.location.search);
   const resetToken = params.get('reset_token');
-  const newPass    = document.getElementById('reset-new').value;
-  const confirm    = document.getElementById('reset-confirm').value;
-  const errEl      = document.getElementById('reset-error');
-  const okEl       = document.getElementById('reset-success');
+  const newPass = document.getElementById('reset-new').value;
+  const confirm = document.getElementById('reset-confirm').value;
+  const errEl = document.getElementById('reset-error');
+  const okEl = document.getElementById('reset-success');
   errEl.style.display = 'none';
-  okEl.style.display  = 'none';
+  okEl.style.display = 'none';
 
   if (!newPass || !confirm) { errEl.textContent = 'Completa ambos campos.'; errEl.style.display = 'block'; return; }
-  if (newPass !== confirm)  { errEl.textContent = 'Las contraseñas no coinciden.'; errEl.style.display = 'block'; return; }
-  if (newPass.length < 8)  { errEl.textContent = 'Mínimo 8 caracteres.'; errEl.style.display = 'block'; return; }
+  if (newPass !== confirm) { errEl.textContent = 'Las contraseñas no coinciden.'; errEl.style.display = 'block'; return; }
+  if (newPass.length < 8) { errEl.textContent = 'Mínimo 8 caracteres.'; errEl.style.display = 'block'; return; }
 
   try {
     const r = await fetch(`${API}/api/auth/reset-password`, {
@@ -1768,22 +1768,22 @@ async function doResetPassword() {
     });
     const d = await r.json();
     if (d.success) {
-      okEl.textContent   = '¡Contraseña actualizada! Redirigiendo al login...';
+      okEl.textContent = '¡Contraseña actualizada! Redirigiendo al login...';
       okEl.style.display = 'block';
       setTimeout(() => { window.location.href = '/admin'; }, 2000);
     } else {
-      errEl.textContent   = d.error || 'Error al guardar la contraseña.';
+      errEl.textContent = d.error || 'Error al guardar la contraseña.';
       errEl.style.display = 'block';
     }
   } catch {
-    errEl.textContent   = 'Error de conexión.';
+    errEl.textContent = 'Error de conexión.';
     errEl.style.display = 'block';
   }
 }
 
 // ── Utilidades de login ───────────────────────
 function showLoginCard(id) {
-  ['login-form','forgot-form','totp-form','reset-form'].forEach(c => {
+  ['login-form', 'forgot-form', 'totp-form', 'reset-form'].forEach(c => {
     const el = document.getElementById(c);
     if (el) el.style.display = c === id ? 'block' : 'none';
   });
@@ -1794,10 +1794,17 @@ function showLoginCard(id) {
     const sentEl = document.getElementById('forgot-sent');
     const actionsEl = document.getElementById('forgot-actions');
     const descEl = document.getElementById('forgot-desc');
+    const sentTextEl = document.getElementById('forgot-sent-text');
+    const devLinkEl = document.getElementById('forgot-dev-link');
     const errEl = document.getElementById('forgot-error');
     const btn = document.getElementById('btn-send-link');
     if (emailEl && email) emailEl.value = email;
     if (sentEl) sentEl.style.display = 'none';
+    if (sentTextEl) sentTextEl.textContent = 'Si el correo coincide con un usuario registrado, recibirás un enlace para restablecer tu contraseña. El enlace expira en 15 minutos.';
+    if (devLinkEl) {
+      devLinkEl.style.display = 'none';
+      devLinkEl.removeAttribute('href');
+    }
     if (actionsEl) actionsEl.style.display = 'block';
     if (descEl) descEl.style.display = 'block';
     if (errEl) errEl.style.display = 'none';
@@ -1816,38 +1823,40 @@ function togglePw(inputId, btn) {
 }
 
 function checkStrength(val, fillId, labelId) {
-  const fill  = document.getElementById(fillId);
+  const fill = document.getElementById(fillId);
   const label = document.getElementById(labelId);
   if (!fill || !label) return;
   let score = 0;
-  if (val.length >= 8)  score++;
+  if (val.length >= 8) score++;
   if (val.length >= 12) score++;
   if (/[A-Z]/.test(val)) score++;
   if (/[0-9]/.test(val)) score++;
   if (/[^A-Za-z0-9]/.test(val)) score++;
   const levels = [
-    { w:'0%',   bg:'var(--border)',  txt:'' },
-    { w:'25%',  bg:'var(--red)',     txt:'Muy débil' },
-    { w:'50%',  bg:'var(--orange)',  txt:'Débil' },
-    { w:'65%',  bg:'var(--orange)',  txt:'Aceptable' },
-    { w:'85%',  bg:'var(--blue)',    txt:'Buena' },
-    { w:'100%', bg:'var(--green)',   txt:'Excelente' },
+    { w: '0%', bg: 'var(--border)', txt: '' },
+    { w: '25%', bg: 'var(--red)', txt: 'Muy débil' },
+    { w: '50%', bg: 'var(--orange)', txt: 'Débil' },
+    { w: '65%', bg: 'var(--orange)', txt: 'Aceptable' },
+    { w: '85%', bg: 'var(--blue)', txt: 'Buena' },
+    { w: '100%', bg: 'var(--green)', txt: 'Excelente' },
   ];
   const lvl = val.length === 0 ? levels[0] : levels[Math.min(score, 5)];
-  fill.style.width      = lvl.w;
+  fill.style.width = lvl.w;
   fill.style.background = lvl.bg;
-  label.textContent     = lvl.txt;
-  label.style.color     = lvl.bg;
+  label.textContent = lvl.txt;
+  label.style.color = lvl.bg;
 }
 
 // ── Recuperar contraseña ──────────────────────
 async function sendResetLink() {
-  const btn      = document.getElementById('btn-send-link');
-  const errEl    = document.getElementById('forgot-error');
-  const sentEl   = document.getElementById('forgot-sent');
+  const btn = document.getElementById('btn-send-link');
+  const errEl = document.getElementById('forgot-error');
+  const sentEl = document.getElementById('forgot-sent');
   const actionsEl = document.getElementById('forgot-actions');
-  const descEl   = document.getElementById('forgot-desc');
-  const email     = cleanEmail(document.getElementById('forgot-email').value);
+  const descEl = document.getElementById('forgot-desc');
+  const sentTextEl = document.getElementById('forgot-sent-text');
+  const devLinkEl = document.getElementById('forgot-dev-link');
+  const email = cleanEmail(document.getElementById('forgot-email').value);
   errEl.style.display = 'none';
 
   if (!isValidEmail(email)) {
@@ -1867,16 +1876,30 @@ async function sendResetLink() {
     const d = await r.json();
     if (d.success) {
       actionsEl.style.display = 'none';
-      descEl.style.display    = 'none';
-      sentEl.style.display    = 'block';
+      descEl.style.display = 'none';
+      if (sentTextEl) {
+        sentTextEl.textContent = d.warning
+          ? d.warning
+          : 'Si el correo coincide con un usuario registrado, recibirás un enlace para restablecer tu contraseña. El enlace expira en 15 minutos.';
+      }
+      if (devLinkEl) {
+        if (d.devResetLink) {
+          devLinkEl.href = d.devResetLink;
+          devLinkEl.style.display = 'inline-block';
+        } else {
+          devLinkEl.style.display = 'none';
+          devLinkEl.removeAttribute('href');
+        }
+      }
+      sentEl.style.display = 'block';
     } else {
-      errEl.textContent   = d.error || 'Error al enviar el enlace.';
+      errEl.textContent = d.error || 'Error al enviar el enlace.';
       errEl.style.display = 'block';
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar enlace';
     }
   } catch {
-    errEl.textContent   = 'Error de conexión. Intenta de nuevo.';
+    errEl.textContent = 'Error de conexión. Intenta de nuevo.';
     errEl.style.display = 'block';
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar enlace';
@@ -1901,29 +1924,29 @@ async function loadAdminProfile() {
       if (secEmail) secEmail.value = email;
       if (loginEmail) loginEmail.value = email;
     }
-  } catch {}
+  } catch { }
 }
 
 async function changePassword() {
-  const email    = cleanEmail(document.getElementById('sec-email').value);
-  const current  = document.getElementById('sec-current').value;
-  const newPass  = document.getElementById('sec-new').value;
-  const confirm  = document.getElementById('sec-confirm').value;
-  const msgEl    = document.getElementById('sec-msg');
+  const email = cleanEmail(document.getElementById('sec-email').value);
+  const current = document.getElementById('sec-current').value;
+  const newPass = document.getElementById('sec-new').value;
+  const confirm = document.getElementById('sec-confirm').value;
+  const msgEl = document.getElementById('sec-msg');
 
   const show = (msg, ok) => {
     msgEl.textContent = msg;
     msgEl.style.display = 'block';
     msgEl.style.background = ok ? 'var(--green-light)' : 'var(--red-light)';
-    msgEl.style.color      = ok ? 'var(--green)'       : 'var(--red)';
+    msgEl.style.color = ok ? 'var(--green)' : 'var(--red)';
   };
 
-  if (!isValidEmail(email))             return show('Ingresa un correo de administrador válido.', false);
-  if (!current)                         return show('Ingresa tu contraseña actual para confirmar.', false);
+  if (!isValidEmail(email)) return show('Ingresa un correo de administrador válido.', false);
+  if (!current) return show('Ingresa tu contraseña actual para confirmar.', false);
   if (newPass || confirm) {
-    if (!newPass || !confirm)           return show('Completa ambos campos de la nueva contraseña.', false);
-    if (newPass !== confirm)            return show('Las contraseñas no coinciden.', false);
-    if (newPass.length < 8)             return show('Mínimo 8 caracteres.', false);
+    if (!newPass || !confirm) return show('Completa ambos campos de la nueva contraseña.', false);
+    if (newPass !== confirm) return show('Las contraseñas no coinciden.', false);
+    if (newPass.length < 8) return show('Mínimo 8 caracteres.', false);
   }
 
   try {
@@ -1943,7 +1966,7 @@ async function changePassword() {
       }
       show(newPass ? '¡Acceso actualizado correctamente!' : '¡Correo actualizado correctamente!', true);
       document.getElementById('sec-current').value = '';
-      document.getElementById('sec-new').value     = '';
+      document.getElementById('sec-new').value = '';
       document.getElementById('sec-confirm').value = '';
     } else {
       show(d.error || 'Error al cambiar la contraseña.', false);
@@ -2002,8 +2025,9 @@ async function loadAdminUsers() {
         <div class="admin-user-actions">
           <button class="btn-mini" onclick="resetAdminUserPassword(${u.id}, ${jsStr(u.email)})"><i class="fas fa-key"></i> Contraseña</button>
           ${currentAdminUser && currentAdminUser.id === u.id
-            ? '<span class="audit-muted">Tu usuario</span>'
-            : `<button class="btn-mini ${u.active ? 'danger' : 'success'}" onclick="toggleAdminUser(${u.id}, ${!u.active})"><i class="fas ${u.active ? 'fa-ban' : 'fa-check'}"></i> ${u.active ? 'Desactivar' : 'Activar'}</button>`}
+        ? '<span class="audit-muted">Tu usuario</span>'
+        : `<button class="btn-mini ${u.active ? 'danger' : 'success'}" onclick="toggleAdminUser(${u.id}, ${!u.active})"><i class="fas ${u.active ? 'fa-ban' : 'fa-check'}"></i> ${u.active ? 'Desactivar' : 'Activar'}</button>`}
+          <button class="btn-mini" onclick="sendUserResetLink(${jsStr(u.email)})"><i class="fas fa-paper-plane"></i> Recuperar</button>
         </div>
       </div>
     `).join('') : '<div class="dash-empty"><i class="fas fa-users-cog"></i><span>No hay usuarios registrados.</span></div>';
@@ -2073,6 +2097,26 @@ async function resetAdminUserPassword(id, email) {
   }
 }
 
+async function sendUserResetLink(email) {
+  if (!confirm(`¿Enviar enlace de recuperación a ${email}?`)) return;
+  try {
+    const r = await fetch(API + '/api/auth/forgot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...csrfH() },
+      body: JSON.stringify({ email }),
+    });
+    const d = await r.json();
+    if (!r.ok && !d.success) throw new Error(d.error || 'No se pudo enviar el enlace.');
+    if (d.devResetLink) {
+      prompt('Enlace local de recuperación:', d.devResetLink);
+      return;
+    }
+    alert(d.warning || 'Solicitud de recuperación enviada.');
+  } catch (e) {
+    alert(e.message || 'Error enviando recuperación.');
+  }
+}
+
 function auditActionLabel(action) {
   return String(action || '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 }
@@ -2113,8 +2157,8 @@ async function loadTwoFaStatus() {
 function renderTwoFaState(enabled) {
   document.getElementById('twofa-status-text').textContent = enabled ? 'Activo — tu cuenta está protegida' : 'Desactivado — te recomendamos activarlo';
   document.getElementById('twofa-status-text').style.color = enabled ? 'var(--green)' : 'var(--muted)';
-  document.getElementById('twofa-setup-section').style.display   = enabled ? 'none' : 'flex';
-  document.getElementById('twofa-qr-section').style.display      = 'none';
+  document.getElementById('twofa-setup-section').style.display = enabled ? 'none' : 'flex';
+  document.getElementById('twofa-qr-section').style.display = 'none';
   document.getElementById('twofa-enabled-section').style.display = enabled ? 'flex' : 'none';
 }
 
@@ -2126,9 +2170,9 @@ async function initTwoFaSetup() {
     document.getElementById('twofa-qr-img').src = d.qrCode;
     document.getElementById('twofa-secret-text').textContent = 'Clave manual: ' + d.secret;
     document.getElementById('twofa-setup-section').style.display = 'none';
-    document.getElementById('twofa-qr-section').style.display    = 'flex';
-    document.getElementById('twofa-verify-code').value           = '';
-    document.getElementById('twofa-verify-msg').style.display    = 'none';
+    document.getElementById('twofa-qr-section').style.display = 'flex';
+    document.getElementById('twofa-verify-code').value = '';
+    document.getElementById('twofa-verify-msg').style.display = 'none';
     setTimeout(() => document.getElementById('twofa-verify-code').focus(), 100);
   } catch (e) {
     alert('Error al generar el QR: ' + e.message);
@@ -2136,24 +2180,24 @@ async function initTwoFaSetup() {
 }
 
 function cancelTwoFaSetup() {
-  document.getElementById('twofa-qr-section').style.display    = 'none';
+  document.getElementById('twofa-qr-section').style.display = 'none';
   document.getElementById('twofa-setup-section').style.display = 'flex';
 }
 
 async function confirmTwoFa() {
-  const code   = document.getElementById('twofa-verify-code').value.replace(/\s/g, '');
-  const msgEl  = document.getElementById('twofa-verify-msg');
+  const code = document.getElementById('twofa-verify-code').value.replace(/\s/g, '');
+  const msgEl = document.getElementById('twofa-verify-msg');
   const showMsg = (msg, ok) => {
     msgEl.textContent = msg;
     msgEl.style.display = 'block';
     msgEl.style.background = ok ? 'var(--green-light)' : 'var(--red-light)';
-    msgEl.style.color      = ok ? 'var(--green)'       : 'var(--red)';
+    msgEl.style.color = ok ? 'var(--green)' : 'var(--red)';
   };
   try {
     const r = await fetch(API + '/api/auth/2fa/enable', {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
-      body:    JSON.stringify({ code }),
+      body: JSON.stringify({ code }),
     });
     const d = await r.json();
     if (!r.ok) return showMsg(d.error || 'Código incorrecto', false);
@@ -2165,19 +2209,19 @@ async function confirmTwoFa() {
 
 async function disableTwoFa() {
   const password = document.getElementById('twofa-disable-pass').value;
-  const msgEl    = document.getElementById('twofa-disable-msg');
-  const showMsg  = (msg, ok) => {
+  const msgEl = document.getElementById('twofa-disable-msg');
+  const showMsg = (msg, ok) => {
     msgEl.textContent = msg;
     msgEl.style.display = 'block';
     msgEl.style.background = ok ? 'var(--green-light)' : 'var(--red-light)';
-    msgEl.style.color      = ok ? 'var(--green)'       : 'var(--red)';
+    msgEl.style.color = ok ? 'var(--green)' : 'var(--red)';
   };
   if (!password) return showMsg('Ingresa tu contraseña actual para confirmar', false);
   try {
     const r = await fetch(API + '/api/auth/2fa/disable', {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
-      body:    JSON.stringify({ password }),
+      body: JSON.stringify({ password }),
     });
     const d = await r.json();
     if (!r.ok) return showMsg(d.error || 'Error', false);
@@ -2246,6 +2290,7 @@ window.loadAdminUsers = loadAdminUsers;
 window.createAdminUser = createAdminUser;
 window.toggleAdminUser = toggleAdminUser;
 window.resetAdminUserPassword = resetAdminUserPassword;
+window.sendUserResetLink = sendUserResetLink;
 window.loadAuditLog = loadAuditLog;
 window.initTwoFaSetup = initTwoFaSetup;
 window.cancelTwoFaSetup = cancelTwoFaSetup;

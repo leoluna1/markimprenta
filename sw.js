@@ -2,7 +2,7 @@
  * Service Worker — Mark Publicidad Impresa
  * Estrategia: Network-First para HTML/CSS y Cache-First para assets versionados.
  */
-const CACHE_NAME = 'mark-publicidad-v20260703';
+const CACHE_NAME = 'mark-publicidad-v20260712';
 const PRECACHE_URLS = [
   '/images/logo.png',
 ];

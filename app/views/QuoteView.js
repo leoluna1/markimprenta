@@ -9,6 +9,15 @@ function cloneState(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
+function esc(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Íconos por tab
 const ICONS = {
   volantes:    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v5h4"/><path d="M10 12h6M10 16h4"/></svg>',
@@ -237,7 +246,7 @@ export default class QuoteView extends BaseView {
     if (!c) return;
     c.innerHTML = PRICING.tazas.map((t, i) =>
       `<button class="qtier-btn${i === QS.taza.tierIdx ? ' active' : ''}" data-tazaidx="${i}">
-         <span class="tier-qty">${t.label}</span>
+         <span class="tier-qty">${esc(t.label)}</span>
          <span class="tier-price">$${t.ppu.toFixed(2)} c/u</span>
        </button>`
     ).join('');
@@ -258,10 +267,10 @@ export default class QuoteView extends BaseView {
     c.innerHTML = PRICING.tarjetas.map(t =>
       `<button class="qtarjeta-option${t.id === QS.tarjeta ? ' active' : ''}" data-tid="${t.id}">
          <div class="qtarjeta-info">
-           <div class="name">${t.label}</div>
-           <div class="desc">${t.desc}</div>
+           <div class="name">${esc(t.label)}</div>
+           <div class="desc">${esc(t.desc)}</div>
          </div>
-         <div class="qtarjeta-price">$${t.price}</div>
+         <div class="qtarjeta-price">$${esc(t.price)}</div>
        </button>`
     ).join('');
     c.querySelectorAll('.qtarjeta-option').forEach(btn => {
@@ -281,10 +290,10 @@ export default class QuoteView extends BaseView {
     c.innerHTML = PRICING.diseno.map(d =>
       `<button class="qtarjeta-option${d.id === QS.diseno ? ' active' : ''}" data-did="${d.id}">
          <div class="qtarjeta-info">
-           <div class="name">${d.label}</div>
-           <div class="desc">${d.desc}</div>
+           <div class="name">${esc(d.label)}</div>
+           <div class="desc">${esc(d.desc)}</div>
          </div>
-         <div class="qtarjeta-price">$${d.price}</div>
+         <div class="qtarjeta-price">$${esc(d.price)}</div>
        </button>`
     ).join('');
     c.querySelectorAll('.qtarjeta-option').forEach(btn => {
@@ -304,7 +313,7 @@ export default class QuoteView extends BaseView {
     const tierIdx = QS[stateKey].tierIdx;
     c.innerHTML = tiers.map((t, i) =>
       `<button class="qtier-btn${i === tierIdx ? ' active' : ''}" data-gidx="${i}">
-         <span class="tier-qty">${t.label || `${Number(t.qty || 0).toLocaleString()} uds.`}</span>
+         <span class="tier-qty">${esc(t.label || `${Number(t.qty || 0).toLocaleString()} uds.`)}</span>
          <span class="tier-price">$${t.ppu.toFixed(2)} c/u</span>
        </button>`
     ).join('');
@@ -329,7 +338,7 @@ export default class QuoteView extends BaseView {
     if (!tiers) return;
     c.innerHTML = tiers.map((t, i) =>
       `<button class="qtier-btn${i === QS.letreros.tierIdx ? ' active' : ''}" data-letidx="${i}">
-         <span class="tier-qty">${t.label}</span>
+         <span class="tier-qty">${esc(t.label)}</span>
          <span class="tier-price">$${t.ppu.toFixed(2)}/letra</span>
        </button>`
     ).join('');
@@ -641,8 +650,8 @@ export default class QuoteView extends BaseView {
     if (specsEl) {
       specsEl.innerHTML = r.specs.map(s =>
         `<div class="qr-spec-row">
-           <span class="qr-spec-label">${s.label}</span>
-           <span class="qr-spec-value${s.hi ? ' highlight' : ''}">${s.value}</span>
+           <span class="qr-spec-label">${esc(s.label)}</span>
+           <span class="qr-spec-value${s.hi ? ' highlight' : ''}">${esc(s.value)}</span>
          </div>`
       ).join('');
     }
@@ -673,7 +682,7 @@ export default class QuoteView extends BaseView {
     const delivEl = document.getElementById('qrDelivery');
     if (delivEl && r.delivery) {
       delivEl.style.display = 'flex';
-      delivEl.innerHTML = `<span class="qr-delivery-icon" aria-hidden="true">⏱</span> Tiempo estimado: <strong style="margin-left:4px;">${r.delivery}</strong>`;
+      delivEl.innerHTML = `<span class="qr-delivery-icon" aria-hidden="true">⏱</span> Tiempo estimado: <strong style="margin-left:4px;">${esc(r.delivery)}</strong>`;
     }
 
     // ── WhatsApp ──

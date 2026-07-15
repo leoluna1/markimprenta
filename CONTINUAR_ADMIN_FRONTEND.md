@@ -236,3 +236,19 @@ Fecha: 2026-07-02
   - `QA_BASE_URL=http://localhost:3001 npm run qa:browser` pasó correctamente.
   - Prueba logout: profile `200` antes, logout `200`, profile `401` con el mismo token.
   - Prueba Playwright autenticada: panel admin sin errores de consola y CSP con `script-src-attr 'none'`.
+
+## Ajuste 2026-07-15 - Verificación y cierre de pendientes seguridad
+
+- CSRF:
+  - Se corrigió `lib/csrf.js` para que `/api/csrf-token` no emita dos cookies distintas en la primera petición.
+  - Prueba API: login sin CSRF devuelve `403`; login con cookie/header CSRF funciona.
+- Imágenes de producto:
+  - `sanitizeProductImage()` ya no acepta cualquier URL `https`.
+  - Solo permite uploads locales (`/uploads`), assets `images/` y Cloudinary bajo `CLOUDINARY_FOLDER`.
+  - Se probó con producto temporal usando `https://example.com/tracker.png`; la URL externa no se persistió y el producto se eliminó.
+- Verificación:
+  - `node --check server.js`, `admin/admin.js`, `db/db.js`, `lib/jwt-session.js`, `lib/csrf.js`, `whatsapp-widget.js` y `scripts/qa-browser.js` pasaron.
+  - `npm audit --audit-level=moderate` devolvió `0 vulnerabilities`.
+  - `QA_BASE_URL=http://localhost:3001 npm run qa:browser` pasó correctamente.
+  - Prueba API autenticada: profile `200`, mutación sin CSRF `403`, upload PNG falso `400`, logout revocado con profile `401`.
+  - Prueba Playwright autenticada: login con 2FA/cookie, refresh conserva dashboard, CSP contiene `script-src-attr 'none'` y consola limpia tras refresh.

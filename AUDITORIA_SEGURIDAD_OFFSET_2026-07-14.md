@@ -186,7 +186,7 @@ La puntuación subió tras aplicar hardening inicial y pre-publicación: CSRF gl
 - Impacto: fuga de credenciales hash, TOTP y datos personales.
 - Recomendación: producción solo PostgreSQL, `chmod 600 data/*.json`, `chown` a usuario app, bloquear `data/` en Nginx y mantener fuera del webroot.
 
-### P6 - Imágenes de producto permiten cualquier HTTPS
+### P6 - Imágenes de producto permiten cualquier HTTPS (resuelto)
 
 - Archivo afectado: `server.js` aprox. 1496-1508.
 - Riesgo: Bajo-Medio.
@@ -194,6 +194,7 @@ La puntuación subió tras aplicar hardening inicial y pre-publicación: CSRF gl
 - Explotación: tracking pixel, hotlinking o contenido externo no controlado.
 - Impacto: privacidad, disponibilidad visual, dependencia de terceros.
 - Recomendación: permitir solo `/uploads`, `images/` y Cloudinary propio, o proxy/cache controlado.
+- Estado: resuelto el 2026-07-15. `sanitizeProductImage` permite uploads locales, assets `images/` y URLs Cloudinary bajo `CLOUDINARY_FOLDER`; cualquier HTTPS externo se degrada a texto/emoji sanitizado.
 
 ### P7 - Dependencias desactualizadas aunque sin CVE auditado
 
@@ -217,10 +218,7 @@ La puntuación subió tras aplicar hardening inicial y pre-publicación: CSRF gl
 
 ## 6. Hardening recomendado
 
-- Persistir `session_version` por usuario y denylist en PostgreSQL/Redis.
-- Hacer owner-only los cambios de rol y acciones sensibles de usuarios.
-- Migrar CSP admin sin handlers inline.
-- Validar magic bytes y reprocesar imágenes con Sharp.
+- Reprocesar imágenes con Sharp.
 - Aislar uploads en subdominio sin cookies o bucket/CDN separado.
 - Configurar Nginx: `autoindex off`, bloquear `/.env`, `/data`, `/logs`, `/db`, `/lib`, HSTS, proxy headers correctos, límites de body.
 - Docker: usuario no root, filesystem read-only salvo uploads/logs, healthcheck, secrets fuera de imagen.
@@ -260,7 +258,7 @@ La puntuación subió tras aplicar hardening inicial y pre-publicación: CSRF gl
 
 1. Reprocesar imágenes con Sharp.
 2. Aislar uploads en subdominio/bucket sin cookies.
-3. Restringir imágenes de producto a dominios permitidos.
+3. Mantener la política de imágenes de producto restringida a uploads locales, `images/` y Cloudinary propio.
 
 ### Bajas / Mantenimiento
 
@@ -277,3 +275,5 @@ La puntuación subió tras aplicar hardening inicial y pre-publicación: CSRF gl
 - `QA_BASE_URL=http://localhost:3001 npm run qa:browser`
 - Prueba API CSRF: login sin CSRF `403`, login con CSRF correcto y profile `200`.
 - Prueba Playwright autenticada: reload de `/admin` conserva dashboard visible.
+- Actualización 2026-07-15: se corrigió doble emisión inicial de cookie CSRF en `/api/csrf-token`.
+- Actualización 2026-07-15: prueba API validó bloqueo CSRF, upload PNG falso `400`, logout revocado `401` y política de imagen de producto sin persistir URL externa.

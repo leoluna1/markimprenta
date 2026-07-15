@@ -1209,6 +1209,16 @@ function isCloudinaryPublicIdInFolder(value) {
   return Boolean(publicId && publicId.startsWith(`${CLOUDINARY_FOLDER}/`) && !publicId.includes('..'));
 }
 
+function isCloudinaryUrlInConfiguredFolder(value) {
+  if (!isCloudinaryUrl(value)) return false;
+  try {
+    const url = new URL(String(value || ''));
+    return !url.pathname.includes('..') && url.pathname.includes(`/${CLOUDINARY_FOLDER}/`);
+  } catch {
+    return false;
+  }
+}
+
 function localUploadPathFromUrl(value) {
   const raw = String(value || '');
   if (!raw || raw.includes('..')) return null;
@@ -1560,12 +1570,10 @@ function sanitizeProductImage(value) {
   if (!image) return '📦';
 
   if (image.startsWith('/uploads/') && !image.includes('..')) return image;
+  if (image.startsWith('uploads/') && !image.includes('..')) return `/${image}`;
+  if (image.startsWith('/images/') && !image.includes('..')) return image;
   if (image.startsWith('images/') && !image.includes('..')) return image;
-
-  try {
-    const url = new URL(image);
-    if (url.protocol === 'https:') return url.href;
-  } catch {}
+  if (isCloudinaryUrlInConfiguredFolder(image)) return new URL(image).href;
 
   return cleanText(image, 16) || '📦';
 }

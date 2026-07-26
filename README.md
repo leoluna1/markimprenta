@@ -103,6 +103,7 @@ offset/
 - [ ] Configurar `NODE_ENV=production`.
 - [ ] Crear PostgreSQL y configurar `DATABASE_URL`.
 - [ ] Configurar uploads persistentes en el NAS: `UPLOAD_STORAGE=local`, `UPLOADS_DIR=/volume1/web/marka/uploads`, `PUBLIC_UPLOADS_URL=/uploads`.
+- [ ] Si se publica en Asustor, seguir la guia `DEPLOY_ASUSTOR.md` y ejecutar con PM2 usando `ecosystem.config.cjs`.
 - [ ] Configurar `SITE_URL=https://markpublicidad.com` para enlaces de recuperación de contraseña.
 - [ ] Configurar WhatsApp en el Panel de Ajustes.
 - [ ] Ajustar la lista de precios en la sección del Cotizador.

@@ -252,3 +252,22 @@ Fecha: 2026-07-02
   - `QA_BASE_URL=http://localhost:3001 npm run qa:browser` pasó correctamente.
   - Prueba API autenticada: profile `200`, mutación sin CSRF `403`, upload PNG falso `400`, logout revocado con profile `401`.
   - Prueba Playwright autenticada: login con 2FA/cookie, refresh conserva dashboard, CSP contiene `script-src-attr 'none'` y consola limpia tras refresh.
+
+## Continuidad 2026-07-15 - Publicación definitiva
+
+- GitHub Pages no sirve como producción completa porque no ejecuta Node/Express:
+  - La página estática carga, pero `/api/products` y demás endpoints devuelven `404`.
+  - El admin, API, login, uploads y PostgreSQL requieren servidor Node.
+- Render funciona para demo y se verificó que `https://markimprenta.onrender.com` y `/api/products` responden `200`, pero el plan Free se duerme y para producción estable conviene instancia pagada.
+- La ruta elegida para producción definitiva es el NAS Asustor del usuario:
+  - El usuario ya tiene Node instalado y probado en versiones anteriores.
+  - La app ya soporta `UPLOAD_STORAGE=local`, `UPLOADS_DIR=/volume1/web/marka/uploads`, `PUBLIC_UPLOADS_URL=/uploads` y `DATABASE_SSL=false`.
+- Se agregó documentación y configuración para despliegue NAS:
+  - `DEPLOY_ASUSTOR.md`: runbook de instalación, variables `.env`, PM2, proxy/dominio, actualización y backups.
+  - `ecosystem.config.cjs`: configuración PM2 para correr `server.js` como proceso persistente `markimprenta`.
+  - `README.md`: enlace/checklist hacia la guía Asustor.
+- Arquitectura objetivo:
+  - Dominio/Cloudflare -> NAS Asustor -> proxy HTTPS hacia Node en puerto 3000 -> PostgreSQL -> uploads persistentes en `/volume1/web/marka/uploads`.
+- Próximo paso:
+  - Hacer commit/push de `README.md`, `DEPLOY_ASUSTOR.md`, `ecosystem.config.cjs` y esta nota.
+  - Luego configurar `.env` real en el NAS, clonar/pull del repo, instalar dependencias, iniciar con PM2 y configurar proxy/dominio.

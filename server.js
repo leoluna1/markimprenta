@@ -145,7 +145,7 @@ function clearAdminSessionCookie(res) {
 }
 
 function getAdminSessionToken(req) {
-  return req.headers['x-admin-token'] || parseCookies(req)[ADMIN_SESSION_COOKIE];
+  return parseCookies(req)[ADMIN_SESSION_COOKIE];
 }
 
 // ── Auth helpers ──────────────────────────────

@@ -2,7 +2,6 @@
 'use strict';
 
 const API = '';
-let token = '';
 let products = [];
 let editingId = null;
 let deletingId = null;
@@ -59,7 +58,7 @@ async function loadContacts() {
   const list = document.getElementById('contacts-list');
   const badge = document.getElementById('contacts-badge');
   try {
-    const res = await fetch('/api/contacts', { headers: { 'x-admin-token': token } });
+    const res = await fetch('/api/contacts');
     const data = await res.json();
     if (!Array.isArray(data)) { list.innerHTML = '<p style="color:var(--muted)">Error al cargar mensajes.</p>'; return; }
     if (data.length === 0) { list.innerHTML = '<p style="color:var(--muted);padding:2rem;text-align:center;">No hay mensajes aún.</p>'; return; }
@@ -97,13 +96,13 @@ async function loadContacts() {
 }
 
 async function markRead(id) {
-  await fetch(`/api/contacts/${id}/read`, { method: 'PATCH', headers: { 'x-admin-token': token, ...csrfH() } });
+  await fetch(`/api/contacts/${id}/read`, { method: 'PATCH', headers: { ...csrfH() } });
   loadContacts();
 }
 
 async function deleteContact(id) {
   if (!confirm('¿Eliminar este mensaje?')) return;
-  await fetch(`/api/contacts/${id}`, { method: 'DELETE', headers: { 'x-admin-token': token, ...csrfH() } });
+  await fetch(`/api/contacts/${id}`, { method: 'DELETE', headers: { ...csrfH() } });
   document.getElementById(`contact-${id}`)?.remove();
 }
 
@@ -287,7 +286,6 @@ async function doLogin() {
       setTimeout(() => document.getElementById('totp-code').focus(), 100);
       return;
     }
-    token = '';
     showApp();
   } catch {
     errEl.style.display = 'block';
@@ -316,7 +314,6 @@ async function doTotpVerify() {
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Error');
     _challengeToken = null;
-    token = '';
     showApp();
   } catch (e) {
     document.getElementById('totp-error').textContent = e.message || 'Código incorrecto o expirado';
@@ -328,10 +325,9 @@ async function logout() {
   try {
     await fetch(API + '/api/auth/logout', {
       method: 'POST',
-      headers: { 'x-admin-token': token, ...csrfH() },
+      headers: { ...csrfH() },
     });
   } catch { }
-  token = '';
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-pass').value = '';
@@ -340,7 +336,6 @@ async function logout() {
 
 function showLogin() {
   currentAdminUser = null;
-  token = '';
   if (notificationPollTimer) {
     clearInterval(notificationPollTimer);
     notificationPollTimer = null;
@@ -387,7 +382,7 @@ function closeSidebar() {
 // ── Stats de mensajes en dashboard ─────────────
 async function loadContactsStats() {
   try {
-    const r = await fetch('/api/contacts', { headers: { 'x-admin-token': token } });
+    const r = await fetch('/api/contacts');
     const data = await r.json();
     if (!Array.isArray(data)) return;
     const unread = data.filter(c => !c.read).length;
@@ -404,7 +399,7 @@ async function loadPortfolioAdmin() {
   const empty = document.getElementById('portfolio-admin-empty');
   if (!grid) return;
   try {
-    const res = await fetch('/api/portfolio', { headers: { 'x-admin-token': token } });
+    const res = await fetch('/api/portfolio');
     const items = await res.json();
     if (!Array.isArray(items) || !items.length) {
       if (empty) empty.style.display = 'block';
@@ -439,7 +434,7 @@ async function addPortfolioItem() {
   try {
     const res = await fetch('/api/portfolio', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
+      headers: { 'Content-Type': 'application/json', ...csrfH() },
       body: JSON.stringify({ title, category, image }),
     });
     if (!res.ok) throw new Error();
@@ -453,7 +448,7 @@ async function addPortfolioItem() {
 
 async function deletePortfolioItem(id) {
   if (!confirm('¿Eliminar este trabajo del portfolio?')) return;
-  await fetch('/api/portfolio/' + id, { method: 'DELETE', headers: { 'x-admin-token': token, ...csrfH() } });
+  await fetch('/api/portfolio/' + id, { method: 'DELETE', headers: { ...csrfH() } });
   loadPortfolioAdmin();
 }
 
@@ -462,7 +457,7 @@ async function uploadPortfolioImage(input) {
   const fd = new FormData();
   fd.append('image', input.files[0]);
   try {
-    const res = await fetch('/api/upload', { method: 'POST', headers: { 'x-admin-token': token, ...csrfH() }, body: fd });
+    const res = await fetch('/api/upload', { method: 'POST', headers: { ...csrfH() }, body: fd });
     const data = await res.json();
     if (data.url) {
       document.getElementById('pf-image').value = data.url;
@@ -492,11 +487,11 @@ let _lastUnreadContacts = -1;
 let _lastPendingReviews = -1;
 
 async function pollNotifications() {
-  if (!token) return;
+  if (!currentAdminUser) return;
   try {
     const [rC, rR] = await Promise.all([
-      fetch('/api/contacts', { headers: { 'x-admin-token': token } }),
-      fetch('/api/reviews/all', { headers: { 'x-admin-token': token } }),
+      fetch('/api/contacts'),
+      fetch('/api/reviews/all'),
     ]);
     const contacts = await rC.json();
     const reviews = await rR.json();
@@ -527,7 +522,7 @@ async function pollNotifications() {
 
 async function loadReviewsBadge() {
   try {
-    const r = await fetch('/api/reviews/all', { headers: { 'x-admin-token': token } });
+    const r = await fetch('/api/reviews/all');
     const data = await r.json();
     if (!Array.isArray(data)) return;
     const pending = data.filter(x => !x.approved).length;
@@ -541,7 +536,7 @@ async function loadReviewsAdmin() {
   const badge = document.getElementById('reviews-badge');
   if (!list) return;
   try {
-    const res = await fetch('/api/reviews/all', { headers: { 'x-admin-token': token } });
+    const res = await fetch('/api/reviews/all');
     const data = await res.json();
     if (!Array.isArray(data)) { list.innerHTML = '<p style="color:var(--muted)">Error al cargar reseñas.</p>'; return; }
     if (data.length === 0) { list.innerHTML = '<p style="color:var(--muted);padding:2rem;text-align:center;">No hay reseñas aún.</p>'; return; }
@@ -577,13 +572,13 @@ async function loadReviewsAdmin() {
 }
 
 async function approveReview(id) {
-  await fetch('/api/reviews/' + id + '/approve', { method: 'PATCH', headers: { 'x-admin-token': token, ...csrfH() } });
+  await fetch('/api/reviews/' + id + '/approve', { method: 'PATCH', headers: { ...csrfH() } });
   loadReviewsAdmin();
 }
 
 async function deleteReview(id) {
   if (!confirm('¿Eliminar esta reseña?')) return;
-  await fetch('/api/reviews/' + id, { method: 'DELETE', headers: { 'x-admin-token': token, ...csrfH() } });
+  await fetch('/api/reviews/' + id, { method: 'DELETE', headers: { ...csrfH() } });
   loadReviewsAdmin();
 }
 
@@ -625,12 +620,12 @@ async function loadDashboard() {
   try {
     const adminAllowed = canManageAdmin();
     const [rP, rC, rR, rPort, rUsers, rAudit] = await Promise.all([
-      fetch('/api/products', { headers: { 'x-admin-token': token } }),
-      fetch('/api/contacts', { headers: { 'x-admin-token': token } }),
-      fetch('/api/reviews/all', { headers: { 'x-admin-token': token } }),
-      fetch('/api/portfolio', { headers: { 'x-admin-token': token } }),
-      adminAllowed ? fetch('/api/admin/users', { headers: { 'x-admin-token': token } }) : Promise.resolve({ json: async () => [] }),
-      adminAllowed ? fetch('/api/admin/audit?limit=50', { headers: { 'x-admin-token': token } }) : Promise.resolve({ json: async () => [] }),
+      fetch('/api/products'),
+      fetch('/api/contacts'),
+      fetch('/api/reviews/all'),
+      fetch('/api/portfolio'),
+      adminAllowed ? fetch('/api/admin/users') : Promise.resolve({ json: async () => [] }),
+      adminAllowed ? fetch('/api/admin/audit?limit=50') : Promise.resolve({ json: async () => [] }),
     ]);
 
     const safeJson = async (res) => {
@@ -896,7 +891,7 @@ async function uploadFile(file) {
     formData.append('image', file);
     const r = await fetch(API + '/api/upload', {
       method: 'POST',
-      headers: { 'x-admin-token': token, ...csrfH() },
+      headers: { ...csrfH() },
       body: formData
     });
     clearInterval(interval);
@@ -934,7 +929,7 @@ async function renderModalGallery() {
   const container = document.getElementById('modal-gallery-select');
   if (uploadedImages.length === 0) {
     try {
-      const r = await fetch(API + '/api/uploads', { headers: { 'x-admin-token': token } });
+      const r = await fetch(API + '/api/uploads');
       uploadedImages = await r.json();
     } catch { uploadedImages = []; }
   }
@@ -958,7 +953,7 @@ function selectFromGallery(url, el) {
 // ── Galería principal ──────────────────────────
 async function loadGallery() {
   try {
-    const r = await fetch(API + '/api/uploads', { headers: { 'x-admin-token': token } });
+    const r = await fetch(API + '/api/uploads');
     uploadedImages = await r.json();
     renderGallery();
   } catch { toast('Error cargando galería', 'error'); }
@@ -988,7 +983,7 @@ async function uploadFromGallery(input) {
   try {
     const r = await fetch(API + '/api/upload', {
       method: 'POST',
-      headers: { 'x-admin-token': token, ...csrfH() },
+      headers: { ...csrfH() },
       body: formData
     });
     if (!r.ok) throw new Error();
@@ -1006,7 +1001,7 @@ async function deleteImage(filename, e) {
     const url = id.includes('/')
       ? `${API}/api/upload/cloudinary?public_id=${encodeURIComponent(id)}`
       : `${API}/api/upload/${encodeURIComponent(id)}`;
-    await fetch(url, { method: 'DELETE', headers: { 'x-admin-token': token, ...csrfH() } });
+    await fetch(url, { method: 'DELETE', headers: { ...csrfH() } });
     uploadedImages = uploadedImages.filter(i => (i.deleteId || i.filename) !== id);
     renderGallery();
     toast('Imagen eliminada', 'success');
@@ -1069,7 +1064,7 @@ async function saveProduct() {
     const method = editingId ? 'PUT' : 'POST';
     const r = await fetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
+      headers: { 'Content-Type': 'application/json', ...csrfH() },
       body: JSON.stringify(payload)
     });
     if (!r.ok) throw new Error();
@@ -1092,7 +1087,7 @@ function closeConfirm() { document.getElementById('confirm-overlay').classList.r
 async function confirmDelete() {
   if (!deletingId) return;
   try {
-    await fetch(`${API}/api/products/${deletingId}`, { method: 'DELETE', headers: { 'x-admin-token': token, ...csrfH() } });
+    await fetch(`${API}/api/products/${deletingId}`, { method: 'DELETE', headers: { ...csrfH() } });
     closeConfirm();
     await loadProducts();
     toast('Producto eliminado', 'success');
@@ -1152,7 +1147,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (approveId) {
       fetch('/api/reviews/' + approveId + '/approve', {
         method: 'PATCH',
-        headers: { 'x-admin-token': token, ...csrfH() },
+        headers: { ...csrfH() },
       }).then(loadDashboard);
     }
   });
@@ -1472,7 +1467,7 @@ async function savePricing() {
   try {
     const r = await fetch(API + '/api/pricing', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
+      headers: { 'Content-Type': 'application/json', ...csrfH() },
       body: JSON.stringify(updated)
     });
     if (!r.ok) throw new Error();
@@ -1770,7 +1765,6 @@ function uploadVideoFile(file) {
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', API + '/api/upload/video');
-    xhr.setRequestHeader('x-admin-token', token);
     const csrfToken = getCsrfToken();
     if (csrfToken) xhr.setRequestHeader('x-csrf-token', csrfToken);
 
@@ -1816,7 +1810,7 @@ async function deleteVideo(id) {
     const url = v.publicId
       ? API + '/api/upload/video/cloudinary?public_id=' + encodeURIComponent(v.publicId)
       : API + '/api/upload/video/' + encodeURIComponent(filename);
-    fetch(url, { method: 'DELETE', headers: { 'x-admin-token': token, ...csrfH() } })
+    fetch(url, { method: 'DELETE', headers: { ...csrfH() } })
       .catch(() => { });
   }
   renderVideosAdmin();
@@ -1878,7 +1872,7 @@ async function persistSettings() {
     const updated = { ...currentSettings, videos: videosData, socialMedia: socialData };
     const r = await fetch(API + '/api/settings', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
+      headers: { 'Content-Type': 'application/json', ...csrfH() },
       body: JSON.stringify(updated),
     });
     if (!r.ok) throw new Error();
@@ -2069,7 +2063,6 @@ async function sendResetLink() {
 async function loadAdminProfile() {
   try {
     const r = await fetch(API + '/api/auth/profile', {
-      headers: { 'x-admin-token': token },
       cache: 'no-store',
     });
     if (!r.ok) {
@@ -2121,12 +2114,11 @@ async function changePassword() {
     if (newPass) payload.newPassword = newPass;
     const r = await fetch(API + '/api/auth/change-password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
+      headers: { 'Content-Type': 'application/json', ...csrfH() },
       body: JSON.stringify(payload),
     });
     const d = await r.json();
     if (d.success) {
-      token = '';
       if (d.email) {
         document.getElementById('sec-email').value = d.email;
         sessionStorage.setItem('adminEmail', d.email);
@@ -2172,7 +2164,7 @@ async function loadAdminUsers() {
   if (!list) return;
   list.innerHTML = '<div class="dash-empty"><i class="fas fa-sync-alt fa-spin"></i><span>Cargando usuarios...</span></div>';
   try {
-    const r = await fetch('/api/admin/users', { headers: { 'x-admin-token': token }, cache: 'no-store' });
+    const r = await fetch('/api/admin/users', { cache: 'no-store' });
     const users = await r.json();
     if (!r.ok || !Array.isArray(users)) throw new Error(users.error || 'Error');
     list.innerHTML = users.length ? users.map(u => `
@@ -2215,7 +2207,7 @@ async function createAdminUser() {
   try {
     const r = await fetch('/api/admin/users', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
+      headers: { 'Content-Type': 'application/json', ...csrfH() },
       body: JSON.stringify({ name, email, role, password }),
     });
     const d = await r.json();
@@ -2234,7 +2226,7 @@ async function toggleAdminUser(id, active) {
   try {
     const r = await fetch('/api/admin/users/' + id, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
+      headers: { 'Content-Type': 'application/json', ...csrfH() },
       body: JSON.stringify({ active }),
     });
     const d = await r.json();
@@ -2252,7 +2244,7 @@ async function resetAdminUserPassword(id, email) {
   try {
     const r = await fetch('/api/admin/users/' + id + '/password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
+      headers: { 'Content-Type': 'application/json', ...csrfH() },
       body: JSON.stringify({ password }),
     });
     const d = await r.json();
@@ -2293,7 +2285,7 @@ async function loadAuditLog() {
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">Cargando historial...</td></tr>';
   try {
-    const r = await fetch('/api/admin/audit?limit=150', { headers: { 'x-admin-token': token }, cache: 'no-store' });
+    const r = await fetch('/api/admin/audit?limit=150', { cache: 'no-store' });
     const events = await r.json();
     if (!r.ok || !Array.isArray(events)) throw new Error(events.error || 'Error');
     tbody.innerHTML = events.length ? events.map(ev => `
@@ -2313,7 +2305,7 @@ async function loadAuditLog() {
 // ── 2FA / TOTP ────────────────────────────────
 async function loadTwoFaStatus() {
   try {
-    const r = await fetch(API + '/api/auth/2fa/status', { headers: { 'x-admin-token': token } });
+    const r = await fetch(API + '/api/auth/2fa/status');
     const d = await r.json();
     renderTwoFaState(d.enabled);
   } catch {
@@ -2333,7 +2325,7 @@ async function initTwoFaSetup() {
   try {
     const r = await fetch(API + '/api/auth/2fa/setup', {
       method: 'POST',
-      headers: { 'x-admin-token': token, ...csrfH() },
+      headers: { ...csrfH() },
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error);
@@ -2366,7 +2358,7 @@ async function confirmTwoFa() {
   try {
     const r = await fetch(API + '/api/auth/2fa/enable', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
+      headers: { 'Content-Type': 'application/json', ...csrfH() },
       body: JSON.stringify({ code }),
     });
     const d = await r.json();
@@ -2392,7 +2384,7 @@ async function disableTwoFa() {
   try {
     const r = await fetch(API + '/api/auth/2fa/disable', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
+      headers: { 'Content-Type': 'application/json', ...csrfH() },
       body: JSON.stringify({ password, code }),
     });
     const d = await r.json();

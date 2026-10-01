@@ -33,3 +33,6 @@ Thumbs.db
 
 # Editor
 .vscode/
+
+data/auth-tokens.json
+data/admin-session-revocations.json

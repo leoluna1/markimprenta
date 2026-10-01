@@ -190,54 +190,20 @@ function validatePasswordStrength(pwd) {
   return null;
 }
 
-// ── Reset tokens (contraseña olvidada) ────────
-const resetTokens = new Map();
-const RESET_TTL_MS = 15 * 60 * 1000;
+// ── Tokens de reset (15 min) y desafío 2FA (5 min) ──
+// Persistidos en BD (hasheados): sobreviven reinicios y varias instancias.
+const RESET_TTL_MS     = 15 * 60 * 1000;
+const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
-function createResetToken(user) {
+async function createResetToken(user) {
   const token = crypto.randomBytes(32).toString('hex');
-  resetTokens.set(token, {
-    expiresAt: Date.now() + RESET_TTL_MS,
-    userId: user?.id || null,
-  });
+  await db.createAuthToken('reset', token, user?.id, RESET_TTL_MS);
   return token;
 }
-function isValidResetToken(token) {
-  if (!token || !resetTokens.has(token)) return false;
-  const entry = resetTokens.get(token);
-  const expiresAt = typeof entry === 'number' ? entry : entry.expiresAt;
-  if (Date.now() > expiresAt) { resetTokens.delete(token); return false; }
-  return true;
-}
-function getResetTokenUserId(token) {
-  const entry = resetTokens.get(token);
-  return entry && typeof entry === 'object' ? entry.userId : null;
-}
-
-// ── 2FA challenge tokens (5 min, solo en memoria) ──
-const challengeTokens = new Map();
-
-function createChallengeToken(user) {
+async function createChallengeToken(user) {
   const token = crypto.randomBytes(32).toString('hex');
-  challengeTokens.set(token, {
-    expiresAt: Date.now() + 5 * 60 * 1000,
-    userId: user?.id || null,
-  });
+  await db.createAuthToken('challenge', token, user?.id, CHALLENGE_TTL_MS);
   return token;
-}
-function isValidChallengeToken(token) {
-  if (!token || !challengeTokens.has(token)) return false;
-  const entry = challengeTokens.get(token);
-  const expiresAt = typeof entry === 'number' ? entry : entry.expiresAt;
-  if (Date.now() > expiresAt) { challengeTokens.delete(token); return false; }
-  return true;
-}
-function getChallengeUserId(token) {
-  const entry = challengeTokens.get(token);
-  return entry && typeof entry === 'object' ? entry.userId : null;
-}
-function consumeChallengeToken(token) {
-  challengeTokens.delete(token);
 }
 
 // ── Carpetas necesarias ────────────────────────
@@ -661,7 +627,7 @@ app.post('/api/auth', authLimiter, async (req, res) => {
 
   if (user.totp_enabled && user.totp_secret) {
     if (!totpCode) {
-      const challengeToken = createChallengeToken(user);
+      const challengeToken = await createChallengeToken(user);
       auditLog('LOGIN_2FA_CHALLENGE', { summary: 'Login requiere verificacion 2FA' }, req, user);
       return res.json({ twoFaRequired: true, challengeToken });
     }
@@ -688,10 +654,11 @@ app.post('/api/auth/2fa/challenge', authLimiter, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const { challengeToken, totpCode } = req.body;
 
-  if (!isValidChallengeToken(challengeToken))
+  const challenge = await db.getAuthToken('challenge', challengeToken);
+  if (!challenge)
     return res.status(401).json({ error: 'Sesión de verificación expirada. Inicia sesión de nuevo.' });
 
-  const userId = getChallengeUserId(challengeToken);
+  const userId = challenge.user_id;
   const user = userId ? await db.getAdminUserById(userId) : null;
   if (!user || user.active === false || !user.totp_enabled || !user.totp_secret)
     return res.status(400).json({ error: '2FA no está configurado.' });
@@ -708,7 +675,8 @@ app.post('/api/auth/2fa/challenge', authLimiter, async (req, res) => {
     return res.status(401).json({ error: 'Código 2FA incorrecto.' });
   }
 
-  consumeChallengeToken(challengeToken);
+  if (!await db.consumeAuthToken('challenge', challengeToken))
+    return res.status(401).json({ error: 'Sesión de verificación expirada. Inicia sesión de nuevo.' });
   await db.markAdminUserLogin(user.id);
   auditLog('LOGIN_OK_2FA', { summary: 'Inicio de sesion con 2FA correcto' }, req, user);
   setAdminSessionCookie(res, createSession(user));
@@ -743,7 +711,7 @@ app.post('/api/auth/forgot', forgotLimiter, async (req, res) => {
     return res.json(genericOk);
   }
 
-  const token    = createResetToken(user);
+  const token    = await createResetToken(user);
   const siteUrl  = process.env.SITE_URL || `http://localhost:${PORT}`;
   const resetLink = `${siteUrl}/admin?reset_token=${token}`;
   const devPayload = canExposeResetLink(req) ? { devResetLink: resetLink } : {};
@@ -791,27 +759,34 @@ app.post('/api/auth/forgot', forgotLimiter, async (req, res) => {
   }
 });
 
-app.get('/api/auth/reset-token', resetLimiter, (req, res) => {
-  res.json({ valid: isValidResetToken(req.query.token) });
+app.get('/api/auth/reset-token', resetLimiter, async (req, res) => {
+  try {
+    res.json({ valid: Boolean(await db.getAuthToken('reset', String(req.query.token || ''))) });
+  } catch (e) {
+    res.status(500).json({ error: 'Error validando el enlace.' });
+  }
 });
 
 app.post('/api/auth/reset-password', resetLimiter, async (req, res) => {
-  const { token, newPassword } = req.body;
-  if (!isValidResetToken(token))
+  const { token, newPassword } = req.body || {};
+  const resetEntry = await db.getAuthToken('reset', String(token || ''));
+  if (!resetEntry)
     return res.status(400).json({ error: 'Enlace inválido o expirado. Solicita uno nuevo.' });
 
   const pwErr = validatePasswordStrength(newPassword);
   if (pwErr) return res.status(400).json({ error: pwErr });
 
   try {
-    const userId = getResetTokenUserId(token);
+    const userId = resetEntry.user_id;
     const user = userId ? await db.getAdminUserById(userId) : null;
     if (!user || user.active === false)
       return res.status(400).json({ error: 'Usuario no encontrado o inactivo.' });
+    // Consumo atómico: dos peticiones simultáneas con el mismo enlace no pueden usarlo ambas.
+    if (!await db.consumeAuthToken('reset', String(token)))
+      return res.status(400).json({ error: 'Enlace inválido o expirado. Solicita uno nuevo.' });
     const hash = await bcrypt.hash(newPassword, 12);
     await db.updateAdminUserPassword(user.id, hash);
     await db.incrementAdminUserSessionVersion(user.id);
-    resetTokens.delete(token);
     clearAdminSessionCookie(res);
     auditLog('PASSWORD_RESET_OK', { summary: 'Contraseña restablecida por email' }, req, user);
     res.json({ success: true });

@@ -3,6 +3,7 @@
 'use strict';
 
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const { Pool } = require('pg');
 const logger = require('../lib/logger');
@@ -30,6 +31,7 @@ const JSON_FILES = {
   adminUsers: path.join(dataDir, 'admin-users.json'),
   auditEvents: path.join(dataDir, 'audit-events.json'),
   adminSessionRevocations: path.join(dataDir, 'admin-session-revocations.json'),
+  authTokens: path.join(dataDir, 'auth-tokens.json'),
 };
 
 const SEED_FILES = {
@@ -167,6 +169,15 @@ async function createTables() {
       user_id INTEGER,
       expires_at TIMESTAMP NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS auth_tokens (
+      token_hash VARCHAR(64) NOT NULL,
+      kind VARCHAR(20) NOT NULL,
+      user_id INTEGER,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (kind, token_hash)
     );
 
     CREATE TABLE IF NOT EXISTS audit_events (
@@ -912,6 +923,67 @@ async function isAdminSessionRevoked(jti) {
   return active.some(x => x.jti === tokenId);
 }
 
+// ── Tokens de un solo uso (reset de contraseña, desafío 2FA) ──────────────
+// Se guarda solo el hash SHA-256: una fuga de la BD no entrega enlaces utilizables.
+function hashAuthToken(token) {
+  return crypto.createHash('sha256').update(String(token || '')).digest('hex');
+}
+
+// Crea un token nuevo e invalida los anteriores del mismo usuario y tipo.
+async function createAuthToken(kind, token, userId, ttlMs) {
+  const hash = hashAuthToken(token);
+  const uid = Number.isFinite(parseInt(userId, 10)) ? parseInt(userId, 10) : null;
+  const exp = new Date(Date.now() + ttlMs);
+  if (pool) {
+    await pool.query('DELETE FROM auth_tokens WHERE expires_at <= CURRENT_TIMESTAMP OR (kind=$1 AND user_id=$2)', [kind, uid]);
+    await pool.query(
+      'INSERT INTO auth_tokens (token_hash, kind, user_id, expires_at) VALUES ($1, $2, $3, $4)',
+      [hash, kind, uid, exp]
+    );
+    return;
+  }
+  const now = Date.now();
+  const list = readLocalJson('authTokens', [])
+    .filter(x => new Date(x.expires_at).getTime() > now && !(x.kind === kind && x.user_id === uid));
+  list.push({ token_hash: hash, kind, user_id: uid, expires_at: exp.toISOString() });
+  writeLocalJson('authTokens', list);
+}
+
+// Devuelve { user_id } si el token existe y no expiró; null en otro caso.
+async function getAuthToken(kind, token) {
+  if (!token) return null;
+  const hash = hashAuthToken(token);
+  if (pool) {
+    const res = await pool.query(
+      'SELECT user_id FROM auth_tokens WHERE kind=$1 AND token_hash=$2 AND expires_at > CURRENT_TIMESTAMP',
+      [kind, hash]
+    );
+    return res.rows[0] ? { user_id: res.rows[0].user_id } : null;
+  }
+  const now = Date.now();
+  const hit = readLocalJson('authTokens', [])
+    .find(x => x.kind === kind && x.token_hash === hash && new Date(x.expires_at).getTime() > now);
+  return hit ? { user_id: hit.user_id } : null;
+}
+
+// Borra el token y devuelve true solo si existía y seguía vigente (consumo atómico).
+async function consumeAuthToken(kind, token) {
+  if (!token) return false;
+  const hash = hashAuthToken(token);
+  if (pool) {
+    const res = await pool.query(
+      'DELETE FROM auth_tokens WHERE kind=$1 AND token_hash=$2 AND expires_at > CURRENT_TIMESTAMP',
+      [kind, hash]
+    );
+    return res.rowCount > 0;
+  }
+  const now = Date.now();
+  const list = readLocalJson('authTokens', []);
+  const hit = list.find(x => x.kind === kind && x.token_hash === hash && new Date(x.expires_at).getTime() > now);
+  writeLocalJson('authTokens', list.filter(x => x !== hit && new Date(x.expires_at).getTime() > now));
+  return Boolean(hit);
+}
+
 async function createAuditEvent(event) {
   const data = {
     user_id: event.user_id || null,
@@ -1061,6 +1133,9 @@ module.exports = {
   incrementAdminUserSessionVersion,
   revokeAdminSession,
   isAdminSessionRevoked,
+  createAuthToken,
+  getAuthToken,
+  consumeAuthToken,
   createAuditEvent,
   listAuditEvents,
   getAuth,

@@ -122,13 +122,13 @@
         <div class="nav-item" id="nav-gallery" data-goto="gallery">
           <i class="fas fa-images"></i> Imágenes
         </div>
-        <div class="nav-item" id="nav-pricing" data-goto="pricing">
+        <div class="nav-item" id="nav-pricing" data-goto="pricing" data-admin-only hidden>
           <i class="fas fa-calculator"></i> Cotizador
         </div>
-        <div class="nav-item" id="nav-videos" data-goto="videos">
+        <div class="nav-item" id="nav-videos" data-goto="videos" data-admin-only hidden>
           <i class="fas fa-video"></i> Videos
         </div>
-        <div class="nav-item" id="nav-social" data-goto="social">
+        <div class="nav-item" id="nav-social" data-goto="social" data-admin-only hidden>
           <i class="fas fa-share-alt"></i> Redes Sociales
         </div>
         <div class="nav-item" id="nav-portfolio" data-goto="portfolio">
@@ -269,10 +269,10 @@
             rápidas</div>
           <div style="display:flex;flex-wrap:wrap;gap:.6rem;">
             <button class="btn-add" data-goto="products"><i class="fas fa-box"></i> Productos</button>
-            <button class="btn-add" data-goto="pricing"><i class="fas fa-calculator"></i> Cotizador</button>
+            <button class="btn-add" data-goto="pricing" data-admin-only hidden><i class="fas fa-calculator"></i> Cotizador</button>
             <button class="btn-add" data-goto="gallery"><i class="fas fa-images"></i> Galería</button>
             <button class="btn-add" data-goto="portfolio"><i class="fas fa-th"></i> Portfolio</button>
-            <button class="btn-add" data-goto="videos"><i class="fas fa-video"></i> Videos</button>
+            <button class="btn-add" data-goto="videos" data-admin-only hidden><i class="fas fa-video"></i> Videos</button>
             <button class="btn-add" data-goto="users" data-admin-only hidden><i class="fas fa-users-cog"></i>
               Usuarios</button>
             <button class="btn-add" data-goto="audit" data-admin-only hidden><i class="fas fa-clipboard-list"></i>

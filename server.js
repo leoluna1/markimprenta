@@ -1152,7 +1152,7 @@ app.patch('/api/contacts/:id/read', authenticate, async (req, res) => {
   }
 });
 
-app.delete('/api/contacts/:id', authenticate, async (req, res) => {
+app.delete('/api/contacts/:id', authenticate, requireAdminRole, async (req, res) => {
   try {
     const ok = await db.deleteContact(+req.params.id);
     if (!ok) return res.status(404).json({ error: 'No encontrado' });
@@ -1254,7 +1254,7 @@ function localUploadPathFromUrl(value) {
 }
 
 // ── Subida archivos ───────────────────────────
-app.post('/api/upload/video', authenticate, videoUpload.single('video'), async (req, res) => {
+app.post('/api/upload/video', authenticate, requireAdminRole, videoUpload.single('video'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
   if (!await validateUploadedMagicBytes(req.file, 'video')) {
     removeTempUpload(req.file.path);
@@ -1288,7 +1288,7 @@ app.post('/api/upload/video', authenticate, videoUpload.single('video'), async (
   }
 });
 
-app.delete('/api/upload/video/cloudinary', authenticate, async (req, res) => {
+app.delete('/api/upload/video/cloudinary', authenticate, requireAdminRole, async (req, res) => {
   if (!CLOUDINARY_ENABLED) return res.status(400).json({ error: 'Cloudinary no configurado.' });
   if (!req.query.public_id) return res.status(400).json({ error: 'public_id requerido.' });
   if (!isCloudinaryPublicIdInFolder(req.query.public_id))
@@ -1307,7 +1307,7 @@ app.delete('/api/upload/video/cloudinary', authenticate, async (req, res) => {
   }
 });
 
-app.delete('/api/upload/video/:filename', authenticate, async (req, res) => {
+app.delete('/api/upload/video/:filename', authenticate, requireAdminRole, async (req, res) => {
   const filename = req.params.filename;
   if (filename.includes('/') || filename.includes('..')) return res.status(400).json({ error: 'Nombre inválido' });
   const filepath = path.join(VIDEOS_DIR, filename);
@@ -1698,7 +1698,7 @@ app.get('/api/pricing', async (req, res) => {
   catch (e) { res.status(500).json({ error: 'Error leyendo precios' }); }
 });
 
-app.put('/api/pricing', authenticate, async (req, res) => {
+app.put('/api/pricing', authenticate, requireAdminRole, async (req, res) => {
   try {
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))
       return res.status(400).json({ error: 'Formato de precios inválido.' });
@@ -1719,7 +1719,7 @@ app.get('/api/settings', async (req, res) => {
   catch (e) { res.status(500).json({ error: 'Error leyendo configuración' }); }
 });
 
-app.put('/api/settings', authenticate, async (req, res) => {
+app.put('/api/settings', authenticate, requireAdminRole, async (req, res) => {
   try {
     const body    = req.body;
     const current = await db.getSettings();

@@ -48,7 +48,7 @@ function applyAdminPermissions() {
   document.querySelectorAll('[data-admin-only]').forEach(el => {
     el.hidden = !allowed;
   });
-  if (!allowed && ['section-users', 'section-audit'].some(id => document.getElementById(id)?.classList.contains('active'))) {
+  if (!allowed && ['section-users', 'section-audit', 'section-pricing', 'section-videos', 'section-social'].some(id => document.getElementById(id)?.classList.contains('active'))) {
     showSection('dashboard');
   }
 }
@@ -84,7 +84,7 @@ async function loadContacts() {
             ${c.phone ? `<a href="https://wa.me/${esc(c.phone.replace(/\D/g, ''))}" target="_blank" rel="noopener noreferrer" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid #25d366;border-radius:6px;background:transparent;cursor:pointer;color:#25d366;text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : ''}
             <a href="mailto:${esc(c.email)}" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid var(--blue);border-radius:6px;background:transparent;color:var(--blue);text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;"><i class="fas fa-reply"></i> Email</a>
             ${!c.read ? `<button data-action="markRead" data-id="${c.id}" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid var(--border);border-radius:6px;background:transparent;cursor:pointer;color:var(--text);font-family:inherit;"><i class="fas fa-check"></i> Leído</button>` : ''}
-            <button data-action="deleteContact" data-id="${c.id}" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid #fca5a5;border-radius:6px;background:transparent;cursor:pointer;color:#dc2626;font-family:inherit;"><i class="fas fa-trash"></i></button>
+            ${canManageAdmin() ? `<button data-action="deleteContact" data-id="${c.id}" style="font-size:.75rem;padding:.3rem .75rem;border:1px solid #fca5a5;border-radius:6px;background:transparent;cursor:pointer;color:#dc2626;font-family:inherit;"><i class="fas fa-trash"></i></button>` : ''}
           </div>
         </div>
         <div style="margin:1rem 0 0;padding:1rem;background:var(--bg);border-radius:8px;font-size:.9rem;line-height:1.65;white-space:pre-wrap;color:var(--text);">${esc(c.message)}</div>
@@ -586,6 +586,7 @@ async function deleteReview(id) {
 function showSection(name) {
   document.querySelectorAll('.section-panel').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.sidebar-nav .nav-item').forEach(n => n.classList.remove('active'));
+  if (['pricing', 'videos', 'social'].includes(name) && !canManageAdmin()) return showSection('dashboard');
   const panel = document.getElementById('section-' + name);
   const nav = document.getElementById('nav-' + name);
   if (panel) panel.classList.add('active');

@@ -2379,6 +2379,7 @@ async function confirmTwoFa() {
 
 async function disableTwoFa() {
   const password = document.getElementById('twofa-disable-pass').value;
+  const code = document.getElementById('twofa-disable-code').value.trim();
   const msgEl = document.getElementById('twofa-disable-msg');
   const showMsg = (msg, ok) => {
     msgEl.textContent = msg;
@@ -2387,15 +2388,17 @@ async function disableTwoFa() {
     msgEl.style.color = ok ? 'var(--green)' : 'var(--red)';
   };
   if (!password) return showMsg('Ingresa tu contraseña actual para confirmar', false);
+  if (!/^\d{6}$/.test(code)) return showMsg('Ingresa el código de 6 dígitos de tu app', false);
   try {
     const r = await fetch(API + '/api/auth/2fa/disable', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-token': token, ...csrfH() },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ password, code }),
     });
     const d = await r.json();
     if (!r.ok) return showMsg(d.error || 'Error', false);
     document.getElementById('twofa-disable-pass').value = '';
+    document.getElementById('twofa-disable-code').value = '';
     renderTwoFaState(false);
   } catch {
     showMsg('Error de conexión', false);

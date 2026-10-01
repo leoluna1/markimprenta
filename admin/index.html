@@ -725,6 +725,8 @@
                 <button class="pw-eye" type="button" data-action="togglePw" data-target="twofa-disable-pass" tabindex="-1"><i
                     class="fas fa-eye"></i></button>
               </div>
+              <input type="text" id="twofa-disable-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code"
+                placeholder="Código de 6 dígitos de tu app" style="font-size:.95rem;">
               <div id="twofa-disable-msg" style="font-size:.85rem;display:none;padding:.5rem .75rem;border-radius:6px;">
               </div>
               <button data-action="disableTwoFa"

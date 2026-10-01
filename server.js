@@ -596,18 +596,26 @@ function requireApiCsrf(req, res, next) {
 }
 app.use(requireApiCsrf);
 
-// ── Bloquear archivos sensibles del servidor ──
-const PRIVATE_PATH_RE = /^\/(?:server\.js|package(?:-lock)?\.json|railway\.json|[^/]*\.md|lib\/|db\/|data\/|logs\/|node_modules\/|\.env|index\.html$|admin\/index\.html$)/i;
-app.use((req, res, next) => {
-  if (PRIVATE_PATH_RE.test(req.path)) return res.status(403).end();
-  next();
-});
+// ── Archivos estáticos (lista blanca) ─────────
+// Solo se publica lo que el sitio necesita. NO servir __dirname completo:
+// una lista negra sobre req.path se puede evadir con URL-encoding (/%73erver.js).
+const PUBLIC_ROOT_FILES = [
+  'styles.css', 'sw.js', 'manifest.json', 'whatsapp-widget.js',
+  'robots.txt', 'sitemap.xml', 'og-mark-publicidad.jpg',
+];
+const STATIC_OPTS = { dotfiles: 'deny', index: false, redirect: false };
 
-// ── Archivos estáticos ────────────────────────
-app.use(express.static(__dirname, { dotfiles: 'deny', index: false, redirect: false }));
-app.use('/uploads',        express.static(UPLOADS_DIR));
-app.use('/uploads/videos', express.static(VIDEOS_DIR));
-app.use('/admin',          express.static(path.join(__dirname, 'admin'), { index: false, redirect: false }));
+for (const file of PUBLIC_ROOT_FILES) {
+  app.get(`/${file}`, (req, res) => res.sendFile(path.join(__dirname, file), { dotfiles: 'deny' }));
+}
+app.use('/app',    express.static(path.join(__dirname, 'app'),    STATIC_OPTS));
+app.use('/images', express.static(path.join(__dirname, 'images'), STATIC_OPTS));
+app.use('/uploads/videos', express.static(VIDEOS_DIR, STATIC_OPTS));
+app.use('/uploads',        express.static(UPLOADS_DIR, STATIC_OPTS));
+// Admin: solo estos dos archivos; admin/index.html se sirve únicamente con nonce CSP.
+for (const file of ['admin.js', 'styles.css']) {
+  app.get(`/admin/${file}`, (req, res) => res.sendFile(path.join(__dirname, 'admin', file), { dotfiles: 'deny' }));
+}
 
 // ── Middleware de autenticación ───────────────
 async function authenticate(req, res, next) {
@@ -859,6 +867,12 @@ app.post('/api/auth/change-password', authenticate, async (req, res) => {
 
 // ── 2FA: configurar TOTP ──────────────────────
 app.post('/api/auth/2fa/setup', authenticate, async (req, res) => {
+  // Si el 2FA ya está activo, no se puede regenerar el secreto (eso lo desactivaría
+  // sin contraseña ni código). Hay que desactivarlo primero con /2fa/disable.
+  const current = await db.getAdminUserById(req.adminUser.id);
+  if (current && current.totp_enabled)
+    return res.status(409).json({ error: 'El 2FA ya está activo. Desactívalo primero para reconfigurarlo.' });
+
   const secret = speakeasy.generateSecret({
     name:   `Mark Publicidad Admin (${req.adminUser.email})`,
     length: 20,
@@ -898,10 +912,25 @@ app.post('/api/auth/2fa/enable', authenticate, async (req, res) => {
 });
 
 app.post('/api/auth/2fa/disable', authenticate, async (req, res) => {
-  const { password } = req.body;
+  const { password, code } = req.body || {};
   const ok = await verifyPassword(password, req.adminUser);
   if (!ok)
     return res.status(401).json({ error: 'Contraseña incorrecta.' });
+
+  // Con 2FA activo se exige además un código TOTP válido para desactivarlo.
+  const current = await db.getAdminUserById(req.adminUser.id);
+  if (current && current.totp_enabled && current.totp_secret) {
+    const verified = speakeasy.totp.verify({
+      secret:   current.totp_secret,
+      encoding: 'base32',
+      token:    String(code || ''),
+      window:   1,
+    });
+    if (!verified) {
+      auditLog('2FA_DISABLE_FAILED', { summary: 'Código 2FA incorrecto al desactivar' }, req);
+      return res.status(401).json({ error: 'Código 2FA incorrecto.' });
+    }
+  }
 
   await db.updateAdminUserTotp(req.adminUser.id, { totp_secret: null, totp_enabled: false });
   auditLog('2FA_DISABLED', { summary: '2FA desactivado' }, req);

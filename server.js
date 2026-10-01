@@ -1123,26 +1123,8 @@ app.post('/api/contact', contactLimiter, csrfProtect, contactValidators, async (
   }
 
   res.json({ success: true, message: '¡Mensaje enviado correctamente!', results: { email: emailOk } });
-
-  if (transport && emailOk) {
-    transport.sendMail({
-      from:    `"Mark Publicidad Impresa" <${getMailFromAddress()}>`,
-      to:      email,
-      subject: `Recibimos tu mensaje — Mark Publicidad`,
-      html: `
-        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
-          <div style="background:#E30613;padding:24px 32px;border-radius:12px 12px 0 0;">
-            <h2 style="color:white;margin:0;font-size:1.4rem;">¡Gracias por contactarnos, ${escapeHtml(name)}!</h2>
-          </div>
-          <div style="background:#ffffff;padding:32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
-            <p>Recibimos tu mensaje y te responderemos a la brevedad posible.</p>
-            <p style="color:#6b7280;font-size:0.9rem;border-left:3px solid #e5e7eb;padding-left:1rem;margin:1.5rem 0;">${escapeHtml(message).replace(/\n/g, '<br>')}</p>
-            <p style="color:#9ca3af;font-size:0.8rem;margin-top:2rem;">— Equipo Mark Publicidad Impresa · Ibarra, Ecuador</p>
-          </div>
-        </div>
-      `,
-    }).catch(() => {});
-  }
+  // No se envía auto-respuesta al visitante: el destinatario y el texto los controla
+  // un anónimo, lo que permitiría usar el servidor para enviar correo a terceros.
 });
 
 // ── Historial de contactos (admin) ────────────
